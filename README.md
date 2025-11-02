@@ -8,7 +8,7 @@
   <a href="#features">Features</a> •
   <a href="#installation">Installation</a> •
   <a href="#quick-start">Quick Start</a> •
-  <a href="#configuration-files">Configuration Files</a> •
+  <a href="#configuration-files">Configuration</a> •
   <a href="#license">License</a>
 </p>
 
@@ -32,6 +32,11 @@
 - **Executive Summary Generation**: Unified risk assessment with actionable recommendations
 - **Context-Aware Analysis**: Each permission and finding analyzed with full extension context
 
+### 🖥️ Multiple Interfaces
+- **CLI**: Fast command-line analysis with rich console output (Click framework)
+- **Web UI**: Quick demo interface for simple web-based analysis
+- **MCP Server**: FastMCP integration for Claude Code direct integration
+
 ## Installation
 
 ### Prerequisites
@@ -44,7 +49,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/BARHA/ThreatXtension.git
+git clone https://github.com/barvhaim/ThreatXtension.git
 cd ThreatXtension
 
 # Install dependencies
@@ -64,28 +69,46 @@ See [LLM Configuration](#llm-configuration) for details.
 
 ## Quick Start
 
-### Launch Web UI
+ThreatXtension provides **multiple ways to analyze Chrome extensions**:
+
+### 1. Command Line Interface (CLI)
+
+The CLI provides the fastest way to analyze extensions with rich console output.
+
+```bash
+# Analyze extension
+make analyze URL=<chrome_web_store_url>
+```
+
+### 2. Web UI
+
+Quick demo interface for web-based analysis.
 
 ```bash
 make ui
 # or
-uv run python -m threatxtension.ui.app
+uv run gradio src/threatxtension/ui/app.py
 
 # Access at http://localhost:7860
 ```
 
-### Command Line Usage
+### 3. Claude Desktop Integration (MCP)
+
+Analyze extensions directly from Claude Desktop conversations. See [MCP Server for Claude Desktop](#mcp-server-for-claude-desktop) for setup instructions.
+
+### Example Workflow Script
+
+Run the example script to see the complete workflow in action:
 
 ```bash
-# Run example workflow
 uv run example_workflow.py
 
-# The script will analyze a sample extension and display:
+# The script analyzes a sample extension and displays:
 # - Extension metadata (name, version, users)
 # - Permissions analysis
 # - SAST findings
 # - Web Store reputation
-# - Executive summary
+# - Executive summary with risk assessment
 ```
 
 ## LLM Configuration
@@ -191,6 +214,69 @@ All rules include MITRE ATT&CK mappings and CWE references.
   }
 }
 ```
+
+## Integration
+
+### MCP Server for Claude Desktop
+
+ThreatXtension can be integrated directly into Claude Desktop as an MCP (Model Context Protocol) tool, allowing you to analyze Chrome extensions directly from your conversations with Claude.
+
+**Prerequisites**:
+- Claude Desktop installed ([Download](https://claude.ai/download))
+- `uv` package manager
+- Python 3.11+
+- ThreatXtension cloned and dependencies installed (`uv sync`)
+
+**Setup**:
+
+1. **Find your Claude Desktop config file**:
+   - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+   - **Linux**: `~/.config/Claude/claude_desktop_config.json`
+
+2. **Edit the config file** and add ThreatXtension to the `mcpServers` section:
+
+```json
+{
+  "mcpServers": {
+    "ThreatXtension": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/PATH/TO/ThreatXtension",
+        "run",
+        "python",
+        "-m",
+        "threatxtension.mcp_server.main"
+      ]
+    }
+  }
+}
+```
+
+**Important**: Replace `/PATH/TO/ThreatXtension` with the absolute path to your ThreatXtension installation.
+
+3. **Restart Claude Desktop**
+
+4. **Verify Installation**: You should see a small hammer icon 🔨 in Claude Desktop indicating the ThreatXtension MCP server is available.
+
+**Usage in Claude Desktop**:
+
+Once configured, you can ask Claude to analyze Chrome extensions:
+
+```
+Analyze this Chrome extension:
+https://chromewebstore.google.com/detail/steam-inventory-helper/cmeakgjggjdlcpncigglobpjbkabhmjl
+```
+
+Claude will automatically use the `analyze_chrome_extension()` tool to perform a complete security analysis and provide you with:
+- Extension metadata
+- Risk level assessment
+- Key security findings
+- Recommendations
+
+**Available MCP Tools**:
+- `analyze_chrome_extension(chrome_extension_url)` - Performs complete security analysis on a Chrome Web Store extension
 
 ## License
 
