@@ -1,0 +1,54 @@
+[MAIN]
+# Minimum Python version to use
+py-version=3.11
+
+# Specify a score threshold under which the program will exit with error
+fail-under=9.0
+
+# Files or directories to be skipped
+ignore=CVS,.git,__pycache__,.pytest_cache,.venv,venv,node_modules
+
+# Pickle collected data for later comparisons
+persistent=yes
+
+[MESSAGES CONTROL]
+# Disable specific warnings that are acceptable in this codebase
+disable=
+    broad-exception-caught,  # W0718: We intentionally catch broad exceptions for logging
+    too-few-public-methods,  # R0903: Utility classes may have few public methods
+    import-outside-toplevel,  # C0415: We use lazy imports for optional dependencies
+
+[FORMAT]
+# Maximum number of characters on a single line
+max-line-length=100
+
+# Maximum number of lines in a module
+max-module-lines=1000
+
+[BASIC]
+# Good variable names which should always be accepted
+good-names=i,j,k,ex,exc,_,id,f,e
+
+# Regular expression matching correct constant names
+const-rgx=(([A-Z_][A-Z0-9_]*)|(__.*__))$
+
+[DESIGN]
+# Maximum number of arguments for function / method
+max-args=7
+
+# Maximum number of locals for function / method body
+max-locals=15
+
+# Maximum number of return / yield for function / method body
+max-returns=6
+
+# Maximum number of branch for function / method body
+max-branches=12
+
+[IMPORTS]
+# Allow wildcard imports from modules
+allow-wildcard-with-all=no
+
+[LOGGING]
+# Format style used to check logging format string
+logging-format-style=old

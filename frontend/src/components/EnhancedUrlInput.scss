@@ -1,0 +1,293 @@
+// Enhanced URL Input Component - Modern SaaS UI
+.enhanced-url-input {
+  width: 100%;
+
+  .input-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-end;
+    background: linear-gradient(
+      135deg,
+      var(--cds-layer-01) 0%,
+      var(--cds-layer-02) 100%
+    );
+    border: 1px solid var(--cds-border-subtle);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.2),
+      0 4px 12px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(15px);
+    position: relative;
+
+    // Subtle glow effect
+    &::before {
+      content: "";
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(45deg, #4ecdc4, #45b7d1, #ff6b6b, #4ecdc4);
+      border-radius: 16px;
+      z-index: -1;
+      opacity: 0.2;
+      filter: blur(8px);
+    }
+  }
+
+  .url-field-container {
+    flex: 1;
+    min-width: 300px;
+    position: relative;
+
+    .url-input-field {
+      width: 100%;
+
+      .cds--text-input {
+        background: var(--cds-layer-02) !important;
+        border: 2px solid var(--cds-border-subtle) !important;
+        border-radius: 10px !important;
+        font-size: 1rem !important;
+        padding: 0.75rem 2.5rem 0.75rem 1rem !important;
+        transition: all 0.3s ease;
+        min-height: 50px;
+
+        &:focus {
+          border-color: #4ecdc4 !important;
+          box-shadow: 0 0 0 4px rgba(78, 205, 196, 0.2) !important;
+          background: var(--cds-layer-03) !important;
+          transform: translateY(-1px);
+        }
+      }
+
+      .cds--label {
+        font-weight: 600 !important;
+        color: var(--cds-text-primary) !important;
+        margin-bottom: 0.5rem !important;
+        font-size: 0.9rem !important;
+      }
+    }
+  }
+
+  .recent-urls-dropdown {
+    position: absolute;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    z-index: 10;
+
+    .dropdown-toggle {
+      background: none;
+      border: none;
+      color: var(--cds-text-secondary);
+      padding: 0.5rem;
+      cursor: pointer;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--cds-text-primary);
+      }
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: calc(100% + 5px);
+      right: 0;
+      width: 300px;
+      max-height: 300px;
+      overflow-y: auto;
+      background: var(--cds-layer-02);
+      border: 1px solid var(--cds-border-subtle);
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      animation: fadeIn 0.2s ease-out;
+
+      .dropdown-header {
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        color: var(--cds-text-primary);
+        border-bottom: 1px solid var(--cds-border-subtle);
+        font-size: 0.9rem;
+      }
+
+      .dropdown-item {
+        display: block;
+        width: 100%;
+        padding: 0.75rem 1rem;
+        text-align: left;
+        background: none;
+        border: none;
+        color: var(--cds-text-secondary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+        &:hover {
+          background: var(--cds-layer-03);
+          color: var(--cds-text-primary);
+        }
+
+        &:not(:last-child) {
+          border-bottom: 1px solid var(--cds-border-subtle);
+        }
+      }
+    }
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 0.75rem;
+
+    .scan-button {
+      background: linear-gradient(135deg, #4ecdc4, #45b7d1) !important;
+      border: none !important;
+      border-radius: 10px !important;
+      font-weight: 600 !important;
+      font-size: 0.95rem !important;
+      padding: 0.75rem 1.5rem !important;
+      color: white !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      box-shadow:
+        0 4px 12px rgba(78, 205, 196, 0.4),
+        0 8px 24px rgba(78, 205, 196, 0.2);
+      transition: all 0.3s ease;
+      min-height: 50px;
+
+      &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow:
+          0 6px 16px rgba(78, 205, 196, 0.5),
+          0 12px 32px rgba(78, 205, 196, 0.3);
+        background: linear-gradient(135deg, #45b7d1, #4ecdc4) !important;
+      }
+
+      &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+      }
+    }
+
+    .sample-button {
+      background: var(--cds-layer-02) !important;
+      border: 1px solid var(--cds-border-strong) !important;
+      border-radius: 10px !important;
+      font-weight: 600 !important;
+      font-size: 0.95rem !important;
+      padding: 0.75rem 1.25rem !important;
+      color: var(--cds-text-primary) !important;
+      transition: all 0.3s ease;
+      min-height: 50px;
+
+      &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        background: var(--cds-layer-03) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+    }
+  }
+
+  .sample-extensions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0 0.5rem;
+
+    .sample-label {
+      font-size: 0.85rem;
+      color: var(--cds-text-secondary);
+      font-weight: 500;
+    }
+
+    .sample-extension-link {
+      background: none;
+      border: none;
+      color: #4ecdc4;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(78, 205, 196, 0.1);
+        transform: translateY(-1px);
+      }
+
+      &:not(:last-child)::after {
+        content: "•";
+        color: var(--cds-text-secondary);
+        margin-left: 0.75rem;
+        opacity: 0.5;
+      }
+    }
+  }
+
+  .input-help-text {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--cds-text-secondary);
+    margin: 0.75rem 0 0 0;
+    font-style: italic;
+    opacity: 0.9;
+  }
+}
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .enhanced-url-input {
+    .input-container {
+      padding: 1.25rem;
+      flex-direction: column;
+
+      .url-field-container {
+        width: 100%;
+      }
+
+      .action-buttons {
+        width: 100%;
+
+        .scan-button,
+        .sample-button {
+          flex: 1;
+        }
+      }
+    }
+
+    .sample-extensions {
+      justify-content: center;
+      margin-top: 1rem;
+    }
+
+    .input-help-text {
+      text-align: center;
+    }
+  }
+}
+
+// Made with Bob

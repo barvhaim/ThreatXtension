@@ -1,0 +1,26 @@
+sast_analysis_prompt: |
+  Analyze SAST (Semgrep) security findings from a Chrome extension's JavaScript files.
+
+  Extension: {extension_name}
+  Files Scanned: {files_scanned}
+  Files with Findings: {files_with_findings}
+
+  Findings by Severity:
+  - CRITICAL: {critical_count}
+  - ERROR: {error_count}
+  - WARNING: {warning_count}
+  - INFO: {info_count}
+
+  Top Findings:
+  {findings_details}
+
+  Provide a concise security risk summary (2-4 sentences).
+  Start with risk level in this exact format: [RISK: LOW/MEDIUM/HIGH]
+  Then summarize the key security findings and their implications.
+
+  Risk Level Guidelines:
+  - LOW: Only INFO findings, no security impact
+  - MEDIUM: WARNING findings indicating potential security issues
+  - HIGH: ERROR or CRITICAL findings indicating exploitable vulnerabilities
+
+  Focus on actionable security insights, not just listing findings.

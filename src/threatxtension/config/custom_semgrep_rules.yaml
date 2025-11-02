@@ -1,0 +1,201 @@
+rules:
+  ##########################################################################
+  # TEST RULE - Detect importScripts usage
+  ##########################################################################
+  - id: test.import_scripts
+    message: "[TEST] importScripts() detected - used to load additional JS files"
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: test
+      description: Detects importScripts() calls to verify custom rules work
+    pattern: importScripts(...)
+
+  ##########################################################################
+  # 1) Fake UI overlay / fake login button
+  ##########################################################################
+  - id: banking.fake_overlay.zindex
+    message: Suspicious overlay/button with high z-index—possible fake UI capture.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: ui-overlay
+      mitre: [TA0009, T1056]
+      owasp: [A02-Cryptographic Failures, A07-Identification and Authentication]
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $E.innerHTML = $S;
+          - pattern: |
+              $P.insertAdjacentHTML($POS, $S);
+      - metavariable-regex:
+          metavariable: $S
+          regex: "<div[^>]*(z-index|position\\s*:\\s*(fixed|absolute))"
+
+  ##########################################################################
+  # 2) Form hijack / submit interception + exfiltration
+  ##########################################################################
+  - id: banking.form_hijack.submit_intercept
+    message: Form submit intercepted with exfiltration/redirect—possible credential grab.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: form-hijack
+      mitre: [T1185, T1056, T1041]
+    patterns:
+      - pattern: |
+          $F.addEventListener('submit', function($EV, ...){ ... });
+      - pattern-inside: |
+          function($EV, ...){ ... $EV.preventDefault(...); ... }
+      - pattern-either:
+          - pattern: |
+              fetch($URL, ...);
+          - pattern: |
+              (new XMLHttpRequest()).open($M, $URL, ...);
+          - pattern: |
+              navigator.sendBeacon($URL, ...);
+
+  ##########################################################################
+  # 3) Credential sniffing — hooks on password fields
+  ##########################################################################
+  - id: banking.cred_sniff.password_input_hooks
+    message: Event hooks on password inputs—may capture credentials.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: credential-access
+      mitre: [T1056, T1555]
+    pattern-either:
+      - pattern: |
+          document.querySelectorAll('input[type="password"]').forEach(($N) => {
+            $N.addEventListener($EV, (...)=>
+              { ... (fetch|XMLHttpRequest|navigator.sendBeacon) ... }
+            );
+          });
+      - pattern: |
+          const $N = document.querySelector('input[type="password"]');
+          $N.addEventListener($EV, (...)=>
+            { ... (fetch|XMLHttpRequest|navigator.sendBeacon) ... }
+          );
+
+  ##########################################################################
+  # 4) Extension network hijack (chrome.webRequest)
+  ##########################################################################
+  - id: banking.ext.webrequest.redirect
+    message: chrome.webRequest redirect/modify—can hijack requests (transactions, MFA).
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: extension-hijack
+      mitre: [T1110, T1565]
+    patterns:
+      - pattern: |
+          chrome.webRequest.onBeforeRequest.addListener(function($D){ ... return { redirectUrl: $U }; }, $F, $O);
+
+  ##########################################################################
+  # 5) Global network sniffing—override XHR/fetch
+  ##########################################################################
+  - id: banking.net_sniff.override_fetch_xhr
+    message: Overriding fetch/XHR prototypes—global sniffing or tampering of requests.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: net-interception
+      mitre: [T1041, T1557]
+    pattern-either:
+      - pattern: |
+          const $OF = window.fetch;
+          window.fetch = function(...){ ... };
+      - pattern: |
+          XMLHttpRequest.prototype.open = function(...){ ... };
+      - pattern: |
+          XMLHttpRequest.prototype.send = function(...){ ... };
+
+  ##########################################################################
+  # 6) Automatic transfer / auto-submit transactions
+  ##########################################################################
+  - id: banking.auto_transfer.silent_payment
+    message: Potential silent payment/transfer action without explicit user consent.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: transaction-abuse
+      mitre: [T1566, T1499]
+    patterns:
+      - pattern: |
+          fetch($URL, { ... });
+      - metavariable-regex:
+          metavariable: $URL
+          regex: "(transfer|payment|pay|wire|cashout|payout)"
+      - pattern-not: |
+          fetch($URL, { method: 'GET', ... });
+
+  ##########################################################################
+  # 7) MutationObserver used for dynamic hooking of sensitive nodes
+  ##########################################################################
+  - id: banking.mobserver.dynamic_dom_hook
+    message: MutationObserver used to append UI or trigger network send—malicious overlay/exfil?
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: stealth-hooking
+      mitre: [T1056, T1027]
+    patterns:
+      - pattern: |
+          new MutationObserver(($M) => { ... });
+      - pattern-inside: |
+          ($X) => { ... (appendChild|insertAdjacentHTML|fetch|navigator.sendBeacon) ... }
+
+  ##########################################################################
+  # 8) Exfiltration channels (sendBeacon / Image.src / fetch GET with secrets)
+  ##########################################################################
+  - id: banking.exfil.generic_channels
+    message: Possible exfiltration via sendBeacon/Image.src/fetch.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: exfiltration
+      mitre: [T1041]
+    pattern-either:
+      - pattern: |
+          navigator.sendBeacon($URL, $DATA);
+      - pattern: |
+          (new Image()).src = $URL;
+      - patterns:
+          - pattern: |
+              fetch($URL, ...);
+          - metavariable-regex:
+              metavariable: $URL
+              regex: "https?://[^\\s]+\\?(.*(pass(word)?|user(name)?|token|otp|iban|account).*)"
+
+  ##########################################################################
+  # 9) Disabling/weakening CSP (DOM or extension headers)
+  ##########################################################################
+  - id: banking.csp.disable_or_weaken
+    message: CSP disabled/relaxed—enables untrusted script injection.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: hardening-bypass
+      mitre: [T1518, T1562]
+    pattern-either:
+      - pattern: |
+          $M.setAttribute('http-equiv', 'Content-Security-Policy');
+      - pattern: |
+          chrome.webRequest.onHeadersReceived.addListener(function($D){ ... }, $F, ['blocking', 'responseHeaders']);
+
+  ##########################################################################
+  # 10) Dynamic eval / new Function (+ decoding)
+  ##########################################################################
+  - id: banking.obfuscation.eval_newfunc
+    message: Dynamic code execution (eval/new Function) with possible decoding—common in malware.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: obfuscation
+      mitre: [T1027, T1059]
+    pattern-either:
+      - pattern: |
+          eval($X);
+      - pattern: |
+          new Function($X);

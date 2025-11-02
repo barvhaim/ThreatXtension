@@ -1,0 +1,73 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap");
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  font-family:
+    "IBM Plex Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  line-height: 1.6;
+  color: #ffffff;
+  background: #0f1419;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Dark mode overrides for Carbon Design System */
+:root {
+  --cds-ui-background: #0f1419;
+  --cds-layer: #1a1f2e;
+  --cds-layer-hover: #252b3d;
+  --cds-field: #252b3d;
+  --cds-interactive: #0066cc;
+  --cds-interactive-hover: #0052a3;
+  --cds-text-primary: #ffffff;
+  --cds-text-secondary: #b8c5d6;
+  --cds-border-strong: #4a5568;
+  --cds-border-subtle: #2f3649;
+}
+
+/* Ensure Carbon components use dark theme */
+.cds--layer,
+.cds--layer--01,
+.cds--layer--02,
+.cds--layer--03 {
+  background: var(--cds-layer) !important;
+}
+
+.cds--text-input,
+.cds--text-input__field-wrapper {
+  background: var(--cds-field) !important;
+  border-color: var(--cds-border-subtle) !important;
+}
+
+.cds--text-input:focus,
+.cds--text-input__field-wrapper:focus-within {
+  border-color: var(--cds-interactive) !important;
+}
+
+.cds--btn--primary {
+  background: var(--cds-interactive) !important;
+  border-color: var(--cds-interactive) !important;
+}
+
+.cds--btn--primary:hover {
+  background: var(--cds-interactive-hover) !important;
+  border-color: var(--cds-interactive-hover) !important;
+}

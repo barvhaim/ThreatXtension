@@ -1,0 +1,210 @@
+.file-viewer-modal {
+  .cds--modal {
+    background: var(--cds-layer-01);
+    border: 1px solid var(--cds-border-subtle);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  .cds--modal-header {
+    background: var(--cds-layer-01);
+    border-bottom: 1px solid var(--cds-border-subtle);
+    padding: 1rem 1.5rem;
+  }
+
+  .cds--modal-content {
+    background: var(--cds-layer-01);
+  }
+
+  .cds--modal-footer {
+    background: var(--cds-layer-01);
+    border-top: 1px solid var(--cds-border-subtle);
+    padding: 1rem 1.5rem;
+  }
+
+  .file-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+
+    .file-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+
+      .file-icon {
+        font-size: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        background: var(--cds-layer-02);
+        border-radius: 8px;
+        border: 1px solid var(--cds-border-subtle);
+      }
+
+      .file-details {
+        .file-name {
+          margin: 0 0 0.25rem 0;
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: var(--cds-text-primary);
+        }
+
+        .file-meta {
+          margin: 0;
+          font-size: 0.875rem;
+          color: var(--cds-text-secondary);
+        }
+      }
+    }
+
+    .close-button {
+      color: var(--cds-text-secondary);
+
+      &:hover {
+        background: var(--cds-layer-hover-01);
+        color: var(--cds-text-primary);
+      }
+    }
+  }
+
+  .loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 3rem 0;
+  }
+
+  .error-container {
+    text-align: center;
+    padding: 2rem;
+
+    .error-message {
+      color: var(--cds-text-error);
+      margin-bottom: 1rem;
+      font-size: 1rem;
+    }
+  }
+
+  .file-content-container {
+    .content-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+      background: var(--cds-layer-02);
+      border-radius: 6px;
+      border: 1px solid var(--cds-border-subtle);
+
+      .content-label {
+        font-weight: 600;
+        color: var(--cds-text-primary);
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .content-actions {
+        display: flex;
+        gap: 0.5rem;
+
+        .cds--btn {
+          &.copied {
+            background: var(--cds-support-success);
+            color: var(--cds-text-on-color);
+
+            &:hover {
+              background: var(--cds-support-success);
+            }
+          }
+        }
+      }
+    }
+
+    .content-wrapper {
+      .file-content-textarea {
+        background: var(--cds-layer-02);
+        border: 1px solid var(--cds-border-subtle);
+        border-radius: 6px;
+        color: var(--cds-text-primary);
+        font-family:
+          "IBM Plex Mono", "Monaco", "Menlo", "Ubuntu Mono", monospace;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        resize: vertical;
+
+        &:focus {
+          border-color: var(--cds-focus);
+          box-shadow: 0 0 0 2px var(--cds-focus);
+        }
+
+        &::placeholder {
+          color: var(--cds-text-placeholder);
+        }
+      }
+    }
+
+    .copy-notification {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: var(--cds-support-success);
+      color: var(--cds-text-on-color);
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-weight: 500;
+      z-index: 9999;
+      animation: slideIn 0.3s ease-out;
+    }
+  }
+}
+
+// Animation for copy notification
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .file-viewer-modal {
+    .cds--modal {
+      margin: 1rem;
+      width: calc(100% - 2rem);
+    }
+
+    .file-header {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: flex-start;
+
+      .file-info {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+
+    .file-content-container {
+      .content-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+
+        .content-actions {
+          width: 100%;
+          justify-content: flex-end;
+        }
+      }
+    }
+  }
+}

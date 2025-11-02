@@ -1,0 +1,333 @@
+// Modern Card Component - Commercial SaaS UI
+.modern-card {
+  background: linear-gradient(
+    135deg,
+    var(--cds-layer-01) 0%,
+    var(--cds-layer-02) 100%
+  );
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.2),
+    0 4px 8px rgba(0, 0, 0, 0.1);
+
+  // Subtle top border accent
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #4ecdc4, #45b7d1, #96ceb4);
+    opacity: 0.6;
+  }
+
+  // Hoverable cards
+  &--hoverable {
+    cursor: pointer;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.3),
+        0 8px 24px rgba(0, 0, 0, 0.15);
+      border-color: var(--cds-border-strong);
+
+      &::before {
+        opacity: 1;
+        height: 3px;
+      }
+    }
+  }
+
+  // Gradient variant
+  &--gradient {
+    background: linear-gradient(
+      135deg,
+      rgba(78, 205, 196, 0.05) 0%,
+      rgba(69, 183, 209, 0.05) 50%,
+      rgba(255, 107, 107, 0.05) 100%
+    );
+  }
+
+  // Variants
+  &--success {
+    border-color: var(--cds-success);
+
+    &::before {
+      background: var(--cds-success);
+    }
+  }
+
+  &--warning {
+    border-color: var(--cds-warning);
+
+    &::before {
+      background: var(--cds-warning);
+    }
+  }
+
+  &--danger {
+    border-color: var(--cds-danger);
+
+    &::before {
+      background: var(--cds-danger);
+    }
+  }
+
+  &--primary {
+    border-color: var(--cds-interactive-01);
+
+    &::before {
+      background: var(--cds-interactive-01);
+    }
+  }
+}
+
+// Card header
+.modern-card__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  .modern-card__icon {
+    font-size: 1.5rem;
+    opacity: 0.9;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+    flex-shrink: 0;
+  }
+
+  .modern-card__header-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .modern-card__title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 0.25rem 0;
+    color: var(--cds-text-primary);
+    line-height: 1.3;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
+  .modern-card__subtitle {
+    font-size: 0.9rem;
+    color: var(--cds-text-secondary);
+    margin: 0;
+    line-height: 1.4;
+    opacity: 0.8;
+  }
+}
+
+// Card body
+.modern-card__body {
+  margin-bottom: 1rem;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+// Card footer
+.modern-card__footer {
+  padding-top: 1rem;
+  border-top: 1px solid var(--cds-border-subtle);
+  margin-top: 1rem;
+
+  &:empty {
+    display: none;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .modern-card {
+    padding: 1rem;
+    border-radius: 8px;
+
+    .modern-card__header {
+      margin-bottom: 1rem;
+
+      .modern-card__title {
+        font-size: 1.1rem;
+      }
+
+      .modern-card__subtitle {
+        font-size: 0.85rem;
+      }
+    }
+  }
+}
+.modern-card {
+  background: linear-gradient(
+    135deg,
+    var(--cds-layer-01) 0%,
+    var(--cds-layer-02) 100%
+  );
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.2),
+    0 4px 8px rgba(0, 0, 0, 0.1);
+
+  // Subtle top border accent
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #4ecdc4, #45b7d1, #96ceb4);
+    opacity: 0.6;
+  }
+
+  // Hoverable cards
+  &--hoverable {
+    cursor: pointer;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.3),
+        0 8px 24px rgba(0, 0, 0, 0.15);
+      border-color: var(--cds-border-strong);
+
+      &::before {
+        opacity: 1;
+        height: 3px;
+      }
+    }
+  }
+
+  // Gradient variant
+  &--gradient {
+    background: linear-gradient(
+      135deg,
+      rgba(78, 205, 196, 0.05) 0%,
+      rgba(69, 183, 209, 0.05) 50%,
+      rgba(255, 107, 107, 0.05) 100%
+    );
+  }
+
+  // Variants
+  &--success {
+    border-color: var(--cds-success);
+
+    &::before {
+      background: var(--cds-success);
+    }
+  }
+
+  &--warning {
+    border-color: var(--cds-warning);
+
+    &::before {
+      background: var(--cds-warning);
+    }
+  }
+
+  &--danger {
+    border-color: var(--cds-danger);
+
+    &::before {
+      background: var(--cds-danger);
+    }
+  }
+
+  &--primary {
+    border-color: var(--cds-interactive-01);
+
+    &::before {
+      background: var(--cds-interactive-01);
+    }
+  }
+}
+
+// Card header
+.modern-card__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  .modern-card__icon {
+    font-size: 1.5rem;
+    opacity: 0.9;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+    flex-shrink: 0;
+  }
+
+  .modern-card__header-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .modern-card__title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 0.25rem 0;
+    color: var(--cds-text-primary);
+    line-height: 1.3;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
+  .modern-card__subtitle {
+    font-size: 0.9rem;
+    color: var(--cds-text-secondary);
+    margin: 0;
+    line-height: 1.4;
+    opacity: 0.8;
+  }
+}
+
+// Card body
+.modern-card__body {
+  margin-bottom: 1rem;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+// Card footer
+.modern-card__footer {
+  padding-top: 1rem;
+  border-top: 1px solid var(--cds-border-subtle);
+  margin-top: 1rem;
+
+  &:empty {
+    display: none;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .modern-card {
+    padding: 1rem;
+    border-radius: 8px;
+
+    .modern-card__header {
+      margin-bottom: 1rem;
+
+      .modern-card__title {
+        font-size: 1.1rem;
+      }
+
+      .modern-card__subtitle {
+        font-size: 0.85rem;
+      }
+    }
+  }
+}

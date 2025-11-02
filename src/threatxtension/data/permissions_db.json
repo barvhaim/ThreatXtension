@@ -1,0 +1,1368 @@
+{
+  "version": "1.0",
+  "last_updated": "2025-10-31",
+  "permissions": {
+    "debugger": {
+      "description": "Access to Chrome's debugger backend for pages",
+      "capabilities": [
+        "Full access to page internals",
+        "Can read all page content including passwords",
+        "Can modify page behavior at the deepest level",
+        "Bypass most security measures"
+      ],
+      "potential_abuse": [
+        "Complete control over all web pages",
+        "Bypass security measures and protections",
+        "Inject arbitrary code at any level",
+        "Read all page content including form data, passwords, and tokens",
+        "Intercept and modify all page communications"
+      ],
+      "legitimate_uses": [
+        "Developer tools and debuggers",
+        "Advanced web development extensions",
+        "Browser automation frameworks"
+      ]
+    },
+    "webRequest": {
+      "description": "Monitor network requests made by the browser",
+      "capabilities": [
+        "View all HTTP/HTTPS requests",
+        "See request headers and URLs",
+        "Monitor timing and status codes",
+        "Read request details and parameters"
+      ],
+      "potential_abuse": [
+        "Track all web activity",
+        "Capture API keys and authentication tokens",
+        "Monitor sensitive data in URLs",
+        "Build detailed user profiles",
+        "Steal credentials transmitted in requests"
+      ],
+      "legitimate_uses": [
+        "Ad blockers",
+        "Privacy protection tools",
+        "Network debugging extensions",
+        "Performance monitoring tools"
+      ]
+    },
+    "webRequestBlocking": {
+      "description": "Block and modify network requests before they complete",
+      "capabilities": [
+        "Block any network request",
+        "Modify request headers and parameters",
+        "Redirect requests to different URLs",
+        "Cancel requests entirely"
+      ],
+      "potential_abuse": [
+        "Redirect users to phishing sites",
+        "Inject malicious responses",
+        "Perform man-in-the-middle attacks",
+        "Block security updates or warnings",
+        "Disable security features of websites",
+        "Replace legitimate downloads with malware"
+      ],
+      "legitimate_uses": [
+        "Content blockers",
+        "Advanced ad blockers",
+        "Privacy protection tools",
+        "Request modifiers for testing"
+      ]
+    },
+    "declarativeNetRequest": {
+      "description": "Declaratively modify, block, or redirect network requests",
+      "capabilities": [
+        "Block requests based on patterns",
+        "Redirect URLs",
+        "Modify headers",
+        "Inject or remove headers"
+      ],
+      "potential_abuse": [
+        "Redirect to phishing sites",
+        "Inject malicious content",
+        "Block legitimate security warnings",
+        "Manipulate banking transactions",
+        "Disable anti-malware protections"
+      ],
+      "legitimate_uses": [
+        "Ad blockers (Manifest V3)",
+        "Privacy tools",
+        "Content filters",
+        "Security extensions"
+      ]
+    },
+    "cookies": {
+      "description": "Read, modify, and delete browser cookies",
+      "capabilities": [
+        "Read all cookies from any site",
+        "Modify existing cookies",
+        "Create new cookies",
+        "Delete cookies"
+      ],
+      "potential_abuse": [
+        "Session hijacking and account takeover",
+        "Steal authentication tokens",
+        "Track users across websites",
+        "Perform affiliate fraud",
+        "Bypass login requirements",
+        "Impersonate users"
+      ],
+      "legitimate_uses": [
+        "Cookie managers",
+        "Privacy tools that clean cookies",
+        "Session managers",
+        "Auto-login tools"
+      ]
+    },
+    "tabs": {
+      "description": "Access to tab URLs, titles, and favicon URLs",
+      "capabilities": [
+        "See URLs of all open tabs",
+        "Read tab titles",
+        "View favicon URLs",
+        "Monitor tab creation/closure",
+        "Track tab navigation"
+      ],
+      "potential_abuse": [
+        "Complete browsing history tracking",
+        "Identify sensitive site visits (banking, medical, adult)",
+        "Monitor real-time browsing behavior",
+        "Build detailed user profiles",
+        "Corporate espionage",
+        "Collect blackmail material"
+      ],
+      "legitimate_uses": [
+        "Tab managers",
+        "Session managers",
+        "Productivity tools",
+        "Browser organizers"
+      ]
+    },
+    "history": {
+      "description": "Access complete browsing history",
+      "capabilities": [
+        "Read full browsing history",
+        "Search browsing history",
+        "Delete history entries",
+        "Add history entries"
+      ],
+      "potential_abuse": [
+        "Complete privacy invasion",
+        "Profile user interests and habits",
+        "Identify compromising site visits",
+        "Corporate or personal espionage",
+        "Sell browsing data to third parties",
+        "Manipulate or delete evidence"
+      ],
+      "legitimate_uses": [
+        "History managers",
+        "Search tools",
+        "Bookmark organizers",
+        "Productivity analyzers"
+      ]
+    },
+    "clipboardRead": {
+      "description": "Read contents from the system clipboard",
+      "capabilities": [
+        "Access text from clipboard",
+        "Read images from clipboard",
+        "Monitor clipboard changes"
+      ],
+      "potential_abuse": [
+        "Steal passwords being pasted",
+        "Capture credit card numbers",
+        "Read private messages",
+        "Access cryptocurrency wallet addresses",
+        "Steal API keys and secrets",
+        "Corporate data theft"
+      ],
+      "legitimate_uses": [
+        "Clipboard managers",
+        "Text formatting tools",
+        "Translation extensions",
+        "Productivity tools"
+      ]
+    },
+    "clipboardWrite": {
+      "description": "Write data to the system clipboard",
+      "capabilities": [
+        "Modify clipboard contents",
+        "Replace copied text",
+        "Insert images into clipboard"
+      ],
+      "potential_abuse": [
+        "Replace cryptocurrency addresses",
+        "Inject malicious URLs",
+        "Modify copied commands",
+        "Social engineering attacks"
+      ],
+      "legitimate_uses": [
+        "Copy-to-clipboard features",
+        "Code formatters",
+        "Screenshot tools",
+        "Text processing tools"
+      ]
+    },
+    "scripting": {
+      "description": "Inject JavaScript and CSS into web pages programmatically",
+      "capabilities": [
+        "Inject JavaScript into pages",
+        "Inject CSS into pages",
+        "Execute arbitrary code in page context",
+        "Modify page behavior"
+      ],
+      "potential_abuse": [
+        "Arbitrary code injection on any page",
+        "Steal form data and passwords",
+        "Create fake login forms",
+        "Modify page content to mislead users",
+        "Inject malicious scripts",
+        "Keylogging",
+        "Credit card skimming"
+      ],
+      "legitimate_uses": [
+        "Content modification tools",
+        "Accessibility enhancements",
+        "Page customization",
+        "Productivity enhancements"
+      ]
+    },
+    "activeTab": {
+      "description": "Temporary access to the active tab when user invokes the extension",
+      "capabilities": [
+        "Read current page URL and title",
+        "Inject scripts into current page",
+        "Capture screenshot of current page",
+        "Access only after user interaction"
+      ],
+      "potential_abuse": [
+        "Still can capture screenshots when clicked",
+        "Read sensitive page content when activated",
+        "Social engineering to get user to click"
+      ],
+      "legitimate_uses": [
+        "Screenshot tools",
+        "Page analyzers",
+        "Translation tools",
+        "Most extensions should use this instead of broader permissions"
+      ]
+    },
+    "downloads": {
+      "description": "Manage browser downloads",
+      "capabilities": [
+        "See all downloads",
+        "Pause/resume downloads",
+        "Cancel downloads",
+        "Open downloaded files",
+        "Search download history"
+      ],
+      "potential_abuse": [
+        "Track downloaded files",
+        "Cancel legitimate downloads",
+        "Open malicious files automatically",
+        "Monitor user activity through downloads"
+      ],
+      "legitimate_uses": [
+        "Download managers",
+        "File organizers",
+        "Security scanners",
+        "Productivity tools"
+      ]
+    },
+    "bookmarks": {
+      "description": "Read, create, modify, and organize bookmarks",
+      "capabilities": [
+        "Read all bookmarks",
+        "Create new bookmarks",
+        "Modify existing bookmarks",
+        "Delete bookmarks",
+        "Reorganize bookmark folders"
+      ],
+      "potential_abuse": [
+        "Profile user interests",
+        "Inject malicious bookmarks",
+        "Replace legitimate bookmarks with phishing links",
+        "Track frequently visited sites",
+        "Sell bookmark data"
+      ],
+      "legitimate_uses": [
+        "Bookmark managers",
+        "Sync tools",
+        "Organizers",
+        "Search enhancers"
+      ]
+    },
+    "geolocation": {
+      "description": "Access device location without prompting user",
+      "capabilities": [
+        "Get current GPS coordinates",
+        "Track movement over time",
+        "Access location without user consent per use"
+      ],
+      "potential_abuse": [
+        "Continuous location tracking",
+        "Build movement profiles",
+        "Determine home and work addresses",
+        "Stalking enablement",
+        "Location-based targeted attacks",
+        "Sell location data"
+      ],
+      "legitimate_uses": [
+        "Weather apps",
+        "Local search enhancers",
+        "Map tools",
+        "Location-based services"
+      ]
+    },
+    "management": {
+      "description": "Manage other browser extensions, apps, and themes",
+      "capabilities": [
+        "List all installed extensions",
+        "Enable/disable extensions",
+        "Uninstall extensions",
+        "Get extension details"
+      ],
+      "potential_abuse": [
+        "Disable security extensions",
+        "Uninstall anti-malware tools",
+        "Monitor installed extensions for vulnerabilities",
+        "Tamper with other extensions",
+        "Enable malicious extensions",
+        "Fingerprint user setup"
+      ],
+      "legitimate_uses": [
+        "Extension managers",
+        "Security auditors",
+        "Productivity tools",
+        "Extension organizers"
+      ]
+    },
+    "desktopCapture": {
+      "description": "Capture screen, window, or tab content",
+      "capabilities": [
+        "Capture entire screen",
+        "Capture specific windows",
+        "Capture individual tabs",
+        "Record screen activity"
+      ],
+      "potential_abuse": [
+        "Spy on all user activities",
+        "Capture sensitive information from any application",
+        "Record passwords as they're typed",
+        "Screenshot banking and financial information",
+        "Corporate espionage",
+        "Collect blackmail material"
+      ],
+      "legitimate_uses": [
+        "Screen recording tools",
+        "Screenshot utilities",
+        "Video conferencing apps",
+        "Presentation tools"
+      ]
+    },
+    "tabCapture": {
+      "description": "Capture audio and video from tabs",
+      "capabilities": [
+        "Capture tab audio",
+        "Capture tab video",
+        "Record streaming content",
+        "Access media streams"
+      ],
+      "potential_abuse": [
+        "Record video calls without consent",
+        "Capture streaming content illegally",
+        "Record sensitive audio/video",
+        "Screenshot banking activities",
+        "Spy on private communications"
+      ],
+      "legitimate_uses": [
+        "Screen recorders",
+        "Video processing tools",
+        "Media capture utilities",
+        "Streaming tools"
+      ]
+    },
+    "nativeMessaging": {
+      "description": "Communicate with native applications on the computer",
+      "capabilities": [
+        "Exchange messages with native apps",
+        "Execute system-level operations",
+        "Bypass browser sandbox",
+        "Access system resources"
+      ],
+      "potential_abuse": [
+        "Execute arbitrary system commands",
+        "Install persistent malware",
+        "Access files outside browser",
+        "Modify system settings",
+        "Establish backdoors",
+        "Privilege escalation"
+      ],
+      "legitimate_uses": [
+        "Integration with desktop apps",
+        "System utilities",
+        "Hardware interaction",
+        "Advanced productivity tools"
+      ]
+    },
+    "proxy": {
+      "description": "Control browser proxy settings",
+      "capabilities": [
+        "Set proxy server",
+        "Route all traffic through proxy",
+        "Modify proxy rules",
+        "Disable proxy"
+      ],
+      "potential_abuse": [
+        "Route all traffic through attacker-controlled server",
+        "Man-in-the-middle attacks on all traffic",
+        "Intercept all communications",
+        "Bypass network security",
+        "Hide malicious activity",
+        "Steal all transmitted data"
+      ],
+      "legitimate_uses": [
+        "VPN extensions",
+        "Privacy tools",
+        "Network management",
+        "Corporate proxy managers"
+      ]
+    },
+    "privacy": {
+      "description": "Modify browser privacy settings",
+      "capabilities": [
+        "Modify privacy preferences",
+        "Change tracking settings",
+        "Alter cookie policies",
+        "Modify security settings"
+      ],
+      "potential_abuse": [
+        "Disable privacy protections",
+        "Enable tracking",
+        "Weaken security settings",
+        "Allow third-party cookies",
+        "Disable safe browsing"
+      ],
+      "legitimate_uses": [
+        "Privacy enhancement tools",
+        "Security extensions",
+        "Settings managers",
+        "Privacy configurators"
+      ]
+    },
+    "contentSettings": {
+      "description": "Change settings that control website access to features",
+      "capabilities": [
+        "Modify site permissions",
+        "Control camera access",
+        "Control microphone access",
+        "Manage cookies settings",
+        "Control JavaScript execution"
+      ],
+      "potential_abuse": [
+        "Grant malicious sites dangerous permissions",
+        "Enable microphone/camera for spying",
+        "Disable security features for specific sites",
+        "Allow popups and redirects",
+        "Weaken site-specific security"
+      ],
+      "legitimate_uses": [
+        "Permission managers",
+        "Security tools",
+        "Privacy enhancers",
+        "Site configuration tools"
+      ]
+    },
+    "storage": {
+      "description": "Use chrome.storage API for local data storage",
+      "capabilities": [
+        "Store data locally",
+        "Sync data across devices",
+        "Persist settings and preferences"
+      ],
+      "potential_abuse": [
+        "Store stolen data locally",
+        "Track user across sessions",
+        "Cache sensitive information"
+      ],
+      "legitimate_uses": [
+        "Save user preferences",
+        "Cache data",
+        "Store application state",
+        "Nearly all extensions need this"
+      ]
+    },
+    "unlimitedStorage": {
+      "description": "Use unlimited local storage quota",
+      "capabilities": [
+        "Store unlimited data locally",
+        "No quota restrictions",
+        "Large data caching"
+      ],
+      "potential_abuse": [
+        "Store large amounts of stolen data",
+        "Cache extensive user information",
+        "Hide malicious payloads locally",
+        "Consume system resources"
+      ],
+      "legitimate_uses": [
+        "Offline applications",
+        "Media caching",
+        "Large dataset storage",
+        "Email clients"
+      ]
+    },
+    "notifications": {
+      "description": "Display desktop notifications to user",
+      "capabilities": [
+        "Show notification popups",
+        "Display badges",
+        "Play notification sounds",
+        "Show rich notifications"
+      ],
+      "potential_abuse": [
+        "Spam users with notifications",
+        "Phishing via notifications",
+        "Social engineering attacks",
+        "User annoyance and harassment",
+        "Fake security warnings"
+      ],
+      "legitimate_uses": [
+        "Alert users to events",
+        "Reminders",
+        "Status updates",
+        "Communication tools"
+      ]
+    },
+    "contextMenus": {
+      "description": "Add items to browser context menu",
+      "capabilities": [
+        "Add menu items to right-click menu",
+        "Respond to menu selections",
+        "Access selected text or links"
+      ],
+      "potential_abuse": [
+        "Trick users into malicious actions",
+        "Phishing via menu items",
+        "UI spoofing"
+      ],
+      "legitimate_uses": [
+        "Quick actions",
+        "Context-aware tools",
+        "Productivity shortcuts",
+        "Integration features"
+      ]
+    },
+    "alarms": {
+      "description": "Schedule code to run at specific times",
+      "capabilities": [
+        "Set timed alarms",
+        "Schedule periodic execution",
+        "Run background tasks"
+      ],
+      "potential_abuse": [
+        "Regular data exfiltration",
+        "Periodic tracking pings",
+        "Time-based malicious actions",
+        "Resource consumption"
+      ],
+      "legitimate_uses": [
+        "Scheduled tasks",
+        "Reminders",
+        "Periodic updates",
+        "Background synchronization"
+      ]
+    },
+    "idle": {
+      "description": "Detect when the computer is idle, locked, or active",
+      "capabilities": [
+        "Detect idle state",
+        "Monitor user activity",
+        "Detect screen lock"
+      ],
+      "potential_abuse": [
+        "Track user activity patterns",
+        "Execute malicious actions when user away",
+        "Build usage profiles"
+      ],
+      "legitimate_uses": [
+        "Auto-pause features",
+        "Power management",
+        "Session timeout",
+        "Activity tracking"
+      ]
+    },
+    "webNavigation": {
+      "description": "Receive notifications about navigation events",
+      "capabilities": [
+        "Monitor all page navigations",
+        "Track frame navigations",
+        "Detect redirects",
+        "Monitor history changes"
+      ],
+      "potential_abuse": [
+        "Track detailed browsing patterns",
+        "Monitor all navigation events",
+        "Build comprehensive activity timeline",
+        "Identify sensitive site visits"
+      ],
+      "legitimate_uses": [
+        "Navigation tools",
+        "History managers",
+        "Analytics tools",
+        "Productivity trackers"
+      ]
+    },
+    "browsingData": {
+      "description": "Remove browsing data from user's profile",
+      "capabilities": [
+        "Clear browsing history",
+        "Delete cookies",
+        "Clear cache",
+        "Remove downloads",
+        "Clear passwords"
+      ],
+      "potential_abuse": [
+        "Cover tracks after attack",
+        "Delete evidence of malicious activity",
+        "Steal data before clearing",
+        "Disrupt user experience",
+        "Remove security logs"
+      ],
+      "legitimate_uses": [
+        "Privacy cleaners",
+        "Cache managers",
+        "Privacy tools",
+        "Cleanup utilities"
+      ]
+    },
+    "identity": {
+      "description": "Get OAuth2 tokens and user email address",
+      "capabilities": [
+        "Get user email",
+        "Request OAuth tokens",
+        "Access Google account info"
+      ],
+      "potential_abuse": [
+        "Identify user personally",
+        "Link activities to identity",
+        "Enable targeted attacks",
+        "OAuth token theft",
+        "Account access"
+      ],
+      "legitimate_uses": [
+        "Authentication",
+        "Account integration",
+        "Cloud sync",
+        "Personalization"
+      ]
+    },
+    "pageCapture": {
+      "description": "Save pages as MHTML",
+      "capabilities": [
+        "Save complete pages",
+        "Capture page content",
+        "Export pages as MHTML"
+      ],
+      "potential_abuse": [
+        "Capture sensitive page content",
+        "Save banking information",
+        "Export private data"
+      ],
+      "legitimate_uses": [
+        "Page savers",
+        "Offline readers",
+        "Archive tools",
+        "Research tools"
+      ]
+    },
+    "offscreen": {
+      "description": "Create and manage offscreen documents",
+      "capabilities": [
+        "Create hidden documents",
+        "Run background DOM operations",
+        "Process data invisibly"
+      ],
+      "potential_abuse": [
+        "Hide malicious operations",
+        "Run code invisibly",
+        "Bypass some detection"
+      ],
+      "legitimate_uses": [
+        "Audio processing",
+        "Background rendering",
+        "Data processing",
+        "Performance optimization"
+      ]
+    },
+    "declarativeNetRequestFeedback": {
+      "description": "Write declarativeNetRequest errors to DevTools console",
+      "capabilities": [
+        "Log debugging information",
+        "See rule matching",
+        "Debug network rules"
+      ],
+      "potential_abuse": [
+        "Minimal risk - development tool only"
+      ],
+      "legitimate_uses": [
+        "Extension debugging",
+        "Rule development",
+        "Testing"
+      ]
+    },
+    "declarativeNetRequestWithHostAccess": {
+      "description": "Use declarativeNetRequest but requires host permissions for all actions",
+      "capabilities": [
+        "All declarativeNetRequest capabilities",
+        "Requires explicit host permissions",
+        "More restricted than base permission"
+      ],
+      "potential_abuse": [
+        "Same as declarativeNetRequest but more restricted"
+      ],
+      "legitimate_uses": [
+        "Content filtering",
+        "Ad blocking",
+        "Privacy tools"
+      ]
+    },
+    "sidePanel": {
+      "description": "Display content in browser side panel",
+      "capabilities": [
+        "Show UI in side panel",
+        "Create persistent side interface",
+        "Display custom content"
+      ],
+      "potential_abuse": [
+        "UI manipulation",
+        "Distraction or annoyance"
+      ],
+      "legitimate_uses": [
+        "Productivity tools",
+        "Reference panels",
+        "Always-visible interfaces",
+        "Assistant tools"
+      ]
+    },
+    "system.cpu": {
+      "description": "Query CPU metadata",
+      "capabilities": [
+        "Get CPU information",
+        "Query processor details"
+      ],
+      "potential_abuse": [
+        "Fingerprinting",
+        "Device identification"
+      ],
+      "legitimate_uses": [
+        "Performance monitoring",
+        "System diagnostics",
+        "Compatibility checks"
+      ]
+    },
+    "system.display": {
+      "description": "Query display metadata",
+      "capabilities": [
+        "Get display information",
+        "Query screen details",
+        "Monitor display changes"
+      ],
+      "potential_abuse": [
+        "Fingerprinting",
+        "Screen resolution tracking"
+      ],
+      "legitimate_uses": [
+        "Display optimization",
+        "Multi-monitor support",
+        "Resolution adaptation"
+      ]
+    },
+    "system.memory": {
+      "description": "Query memory information",
+      "capabilities": [
+        "Get memory capacity",
+        "Monitor memory usage"
+      ],
+      "potential_abuse": [
+        "Fingerprinting",
+        "Device profiling"
+      ],
+      "legitimate_uses": [
+        "Performance monitoring",
+        "Memory management",
+        "Resource optimization"
+      ]
+    },
+    "system.storage": {
+      "description": "Query storage device information",
+      "capabilities": [
+        "Get storage information",
+        "Monitor storage devices",
+        "Detect removable media"
+      ],
+      "potential_abuse": [
+        "Fingerprinting",
+        "Device tracking",
+        "Detect security keys"
+      ],
+      "legitimate_uses": [
+        "Storage management",
+        "Backup tools",
+        "File managers"
+      ]
+    },
+    "tts": {
+      "description": "Use text-to-speech synthesis",
+      "capabilities": [
+        "Convert text to speech",
+        "Play synthesized audio",
+        "Control voice parameters"
+      ],
+      "potential_abuse": [
+        "Annoy users",
+        "Audio spam"
+      ],
+      "legitimate_uses": [
+        "Accessibility tools",
+        "Reading aids",
+        "Language learning",
+        "Notifications"
+      ]
+    },
+    "ttsEngine": {
+      "description": "Implement text-to-speech engine",
+      "capabilities": [
+        "Provide TTS voices",
+        "Process text-to-speech requests"
+      ],
+      "potential_abuse": [
+        "Minimal risk - specialized permission"
+      ],
+      "legitimate_uses": [
+        "Custom voice engines",
+        "Language support",
+        "Voice customization"
+      ]
+    },
+    "declarativeContent": {
+      "description": "Take actions based on page content without reading it",
+      "capabilities": [
+        "Detect page properties",
+        "Show page actions conditionally",
+        "React to CSS selectors"
+      ],
+      "potential_abuse": [
+        "Minimal risk - cannot read page content directly"
+      ],
+      "legitimate_uses": [
+        "Conditional UI display",
+        "Context-aware features",
+        "Smart page actions"
+      ]
+    },
+    "fontSettings": {
+      "description": "Manage browser font settings",
+      "capabilities": [
+        "Change font settings",
+        "Modify font rendering",
+        "Set default fonts"
+      ],
+      "potential_abuse": [
+        "Degrade readability",
+        "UI manipulation"
+      ],
+      "legitimate_uses": [
+        "Accessibility tools",
+        "Font managers",
+        "Reading enhancement"
+      ]
+    },
+    "gcm": {
+      "description": "Use Google Cloud Messaging",
+      "capabilities": [
+        "Send/receive push messages",
+        "Background messaging"
+      ],
+      "potential_abuse": [
+        "Unwanted notifications",
+        "Data transmission"
+      ],
+      "legitimate_uses": [
+        "Push notifications",
+        "Real-time updates",
+        "Messaging apps"
+      ]
+    },
+    "power": {
+      "description": "Override system power management",
+      "capabilities": [
+        "Keep system awake",
+        "Prevent sleep mode",
+        "Override power settings"
+      ],
+      "potential_abuse": [
+        "Battery drain",
+        "Resource waste"
+      ],
+      "legitimate_uses": [
+        "Media players",
+        "Presentation tools",
+        "Long-running tasks"
+      ]
+    },
+    "printerProvider": {
+      "description": "Provide virtual printer functionality",
+      "capabilities": [
+        "Act as virtual printer",
+        "Intercept print jobs",
+        "Process print requests"
+      ],
+      "potential_abuse": [
+        "Capture printed documents",
+        "Steal sensitive printed data"
+      ],
+      "legitimate_uses": [
+        "PDF creators",
+        "Cloud printing",
+        "Print management"
+      ]
+    },
+    "search": {
+      "description": "Use Chrome omnibox search",
+      "capabilities": [
+        "Query search engines",
+        "Process search queries"
+      ],
+      "potential_abuse": [
+        "Track search queries"
+      ],
+      "legitimate_uses": [
+        "Search tools",
+        "Query enhancement",
+        "Search shortcuts"
+      ]
+    },
+    "sessions": {
+      "description": "Query and restore tabs/windows",
+      "capabilities": [
+        "Access recently closed tabs",
+        "Restore sessions",
+        "Query tab history"
+      ],
+      "potential_abuse": [
+        "Track browsing sessions",
+        "Limited history access"
+      ],
+      "legitimate_uses": [
+        "Session managers",
+        "Tab restoration",
+        "Productivity tools"
+      ]
+    },
+    "tabGroups": {
+      "description": "Manage tab groups",
+      "capabilities": [
+        "Create tab groups",
+        "Organize tabs",
+        "Modify group properties"
+      ],
+      "potential_abuse": [
+        "UI manipulation only"
+      ],
+      "legitimate_uses": [
+        "Tab organizers",
+        "Productivity tools",
+        "Workspace managers"
+      ]
+    },
+    "topSites": {
+      "description": "Access most visited sites",
+      "capabilities": [
+        "Get frequently visited sites",
+        "Access top sites list"
+      ],
+      "potential_abuse": [
+        "Profile user interests",
+        "Identify habits"
+      ],
+      "legitimate_uses": [
+        "New tab pages",
+        "Quick access",
+        "Bookmarking tools"
+      ]
+    },
+    "accessibilityFeatures.modify": {
+      "description": "Modify browser accessibility features",
+      "capabilities": [
+        "Change accessibility settings",
+        "Modify screen reader settings",
+        "Alter high contrast mode"
+      ],
+      "potential_abuse": [
+        "Degrade user experience",
+        "Disable accessibility features"
+      ],
+      "legitimate_uses": [
+        "Accessibility enhancers",
+        "Settings managers",
+        "User customization tools"
+      ]
+    },
+    "accessibilityFeatures.read": {
+      "description": "Read browser accessibility features state",
+      "capabilities": [
+        "Read accessibility settings",
+        "Detect screen reader usage",
+        "Check high contrast mode"
+      ],
+      "potential_abuse": [
+        "Fingerprinting",
+        "User profiling"
+      ],
+      "legitimate_uses": [
+        "Accessibility tools",
+        "Adaptive interfaces",
+        "User experience optimization"
+      ]
+    },
+    "audio": {
+      "description": "Manage audio devices",
+      "capabilities": [
+        "Get audio device information",
+        "Monitor audio devices",
+        "Control audio settings"
+      ],
+      "potential_abuse": [
+        "Fingerprinting",
+        "Device tracking"
+      ],
+      "legitimate_uses": [
+        "Audio management tools",
+        "Device switchers",
+        "Audio configuration"
+      ]
+    },
+    "background": {
+      "description": "Run extension in background persistently",
+      "capabilities": [
+        "Keep extension running",
+        "Start on browser launch",
+        "Run without user interaction"
+      ],
+      "potential_abuse": [
+        "Continuous monitoring",
+        "Resource consumption",
+        "Persistent tracking"
+      ],
+      "legitimate_uses": [
+        "Background services",
+        "Always-on features",
+        "Real-time monitoring"
+      ]
+    },
+    "certificateProvider": {
+      "description": "Provide client certificates",
+      "capabilities": [
+        "Handle certificate requests",
+        "Provide authentication certificates",
+        "Manage certificate selection"
+      ],
+      "potential_abuse": [
+        "Intercept certificate requests",
+        "Provide malicious certificates"
+      ],
+      "legitimate_uses": [
+        "Enterprise authentication",
+        "Smart card integration",
+        "Certificate management"
+      ]
+    },
+    "dns": {
+      "description": "Perform DNS resolution",
+      "capabilities": [
+        "Resolve domain names",
+        "Query DNS records"
+      ],
+      "potential_abuse": [
+        "Track domain lookups",
+        "DNS fingerprinting"
+      ],
+      "legitimate_uses": [
+        "Network tools",
+        "DNS utilities",
+        "Connectivity testing"
+      ]
+    },
+    "documentScan": {
+      "description": "Access document scanners",
+      "capabilities": [
+        "Scan documents",
+        "Access scanner hardware",
+        "Retrieve scanned images"
+      ],
+      "potential_abuse": [
+        "Scan documents without permission",
+        "Access sensitive scanned data"
+      ],
+      "legitimate_uses": [
+        "Document scanning apps",
+        "OCR tools",
+        "Digitization utilities"
+      ]
+    },
+    "enterprise.deviceAttributes": {
+      "description": "Access enterprise device attributes",
+      "capabilities": [
+        "Get device directory ID",
+        "Get device serial number",
+        "Access device asset ID"
+      ],
+      "potential_abuse": [
+        "Device fingerprinting",
+        "Corporate data gathering"
+      ],
+      "legitimate_uses": [
+        "Enterprise management",
+        "Device inventory",
+        "Corporate tools"
+      ]
+    },
+    "enterprise.hardwarePlatform": {
+      "description": "Access hardware platform information",
+      "capabilities": [
+        "Get hardware platform details",
+        "Query device manufacturer"
+      ],
+      "potential_abuse": [
+        "Device fingerprinting",
+        "Hardware profiling"
+      ],
+      "legitimate_uses": [
+        "Enterprise management",
+        "Compatibility checks",
+        "Device identification"
+      ]
+    },
+    "enterprise.networkingAttributes": {
+      "description": "Access enterprise network attributes",
+      "capabilities": [
+        "Get network information",
+        "Query enterprise network settings"
+      ],
+      "potential_abuse": [
+        "Network fingerprinting",
+        "Corporate network mapping"
+      ],
+      "legitimate_uses": [
+        "Enterprise networking tools",
+        "Network management",
+        "Corporate utilities"
+      ]
+    },
+    "enterprise.platformKeys": {
+      "description": "Use platform-specific enterprise keys",
+      "capabilities": [
+        "Access platform keys",
+        "Generate certificates",
+        "Sign data with platform keys"
+      ],
+      "potential_abuse": [
+        "Misuse enterprise credentials",
+        "Unauthorized signing"
+      ],
+      "legitimate_uses": [
+        "Enterprise authentication",
+        "Certificate management",
+        "Security tools"
+      ]
+    },
+    "fileBrowserHandler": {
+      "description": "Handle files in Chrome OS file browser",
+      "capabilities": [
+        "Add file browser actions",
+        "Handle file types",
+        "Process files from file manager"
+      ],
+      "potential_abuse": [
+        "Access files without permission",
+        "Intercept file operations"
+      ],
+      "legitimate_uses": [
+        "File handlers",
+        "File processing tools",
+        "Chrome OS utilities"
+      ]
+    },
+    "fileSystemProvider": {
+      "description": "Provide virtual file systems",
+      "capabilities": [
+        "Mount virtual file systems",
+        "Provide file access",
+        "Handle file operations"
+      ],
+      "potential_abuse": [
+        "Intercept file access",
+        "Monitor file operations"
+      ],
+      "legitimate_uses": [
+        "Cloud storage integration",
+        "Virtual drives",
+        "Remote file access"
+      ]
+    },
+    "loginState": {
+      "description": "Query user login state",
+      "capabilities": [
+        "Detect if user is logged in",
+        "Monitor login state changes",
+        "Check screen lock status"
+      ],
+      "potential_abuse": [
+        "Track user presence",
+        "Activity monitoring"
+      ],
+      "legitimate_uses": [
+        "Session management",
+        "Auto-lock features",
+        "Presence detection"
+      ]
+    },
+    "platformKeys": {
+      "description": "Access client certificates",
+      "capabilities": [
+        "Generate key pairs",
+        "Access platform certificates",
+        "Sign data"
+      ],
+      "potential_abuse": [
+        "Misuse certificates",
+        "Unauthorized authentication"
+      ],
+      "legitimate_uses": [
+        "Authentication",
+        "Certificate management",
+        "Secure communication"
+      ]
+    },
+    "processes": {
+      "description": "Interact with browser processes",
+      "capabilities": [
+        "Get process information",
+        "Monitor CPU usage per tab",
+        "Terminate processes"
+      ],
+      "potential_abuse": [
+        "Fingerprinting",
+        "Performance profiling",
+        "Disrupt browser operation"
+      ],
+      "legitimate_uses": [
+        "Task managers",
+        "Performance monitors",
+        "Resource management"
+      ]
+    },
+    "signedInDevices": {
+      "description": "Access information about signed-in devices",
+      "capabilities": [
+        "Get list of signed-in devices",
+        "Query device information"
+      ],
+      "potential_abuse": [
+        "Device tracking",
+        "Profile user's devices"
+      ],
+      "legitimate_uses": [
+        "Device management",
+        "Sync utilities",
+        "Multi-device features"
+      ]
+    },
+    "systemIndicator": {
+      "description": "Display persistent icon in system tray",
+      "capabilities": [
+        "Show system tray icon",
+        "Update indicator state"
+      ],
+      "potential_abuse": [
+        "Persistent presence",
+        "UI clutter"
+      ],
+      "legitimate_uses": [
+        "Always-on indicators",
+        "Status displays",
+        "Quick access"
+      ]
+    },
+    "tabsCapture": {
+      "description": "Capture visible content of tabs",
+      "capabilities": [
+        "Capture tab screenshots",
+        "Record tab content",
+        "Access visible tab data"
+      ],
+      "potential_abuse": [
+        "Screenshot sensitive content",
+        "Record private information",
+        "Spy on user activity"
+      ],
+      "legitimate_uses": [
+        "Screenshot tools",
+        "Screen recorders",
+        "Content capture utilities"
+      ]
+    },
+    "vpnProvider": {
+      "description": "Implement VPN client functionality",
+      "capabilities": [
+        "Create VPN configurations",
+        "Handle VPN connections",
+        "Route network traffic"
+      ],
+      "potential_abuse": [
+        "Intercept all traffic",
+        "Man-in-the-middle attacks",
+        "Monitor all communications"
+      ],
+      "legitimate_uses": [
+        "VPN clients",
+        "Network security tools",
+        "Privacy applications"
+      ]
+    },
+    "wallpaper": {
+      "description": "Change Chrome OS wallpaper",
+      "capabilities": [
+        "Set wallpaper",
+        "Access wallpaper images"
+      ],
+      "potential_abuse": [
+        "Change user settings",
+        "Display offensive content"
+      ],
+      "legitimate_uses": [
+        "Wallpaper apps",
+        "Personalization tools",
+        "Theme managers"
+      ]
+    },
+    "webAuthenticationProxy": {
+      "description": "Act as proxy for Web Authentication API",
+      "capabilities": [
+        "Intercept WebAuthn requests",
+        "Handle authentication requests",
+        "Proxy security key operations"
+      ],
+      "potential_abuse": [
+        "Intercept authentication",
+        "Bypass security keys",
+        "Phish credentials"
+      ],
+      "legitimate_uses": [
+        "Security key management",
+        "Authentication tools",
+        "Enterprise SSO"
+      ]
+    }
+  }
+}

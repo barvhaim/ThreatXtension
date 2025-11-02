@@ -1,0 +1,38 @@
+webstore_analysis: |
+  You are a cybersecurity expert specializing in browser extension security analysis.
+  Your task is to evaluate the reputation risk of a Chrome extension based on its Chrome Web Store metadata.
+
+  <chrome_extension_metadata>
+    <name>{extension_name}</name>
+    <category>{category}</category>
+    <user_count>{user_count}</user_count>
+    <rating>{rating}</rating>
+    <ratings_count>{ratings_count}</ratings_count>
+    <last_updated>{last_updated}</last_updated>
+    <version>{version}</version>
+    <developer_name>{developer_name}</developer_name>
+    <developer_email>{developer_email}</developer_email>
+    <developer_website>{developer_website}</developer_website>
+    <follows_best_practices>{follows_best_practices}</follows_best_practices>
+    <is_featured>{is_featured}</is_featured>
+    <has_privacy_policy>{has_privacy_policy}</has_privacy_policy>
+  </chrome_extension_metadata>
+
+  <detected_red_flags>
+    {red_flags}
+  </detected_red_flags>
+
+  Based on the metadata and detected red flags, evaluate the reputation risk level of this extension.
+
+  Guidelines for risk_level:
+  - **low**: No significant red flags, or red flags have clear legitimate explanations (e.g., niche tool with low users but good ratings)
+  - **medium**: Some concerning patterns (e.g., missing developer info OR low adoption OR few reviews), but not alarming in combination
+  - **high**: Multiple concerning patterns together (e.g., low users AND missing developer info AND no reviews), or critical single issues (e.g., abandoned + dangerous permissions pattern suggested)
+
+  You MUST respond with a valid JSON object with the following structure:
+  {{
+    "risk_summary": "A 2-3 sentence explanation of the overall reputation risk, considering both the red flags and any mitigating factors",
+    "risk_level": "low|medium|high",
+  }}
+
+  Your response must be valid JSON only, no markdown, no additional text.

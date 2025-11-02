@@ -1,0 +1,92 @@
+{
+  "version": "1.0",
+  "last_updated": "2025-11-02",
+  "description": "Configuration for detecting sensitive domain access in Chrome extension host permissions",
+  "categories": {
+    "banking_financial": {
+      "name": "Banking & Financial",
+      "description": "Banks, credit cards, payment processors, and financial institutions",
+      "enabled": true,
+      "domains": [
+        "chase.com",
+        "bankofamerica.com",
+        "wellsfargo.com",
+        "citibank.com",
+        "usbank.com",
+        "capitalone.com",
+        "discover.com",
+        "americanexpress.com",
+        "paypal.com",
+        "venmo.com",
+        "stripe.com",
+        "square.com",
+        "coinbase.com",
+        "binance.com",
+        "robinhood.com",
+        "etrade.com",
+        "tdameritrade.com",
+        "fidelity.com",
+        "schwab.com",
+        "vanguard.com",
+        "ally.com",
+        "sofi.com",
+        "chime.com",
+        "creditkarma.com",
+        "mint.com",
+        "plaid.com"
+      ]
+    },
+    "government": {
+      "name": "Government & Tax",
+      "description": "Government portals, tax filing, and official state/federal sites",
+      "enabled": false,
+      "domains": [
+        "irs.gov",
+        "usa.gov",
+        "healthcare.gov",
+        "ssa.gov",
+        "dmv.gov",
+        "turbotax.com",
+        "hrblock.com",
+        "taxact.com"
+      ]
+    },
+    "healthcare": {
+      "name": "Healthcare",
+      "description": "Medical records, insurance, telehealth, and healthcare portals",
+      "enabled": false,
+      "domains": [
+        "anthem.com",
+        "uhc.com",
+        "bluecrossma.com",
+        "cigna.com",
+        "aetna.com",
+        "humana.com",
+        "kaiser.com",
+        "teladoc.com",
+        "zocdoc.com",
+        "mychart.org",
+        "cvs.com",
+        "walgreens.com"
+      ]
+    },
+    "corporate_enterprise": {
+      "name": "Corporate & Enterprise",
+      "description": "Internal corporate domains and enterprise SaaS platforms",
+      "enabled": false,
+      "domains": [
+        "ibm.com",
+        "salesforce.com",
+        "workday.com",
+        "okta.com",
+        "onelogin.com",
+        "atlassian.com",
+        "slack.com",
+        "zoom.us",
+        "microsoft.com",
+        "office.com",
+        "google.com"
+      ]
+    }
+  }
+}

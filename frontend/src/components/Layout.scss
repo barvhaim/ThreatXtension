@@ -1,0 +1,211 @@
+// Modern Layout - Commercial SaaS UI
+.app-layout {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f1419 0%, #161b22 50%, #1a1f26 100%);
+  color: var(--cds-text-primary);
+}
+
+.main-content {
+  padding-top: 3rem; // Account for fixed header
+  min-height: calc(100vh - 3rem);
+}
+
+.content-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
+}
+
+// Global dark theme variables
+:root {
+  --cds-background: #0f1419;
+  --cds-layer: #161b22;
+  --cds-layer-01: #1a1f26;
+  --cds-layer-02: #21262d;
+  --cds-layer-03: #2d333b;
+  --cds-text-primary: #f0f6fc;
+  --cds-text-secondary: #8b949e;
+  --cds-text-tertiary: #6e7681;
+  --cds-border-subtle: #30363d;
+  --cds-border-strong: #484f58;
+  --cds-interactive-01: #238636;
+  --cds-interactive-02: #21262d;
+  --cds-interactive-03: #fd7e14;
+  --cds-danger: #da3633;
+  --cds-warning: #fb8500;
+  --cds-success: #238636;
+}
+
+// Beautiful scrollbar
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--cds-layer-01);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #4ecdc4, #45b7d1);
+  border-radius: 4px;
+
+  &:hover {
+    background: linear-gradient(135deg, #45b7d1, #4ecdc4);
+  }
+}
+
+// Global animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+// Utility classes for animations
+.fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.slide-in {
+  animation: slideIn 0.5s ease-out;
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+.app-layout {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f1419 0%, #161b22 50%, #1a1f26 100%);
+  color: var(--cds-text-primary);
+}
+
+.main-content {
+  padding-top: 3rem; // Account for fixed header
+  min-height: calc(100vh - 3rem);
+}
+
+.content-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
+}
+
+// Global dark theme variables
+:root {
+  --cds-background: #0f1419;
+  --cds-layer: #161b22;
+  --cds-layer-01: #1a1f26;
+  --cds-layer-02: #21262d;
+  --cds-layer-03: #2d333b;
+  --cds-text-primary: #f0f6fc;
+  --cds-text-secondary: #8b949e;
+  --cds-text-tertiary: #6e7681;
+  --cds-border-subtle: #30363d;
+  --cds-border-strong: #484f58;
+  --cds-interactive-01: #238636;
+  --cds-interactive-02: #21262d;
+  --cds-interactive-03: #fd7e14;
+  --cds-danger: #da3633;
+  --cds-warning: #fb8500;
+  --cds-success: #238636;
+}
+
+// Beautiful scrollbar
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--cds-layer-01);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #4ecdc4, #45b7d1);
+  border-radius: 4px;
+
+  &:hover {
+    background: linear-gradient(135deg, #45b7d1, #4ecdc4);
+  }
+}
+
+// Global animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+// Utility classes for animations
+.fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.slide-in {
+  animation: slideIn 0.5s ease-out;
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
