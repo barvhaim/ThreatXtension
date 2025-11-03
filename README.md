@@ -104,6 +104,10 @@ uv run gradio src/threatxtension/ui/app.py
 
 Analyze extensions directly from Claude Desktop conversations. See [MCP Server for Claude Desktop](#mcp-server-for-claude-desktop) for setup instructions.
 
+<p align="center">
+  <img src="images/claude.png" alt="ThreatXtension Claude" width="800"/>
+</p>
+
 ### Example Workflow Script
 
 Run the example script to see the complete workflow in action:
@@ -268,6 +272,10 @@ ThreatXtension can be integrated directly into Claude Desktop as an MCP (Model C
 
 4. **Verify Installation**: You should see a small hammer icon 🔨 in Claude Desktop indicating the ThreatXtension MCP server is available.
 
+<p align="center">
+  <img src="images/mcp_tool.png" alt="ThreatXtension MCP Tool" width="800"/>
+</p>
+
 **Usage in Claude Desktop**:
 
 Once configured, you can ask Claude to analyze Chrome extensions:
@@ -282,6 +290,10 @@ Claude will automatically use the `analyze_chrome_extension()` tool to perform a
 - Risk level assessment
 - Key security findings
 - Recommendations
+
+<p align="center">
+  <img src="images/claude2.png" alt="ThreatXtension Claude (2)" width="800"/>
+</p>
 
 **Available MCP Tools**:
 - `analyze_chrome_extension(chrome_extension_url)` - Performs complete security analysis on a Chrome Web Store extension
