@@ -103,22 +103,48 @@ def build_metadata_table(metadata: dict) -> Table:
         show_header=True,
         header_style="bold magenta",
     )
-    table.add_column("Field", style="cyan", width=20)
+    table.add_column("Field", style="cyan", width=25)
     table.add_column("Value", style="white")
 
-    if metadata.get("name"):
-        table.add_row("Name", str(metadata["name"]))
-    if metadata.get("version"):
-        table.add_row("Version", str(metadata["version"]))
-    if metadata.get("description"):
-        description = str(metadata["description"])
-        table.add_row("Description", description[:100] + ("..." if len(description) > 100 else ""))
-    if metadata.get("rating"):
-        table.add_row("Rating", f"{metadata['rating']} / 5")
-    if metadata.get("user_count"):
-        table.add_row("Users", str(metadata["user_count"]))
-    if metadata.get("developer"):
-        table.add_row("Developer", str(metadata["developer"]))
+    # Display all available metadata fields
+    field_mapping = {
+        "title": "Name",
+        "version": "Version",
+        "user_count": "Users",
+        "rating": "Rating",
+        "ratings_count": "Ratings Count",
+        "last_updated": "Last Updated",
+        "size": "Size",
+        "developer_name": "Developer Name",
+        "developer_email": "Developer Email",
+        "developer_website": "Developer Website",
+        "follows_best_practices": "Follows Best Practices",
+        "is_featured": "Featured",
+        "category": "Category",
+    }
+
+    for key, label in field_mapping.items():
+        value = metadata.get(key)
+        if value is not None:
+            # Format specific fields
+            if key == "rating":
+                table.add_row(label, f"{value} / 5")
+            elif key == "user_count":
+                table.add_row(label, f"{value:,}")
+            elif key == "ratings_count":
+                table.add_row(label, f"{value:,}")
+            elif key == "follows_best_practices" or key == "is_featured":
+                table.add_row(label, "Yes" if value else "No")
+            else:
+                table.add_row(label, str(value))
+
+    # Display privacy policy (truncated if too long)
+    privacy_policy = metadata.get("privacy_policy")
+    if privacy_policy:
+        privacy_text = str(privacy_policy)
+        if len(privacy_text) > 150:
+            privacy_text = privacy_text[:150] + "..."
+        table.add_row("Privacy Policy", privacy_text)
 
     return table
 
