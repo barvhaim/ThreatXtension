@@ -1,7 +1,7 @@
 # ThreatXtension
 
 <p align="center">
-  <img src="images/logo.png" alt="AndroMinerAI Logo" width="600"/>
+  <img src="images/logo.png" alt="ThreatXtension Logo" width="800"/>
 </p>
 
 <p align="center">
@@ -80,6 +80,10 @@ The CLI provides the fastest way to analyze extensions with rich console output.
 make analyze URL=<chrome_web_store_url>
 ```
 
+<p align="center">
+  <img src="images/cli.png" alt="ThreatXtension CLI" width="800"/>
+</p>
+
 ### 2. Web UI
 
 Quick demo interface for web-based analysis.
@@ -91,6 +95,10 @@ uv run gradio src/threatxtension/ui/app.py
 
 # Access at http://localhost:7860
 ```
+
+<p align="center">
+  <img src="images/ui.png" alt="ThreatXtension UI" width="800"/>
+</p>
 
 ### 3. Claude Desktop Integration (MCP)
 
