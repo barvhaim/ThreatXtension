@@ -31,16 +31,20 @@ class WebstoreAnalyzer(BaseAnalyzer):
         """Check user engagement patterns for suspicious indicators."""
         flags = []
 
-        user_count = metadata.get("user_count", 0)
-        rating = metadata.get("rating", 0.0)
+        user_count = metadata.get("user_count")
+        rating = metadata.get("rating")
         ratings_count = metadata.get("ratings_count")
 
         # Convert None to 0 for calculations
+        if user_count is None:
+            user_count = 0
         if ratings_count is None:
             ratings_count = 0
+        if rating is None:
+            rating = 0.0
 
         # Low review ratio (fewer than 1% of users reviewed)
-        if user_count > 0 and ratings_count is not None:
+        if user_count > 0 and ratings_count > 0:
             review_ratio = ratings_count / user_count
             if review_ratio < 0.01:
                 flags.append(f"Review ratio lower than 1%. ({review_ratio:.4f} < 0.01)")
@@ -50,15 +54,15 @@ class WebstoreAnalyzer(BaseAnalyzer):
             flags.append(f"Low user count: {user_count} users (< 1,000)")
 
         # Low ratings count (< 50 ratings)
-        if ratings_count is not None and 0 < ratings_count < 50:
+        if 0 < ratings_count < 50:
             flags.append(f"Low ratings count: {ratings_count} ratings (< 50)")
 
         # No ratings at all
-        if ratings_count == 0 or ratings_count is None:
+        if ratings_count == 0:
             flags.append("No ratings at all")
 
         # Low average rating (< 3.5)
-        if rating is not None and 0 < rating < 3.5:
+        if 0 < rating < 3.5:
             flags.append(f"Low average rating: {rating} (< 3.5)")
 
         return flags
