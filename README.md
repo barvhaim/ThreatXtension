@@ -282,7 +282,7 @@ Once configured, you can ask Claude to analyze Chrome extensions:
 
 ```
 Analyze this Chrome extension:
-https://chromewebstore.google.com/detail/steam-inventory-helper/cmeakgjggjdlcpncigglobpjbkabhmjl
+https://chromewebstore.google.com/detail/auto-clicker/nodhhggdoefnnopmipedkaogkggmmhjk
 ```
 
 Claude will automatically use the `analyze_chrome_extension()` tool to perform a complete security analysis and provide you with:
