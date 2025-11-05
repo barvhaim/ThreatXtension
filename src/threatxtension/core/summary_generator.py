@@ -36,16 +36,21 @@ class SummaryGenerator:
         extension_description = manifest.get("description", "No description available")
         version = manifest.get("version", "Unknown")
 
-        permissions_analysis = analysis_results.get("permissions_analysis", {}).get(
+        # Handle None values - use empty dict if None
+        permissions_analysis_data = analysis_results.get("permissions_analysis") or {}
+        webstore_analysis_data = analysis_results.get("webstore_analysis") or {}
+        javascript_analysis_data = analysis_results.get("javascript_analysis") or {}
+
+        permissions_analysis = permissions_analysis_data.get(
             "permissions_analysis", "No analysis available."
         )
-        host_permissions_analysis = analysis_results.get("permissions_analysis", {}).get(
+        host_permissions_analysis = permissions_analysis_data.get(
             "host_permissions_analysis", "No analysis available."
         )
-        webstore_analysis = analysis_results.get("webstore_analysis", {}).get(
+        webstore_analysis = webstore_analysis_data.get(
             "webstore_analysis", "No analysis available."
         )
-        sast_analysis = analysis_results.get("javascript_analysis", {}).get(
+        sast_analysis = javascript_analysis_data.get(
             "sast_analysis", "No analysis available."
         )
 
