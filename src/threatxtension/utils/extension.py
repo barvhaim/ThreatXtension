@@ -127,7 +127,7 @@ def is_chrome_extension_store_url(path: str) -> bool:
     return path.startswith("https://chromewebstore.google.com/detail/")
 
 
-def is_local_extension_file(path: str) -> bool:
+def is_local_extension_crx_file(path: str) -> bool:
     """
     Check if the provided path is a local CRX or ZIP file
 

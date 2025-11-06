@@ -50,9 +50,7 @@ class SummaryGenerator:
         webstore_analysis = webstore_analysis_data.get(
             "webstore_analysis", "No analysis available."
         )
-        sast_analysis = javascript_analysis_data.get(
-            "sast_analysis", "No analysis available."
-        )
+        sast_analysis = javascript_analysis_data.get("sast_analysis", "No analysis available.")
 
         template = PromptTemplate(
             input_variables=[
