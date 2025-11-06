@@ -226,13 +226,12 @@ def format_metadata(metadata_data, manifest_data=None):
     return formatted
 
 
-def analyze_extension(extension_url: str, uploaded_file, progress=gr.Progress()):
+def analyze_extension(extension_url: str, uploaded_file):
     """Analyze a Chrome extension using the workflow.
 
     Args:
         extension_url: Chrome Web Store URL of the extension (optional if file is provided).
         uploaded_file: Uploaded CRX or ZIP file (optional if URL is provided).
-        progress: Gradio progress tracker.
 
     Returns:
         Tuple of analysis results for display.
@@ -267,8 +266,6 @@ def analyze_extension(extension_url: str, uploaded_file, progress=gr.Progress())
                 None,
             ]
 
-        progress(0.1, desc="Initializing workflow...")
-
         # Build workflow graph
         graph = build_graph()
 
@@ -285,12 +282,8 @@ def analyze_extension(extension_url: str, uploaded_file, progress=gr.Progress())
             "error": None,
         }
 
-        progress(0.5, desc="Executing workflow...")
-
         # Execute workflow
         result = graph.invoke(initial_state)
-
-        progress(1.0, desc="Complete!")
 
         if result.get("error"):
             return [f"Analysis failed: {result.get('error')}", None, None]
@@ -389,6 +382,7 @@ AI-powered Chrome Extension Analysis Tool
                         summary = gr.Markdown(
                             label="Executive Summary",
                             value="Enter a Chrome Web Store URL and click Analyze to view results.",
+                            min_height="30vh",
                         )
                     with gr.Column():
                         metadata = gr.Markdown(
