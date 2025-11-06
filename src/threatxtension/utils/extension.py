@@ -125,3 +125,18 @@ def is_chrome_extension_store_url(path: str) -> bool:
         bool: True if the URL matches the Chrome Web Store pattern, False otherwise.
     """
     return path.startswith("https://chromewebstore.google.com/detail/")
+
+
+def is_local_extension_crx_file(path: str) -> bool:
+    """
+    Check if the provided path is a local CRX or ZIP file
+
+    Args:
+        path (str): The file path to check.
+
+    Returns:
+        bool: True if the path is a local .crx or .zip file, False otherwise.
+    """
+    if not path:
+        return False
+    return os.path.isfile(path) and (path.lower().endswith(".crx") or path.lower().endswith(".zip"))

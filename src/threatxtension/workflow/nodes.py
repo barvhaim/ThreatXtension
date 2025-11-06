@@ -18,6 +18,7 @@ from threatxtension.utils.extension import (
     extract_extension_crx,
     cleanup_extension_dir,
     is_chrome_extension_store_url,
+    is_local_extension_crx_file,
 )
 from threatxtension.workflow.node_types import (
     EXTENSION_METADATA_NODE,
@@ -41,11 +42,14 @@ def extension_path_routing_node(state: WorkflowState) -> Command:
     if is_chrome_extension_store_url(chrome_extension_path):
         return Command(goto=EXTENSION_METADATA_NODE)
 
+    if is_local_extension_crx_file(chrome_extension_path):
+        return Command(goto=EXTENSION_DOWNLOADER_NODE)
+
     return Command(
         goto=END,
         update={
             "status": WorkflowStatus.FAILED.value,
-            "error": "Provided Chrome extension path is not a valid Chrome Web Store URL.",
+            "error": "Provided Chrome extension path is not a valid Chrome Web Store URL or local CRX file.",
         },
     )
 
@@ -83,7 +87,7 @@ def extension_metadata_node(state: WorkflowState) -> Command:
 
 def extension_downloader_node(state: WorkflowState) -> Command:
     """
-    Node that performs the Chrome extension downloading operation.
+    Node that performs the Chrome extension downloading or extraction operation.
 
     Args:
         state (PipelineState): The current state of the workflow.
@@ -91,21 +95,25 @@ def extension_downloader_node(state: WorkflowState) -> Command:
     Returns:
         Command: A command indicating the next step in the workflow.
     """
-    chrome_extension_url = state.get("chrome_extension_path")
-    if not chrome_extension_url:
+    chrome_extension_path = state.get("chrome_extension_path")
+    if not chrome_extension_path:
         raise ValueError("No Chrome extension path provided in the workflow state.")
 
     try:
-        # Download the extension CRX
-        downloader = ExtensionDownloader()
-        extension_info = downloader.download_extension(extension_url=chrome_extension_url)
-        if not extension_info or "file_path" not in extension_info:
-            raise RuntimeError("Extension download returned no file.")
+        if is_local_extension_crx_file(chrome_extension_path):
+            logger.info("Processing local extension file: %s", chrome_extension_path)
+            extension_dir = extract_extension_crx(chrome_extension_path)
+            if not extension_dir:
+                raise RuntimeError("Failed to extract extension file.")
+        else:
+            downloader = ExtensionDownloader()
+            extension_info = downloader.download_extension(extension_url=chrome_extension_path)
+            if not extension_info or "file_path" not in extension_info:
+                raise RuntimeError("Extension download returned no file.")
 
-        # Extract the CRX
-        extension_dir = extract_extension_crx(extension_info["file_path"])
-        if not extension_dir:
-            raise RuntimeError("Failed to extract CRX file.")
+            extension_dir = extract_extension_crx(extension_info["file_path"])
+            if not extension_dir:
+                raise RuntimeError("Failed to extract CRX file.")
 
     except Exception as exc:
         logger.exception("Extension download/extract failed")
