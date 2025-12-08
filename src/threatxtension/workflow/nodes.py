@@ -17,6 +17,7 @@ from threatxtension.core.summary_generator import SummaryGenerator
 from threatxtension.utils.extension import (
     extract_extension_crx,
     cleanup_extension_dir,
+    cleanup_downloaded_crx,
     is_chrome_extension_store_url,
     is_local_extension_crx_file,
 )
@@ -99,19 +100,24 @@ def extension_downloader_node(state: WorkflowState) -> Command:
     if not chrome_extension_path:
         raise ValueError("No Chrome extension path provided in the workflow state.")
 
+    downloaded_crx_path = None  # Track downloaded files for cleanup
+
     try:
         if is_local_extension_crx_file(chrome_extension_path):
+            # User-provided file - don't set downloaded_crx_path (don't delete)
             logger.info("Processing local extension file: %s", chrome_extension_path)
             extension_dir = extract_extension_crx(chrome_extension_path)
             if not extension_dir:
                 raise RuntimeError("Failed to extract extension file.")
         else:
+            # Tool download - set downloaded_crx_path for cleanup
             downloader = ExtensionDownloader()
             extension_info = downloader.download_extension(extension_url=chrome_extension_path)
             if not extension_info or "file_path" not in extension_info:
                 raise RuntimeError("Extension download returned no file.")
 
-            extension_dir = extract_extension_crx(extension_info["file_path"])
+            downloaded_crx_path = extension_info["file_path"]  # Store for cleanup
+            extension_dir = extract_extension_crx(downloaded_crx_path)
             if not extension_dir:
                 raise RuntimeError("Failed to extract CRX file.")
 
@@ -120,6 +126,8 @@ def extension_downloader_node(state: WorkflowState) -> Command:
         return Command(
             goto=CLEANUP_NODE,
             update={
+                "extension_dir": extension_dir if "extension_dir" in locals() else None,
+                "downloaded_crx_path": downloaded_crx_path,
                 "status": WorkflowStatus.FAILED.value,
                 "error": str(exc),
             },
@@ -129,6 +137,7 @@ def extension_downloader_node(state: WorkflowState) -> Command:
         goto=MANIFEST_PARSER_NODE,
         update={
             "extension_dir": extension_dir,
+            "downloaded_crx_path": downloaded_crx_path,
         },
     )
 
@@ -254,12 +263,16 @@ def summary_generation_node(state: WorkflowState) -> Command:
 def cleanup_node(state: WorkflowState) -> Command:
     """
     Node that performs cleanup operations after the workflow is completed.
+    Removes temporary extraction directory and downloaded CRX files.
 
     Args:
         state (PipelineState): The current state of the workflow.
     Returns:
         Command: A command indicating the next step in the workflow.
     """
+    cleanup_errors = []
+
+    # Clean up temporary extraction directory
     extension_dir = state.get("extension_dir")
     if extension_dir:
         try:
@@ -267,13 +280,21 @@ def cleanup_node(state: WorkflowState) -> Command:
             cleanup_extension_dir(extension_dir)
         except Exception as exc:
             logger.warning("Failed to cleanup extension dir %s: %s", extension_dir, exc)
-            return Command(
-                goto=END,
-                update={
-                    "status": WorkflowStatus.FAILED.value,
-                    "error": f"Failed to cleanup extension dir: {exc}",
-                },
-            )
+            cleanup_errors.append(f"Failed to cleanup extension dir: {exc}")
+
+    # Clean up downloaded CRX file (only if downloaded by the tool)
+    downloaded_crx_path = state.get("downloaded_crx_path")
+    if downloaded_crx_path:
+        try:
+            logger.info("Cleaning up downloaded CRX file: %s", downloaded_crx_path)
+            cleanup_downloaded_crx(downloaded_crx_path)
+        except Exception as exc:
+            logger.warning("Failed to cleanup CRX file %s: %s", downloaded_crx_path, exc)
+            cleanup_errors.append(f"Failed to cleanup CRX file: {exc}")
+
+    # Log warnings but don't fail the workflow
+    if cleanup_errors:
+        logger.warning("Cleanup completed with warnings: %s", "; ".join(cleanup_errors))
 
     return Command(
         goto=END,

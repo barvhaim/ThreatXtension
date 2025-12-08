@@ -27,6 +27,9 @@ class WorkflowState(TypedDict):
         chrome_extension_path (str): File path to the Chrome extension being analyzed.
         extension_dir (Optional[str]): Directory where the extension is extracted,
             if available.
+        downloaded_crx_path (Optional[str]): Path to the CRX file downloaded by the tool
+            (not user-provided). This file will be cleaned up after analysis. Only set
+            when ExtensionDownloader downloads a file from Chrome Web Store.
         extension_metadata (Optional[Dict]): Metadata extracted from the extension,
             if available.
         manifest_data (Optional[Dict]): Parsed manifest.json data of the extension.
@@ -44,6 +47,7 @@ class WorkflowState(TypedDict):
     workflow_id: str
     chrome_extension_path: str
     extension_dir: Optional[str]
+    downloaded_crx_path: Optional[str]
     extension_metadata: Optional[Dict]
     manifest_data: Optional[Dict]
     analysis_results: Optional[Dict]

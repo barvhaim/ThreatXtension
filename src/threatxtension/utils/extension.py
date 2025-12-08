@@ -110,6 +110,45 @@ def cleanup_extension_dir(temp_dir: str):
         logger.error("Error cleaning up temporary directory: %s", exc)
 
 
+def cleanup_downloaded_crx(crx_file_path: str):
+    """
+    Remove a downloaded CRX file with safety checks.
+
+    Only deletes files within the extensions_storage directory.
+    Logs warning if file doesn't exist (idempotent).
+
+    Args:
+        crx_file_path (str): Path to the CRX file to remove.
+
+    Raises:
+        ValueError: If file path is outside extensions_storage directory.
+        OSError: If file deletion fails.
+    """
+    try:
+        if not os.path.exists(crx_file_path):
+            logger.warning("CRX file does not exist (already cleaned?): %s", crx_file_path)
+            return
+
+        # Safety: Only delete files within storage directory
+        abs_crx_path = os.path.abspath(crx_file_path)
+        storage_path = os.getenv("EXTENSION_STORAGE_PATH", "./extensions_storage")
+        abs_storage_path = os.path.abspath(storage_path)
+
+        if not abs_crx_path.startswith(abs_storage_path):
+            logger.warning(
+                "Refusing to delete CRX file outside storage directory: %s",
+                abs_crx_path,
+            )
+            raise ValueError(f"CRX file path outside storage directory: {abs_crx_path}")
+
+        os.remove(crx_file_path)
+        logger.info("Cleaned up CRX file: %s", crx_file_path)
+
+    except Exception as exc:
+        logger.error("Error cleaning up CRX file %s: %s", crx_file_path, exc)
+        raise
+
+
 def is_chrome_extension_store_url(path: str) -> bool:
     """
     Check if the provided path is a valid Chrome Web Store URL
