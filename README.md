@@ -84,7 +84,7 @@ make analyze URL=<chrome_web_store_url>
   <img src="images/cli.png" alt="ThreatXtension CLI" width="800"/>
 </p>
 
-### 2. Web UI
+### 2. Web UI (Gradio)
 
 Quick demo interface for web-based analysis.
 
@@ -100,7 +100,37 @@ uv run gradio src/threatxtension/ui/app.py
   <img src="images/ui.png" alt="ThreatXtension UI" width="800"/>
 </p>
 
-### 3. Claude Desktop Integration (MCP)
+### 3. React Frontend with FastAPI Backend
+
+Full-featured web application with real-time analysis and interactive results.
+
+**Start the API server**:
+```bash
+make api
+# or
+uv run threatxtension serve
+
+# Access API at http://localhost:8007
+# API docs at http://localhost:8007/docs
+```
+
+**Start the React frontend** (in a separate terminal):
+```bash
+make frontend
+# or
+cd frontend && npm run dev
+
+# Access at http://localhost:5173
+```
+
+**API Endpoints**:
+- `POST /api/scan/trigger` - Trigger a new extension scan
+- `GET /api/scan/status/{extension_id}` - Check scan status
+- `GET /api/scan/results/{extension_id}` - Get complete scan results
+- `GET /api/scan/files/{extension_id}` - List extracted files
+- `GET /api/scan/file/{extension_id}/{file_path}` - Get file content
+
+### 4. Claude Desktop Integration (MCP)
 
 Analyze extensions directly from Claude Desktop conversations. See [MCP Server for Claude Desktop](#mcp-server-for-claude-desktop) for setup instructions.
 

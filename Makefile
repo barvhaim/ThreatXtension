@@ -13,6 +13,8 @@ help:
 	@echo ""
 	@echo "Run Applications:"
 	@echo "  make ui              - Start Gradio web interface (port 7860)"
+	@echo "  make api             - Start FastAPI server for frontend (port 8007)"
+	@echo "  make frontend        - Start React frontend dev server (port 5173)"
 	@echo "  make analyze URL=... - Analyze extension via CLI (requires URL parameter)"
 	@echo ""
 	@echo "Development:"
@@ -49,6 +51,19 @@ ui:
 	@echo "Starting Gradio web interface..."
 	@echo "Access at: http://localhost:7860"
 	uv run gradio src/threatxtension/ui/app.py
+
+# Start FastAPI server
+api:
+	@echo "Starting FastAPI server..."
+	@echo "Access at: http://localhost:8007"
+	@echo "API docs at: http://localhost:8007/docs"
+	uv run threatxtension serve
+
+# Start React frontend
+frontend:
+	@echo "Starting React frontend development server..."
+	@echo "Access at: http://localhost:5173"
+	cd frontend && npm run dev
 
 # Analyze extension via CLI
 analyze:

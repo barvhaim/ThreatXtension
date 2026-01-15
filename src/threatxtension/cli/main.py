@@ -289,6 +289,55 @@ def analyze(url: str, output: Optional[str], verbose: bool):
 
 
 @cli.command()
+@click.option(
+    "--host",
+    default="0.0.0.0",
+    help="Host to bind the API server to (default: 0.0.0.0)",
+)
+@click.option(
+    "--port",
+    default=8007,
+    type=int,
+    help="Port to bind the API server to (default: 8007)",
+)
+@click.option(
+    "--reload",
+    is_flag=True,
+    help="Enable auto-reload for development",
+)
+def serve(host: str, port: int, reload: bool):
+    """Start the FastAPI server for the web frontend.
+
+    Example:
+        threatxtension serve
+        threatxtension serve --port 8080 --reload
+    """
+    import uvicorn
+    from threatxtension.api.main import app
+
+    console.print(
+        Panel.fit(
+            f"[bold cyan]Starting ThreatXtension API Server[/bold cyan]\n"
+            f"[white]Host:[/white] [green]{host}[/green]\n"
+            f"[white]Port:[/white] [green]{port}[/green]\n"
+            f"[white]Reload:[/white] [green]{'Enabled' if reload else 'Disabled'}[/green]",
+            border_style="cyan",
+        )
+    )
+    
+    console.print(f"\n[bold green]✓[/bold green] Server running at [blue]http://{host}:{port}[/blue]")
+    console.print("[dim]Press CTRL+C to stop[/dim]\n")
+    
+    uvicorn.run(
+        "threatxtension.api.main:app",
+        host=host,
+        port=port,
+        reload=reload,
+        log_level="info"
+    )
+
+
+@cli.command()
 def version():
     """Show version information."""
     console.print("[cyan]ThreatXtension[/cyan] version [green]0.1.0[/green]")
