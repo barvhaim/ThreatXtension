@@ -1,43 +1,22 @@
 import React, { useState, useEffect } from "react";
-import {
-  DataTable,
-  Table,
-  TableHead,
-  TableRow,
-  TableHeader,
-  TableBody,
-  TableCell,
-  Tile,
-  Tag,
-  Button,
-  Search,
-  Pagination,
-  Grid,
-  Column,
-  Accordion,
-  AccordionItem,
-  CodeSnippet,
-  SkeletonText,
-} from "@carbon/react";
-import {
-  Download,
-  View,
-  Security,
-  Document,
-  Warning,
-  Checkmark,
-  Error,
-  Information,
-} from "@carbon/icons-react";
-// import './ScanHistoryPage.scss';
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Download, Eye, Shield, FileText, AlertTriangle, CheckCircle, XCircle, Info } from "lucide-react";
 
+/**
+ * ScanHistoryPage Component
+ * Displays viewing history of scanned extensions with a premium glassmorphism design.
+ */
 const ScanHistoryPage = () => {
   const [scans, setScans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedScan, setSelectedScan] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    // Simulate loading scan history
+    // Simulate fetching data
     setTimeout(() => {
       setScans([
         {
@@ -48,391 +27,221 @@ const ScanHistoryPage = () => {
           securityScore: 0.0,
           riskLevel: "high",
           totalFindings: 20249,
-          fileCount: 34,
+          filesAnalyzed: 34,
           downloadSize: "4.1 MB",
-          status: "completed",
-          logFile: "mdanidgdpmkimeiiojknlnekblgmpdll_20250818_141823.log",
-          details: {
-            manifest: {
-              permissions: ["management", "activeTab"],
-              threatLevel: "low",
-              threatScore: 0,
-            },
-            sast: {
-              overallScore: 0.0,
-              riskDistribution: { high: 9, minimal: 1 },
-              totalFindings: 20249,
-            },
-            files: {
-              javascript: 11,
-              html: 3,
-              css: 13,
-              other: 7,
-            },
-          },
         },
         {
-          id: "cjpalhdlnbpafiamejdnhcphjbkeiagm",
-          name: "uBlock Origin",
-          version: "1.65.0",
-          timestamp: "2025-08-18 14:25:31",
-          securityScore: 27.5,
-          riskLevel: "high",
-          totalFindings: 15,
-          fileCount: 653,
-          downloadSize: "4.0 MB",
-          status: "completed",
-          logFile: "cjpalhdlnbpafiamejdnhcphjbkeiagm_20250818_142531.log",
-          details: {
-            manifest: {
-              permissions: [
-                "alarms",
-                "contextMenus",
-                "privacy",
-                "storage",
-                "tabs",
-                "unlimitedStorage",
-                "webNavigation",
-                "webRequest",
-                "webRequestBlocking",
-                "<all_urls>",
-              ],
-              threatLevel: "medium",
-              threatScore: 35,
-            },
-            sast: {
-              overallScore: 27.5,
-              riskDistribution: { high: 2, medium: 8, low: 5 },
-              totalFindings: 15,
-            },
-            files: {
-              javascript: 89,
-              html: 12,
-              css: 45,
-              other: 507,
-            },
-          },
+          id: "gighmmpiobklfepjocnamgkkbiglidom",
+          name: "AdBlock",
+          version: "5.17.0",
+          timestamp: "2025-08-17 10:30:15",
+          securityScore: 75.0,
+          riskLevel: "low",
+          totalFindings: 12,
+          filesAnalyzed: 28,
+          downloadSize: "2.3 MB",
+        },
+        {
+          id: "kbfnbcaeplbcioakkpcpgfkobkghlhen",
+          name: "Grammarly",
+          version: "14.1097.0",
+          timestamp: "2025-08-16 15:45:30",
+          securityScore: 45.0,
+          riskLevel: "medium",
+          totalFindings: 156,
+          filesAnalyzed: 52,
+          downloadSize: "8.7 MB",
         },
       ]);
       setLoading(false);
-    }, 2000);
+    }, 1000);
   }, []);
 
-  const handleScanSelect = (scan) => {
-    setSelectedScan(selectedScan?.id === scan.id ? null : scan);
-  };
-
-  const getRiskColor = (riskLevel) => {
+  const getRiskBadgeVariant = (riskLevel) => {
     switch (riskLevel) {
-      case "high":
-        return "red";
-      case "medium":
-        return "orange";
-      case "low":
-        return "green";
-      default:
-        return "gray";
+      case "high": return "destructive";
+      case "medium": return "secondary";
+      case "low": return "default"; // Will rely on default success color in theme if mapped, otherwise primary
+      default: return "outline";
     }
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "completed":
-        return <Checkmark size={16} />;
-      case "failed":
-        return <Error size={16} />;
-      case "running":
-        return <Information size={16} />;
-      default:
-        return <Information size={16} />;
+  const getRiskIcon = (riskLevel) => {
+    switch (riskLevel) {
+      case "high": return <XCircle className="h-4 w-4" />;
+      case "medium": return <AlertTriangle className="h-4 w-4" />;
+      case "low": return <CheckCircle className="h-4 w-4" />;
+      default: return <Info className="h-4 w-4" />;
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "completed":
-        return "green";
-      case "failed":
-        return "red";
-      case "running":
-        return "blue";
-      default:
-        return "gray";
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="scan-history-page">
-        <div className="page-header">
-          <h1>📋 Scan History</h1>
-          <p>View and analyze previous extension security scans</p>
-        </div>
-
-        <Grid className="loading-grid">
-          <Column lg={12} md={8} sm={4}>
-            <Tile className="loading-tile">
-              <SkeletonText paragraph lineCount={10} />
-            </Tile>
-          </Column>
-        </Grid>
-      </div>
-    );
-  }
+  const filteredScans = scans.filter(scan =>
+    scan.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    scan.id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="scan-history-page">
+    <div className="page-container">
       <div className="page-header">
-        <h1>📋 Scan History</h1>
-        <p>View and analyze previous extension security scans</p>
+        <h1 className="page-title">📋 Scan History</h1>
+        <p className="page-subtitle">
+          View and manage your extension security scan history
+        </p>
       </div>
 
-      <Grid className="history-content">
-        <Column lg={8} md={8} sm={4}>
-          <Tile className="scans-table-tile">
-            <div className="table-header">
-              <h3>🔍 Recent Scans ({scans.length})</h3>
-              <Search size={20} className="search-icon" />
-            </div>
+      <div className="glass-card mb-8">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <span className="text-primary">🔍</span> Recent Scans
+            <Badge variant="outline" className="ml-2">{scans.length}</Badge>
+          </h2>
+          <div className="flex gap-2 w-full md:w-auto">
+            <Input
+              placeholder="Search scans..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full md:w-64 bg-background/50"
+            />
+            <Button variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Export
+            </Button>
+          </div>
+        </div>
 
-            <div className="scans-table">
-              {scans.map((scan) => (
-                <div
-                  key={scan.id}
-                  className={`scan-row ${selectedScan?.id === scan.id ? "selected" : ""}`}
-                  onClick={() => handleScanSelect(scan)}
-                >
-                  <div className="scan-info">
-                    <div className="scan-name">
-                      <h4>{scan.name}</h4>
-                      <span className="scan-version">v{scan.version}</span>
-                    </div>
-                    <div className="scan-meta">
-                      <span className="scan-time">{scan.timestamp}</span>
-                      <span className="scan-id">{scan.id}</span>
+        {loading ? (
+          <div className="flex items-center justify-center py-12 text-muted-foreground">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-3"></div>
+            <span>Loading scan history...</span>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredScans.map((scan) => (
+              <div
+                key={scan.id}
+                className="p-4 rounded-xl border border-border/50 bg-card/30 hover:bg-card/50 transition-all hover:border-primary/50 group"
+              >
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                        <Shield className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg leading-none">{scan.name}</h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Version {scan.version} • {scan.timestamp}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="scan-stats">
-                    <div className="stat-item">
-                      <span className="stat-label">Score:</span>
-                      <span
-                        className={`stat-value score-${scan.securityScore < 30 ? "low" : scan.securityScore < 70 ? "medium" : "high"}`}
-                      >
+                  <div className="flex-1 grid grid-cols-2 lg:grid-cols-4 gap-4 w-full lg:w-auto">
+                    <div>
+                      <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Score</div>
+                      <div className={`text-xl font-bold ${scan.securityScore < 30 ? "text-destructive" :
+                          scan.securityScore < 60 ? "text-warning" : "text-success"
+                        }`}>
                         {scan.securityScore}/100
-                      </span>
+                      </div>
                     </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Risk:</span>
-                      <Tag type={getRiskColor(scan.riskLevel)} size="sm">
-                        {scan.riskLevel.toUpperCase()}
-                      </Tag>
+
+                    <div>
+                      <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Risk</div>
+                      <Badge variant={getRiskBadgeVariant(scan.riskLevel)} className="h-7 px-3">
+                        {getRiskIcon(scan.riskLevel)}
+                        <span className="ml-2">{scan.riskLevel.toUpperCase()}</span>
+                      </Badge>
                     </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Findings:</span>
-                      <span className="stat-value">{scan.totalFindings}</span>
+
+                    <div>
+                      <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Findings</div>
+                      <div className="text-xl font-bold text-foreground">{scan.totalFindings.toLocaleString()}</div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Files</div>
+                      <div className="text-xl font-bold text-foreground">{scan.filesAnalyzed}</div>
                     </div>
                   </div>
 
-                  <div className="scan-actions">
-                    <Button kind="tertiary" size="sm" className="view-btn">
-                      <View size={16} />
+                  <div className="flex gap-2 w-full lg:w-auto mt-2 lg:mt-0 pt-4 lg:pt-0 border-t border-border/20 lg:border-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedScan(scan)}
+                      className="flex-1 lg:flex-none"
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
                       View
                     </Button>
-                    <Button kind="tertiary" size="sm" className="download-btn">
-                      <Download size={16} />
-                      Log
+                    <Button variant="outline" size="sm" className="flex-1 lg:flex-none">
+                      <Download className="mr-2 h-4 w-4" />
+                      Report
                     </Button>
                   </div>
                 </div>
-              ))}
-            </div>
-          </Tile>
-        </Column>
+              </div>
+            ))}
 
-        <Column lg={4} md={8} sm={4}>
-          <Tile className="summary-tile">
-            <div className="summary-header">
-              <Security size={24} />
-              <h3>Scan Summary</h3>
-            </div>
+            {filteredScans.length === 0 && (
+              <div className="text-center py-16 text-muted-foreground glass-card border-dashed">
+                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No scans found matching your search.</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
-            <div className="summary-stats">
-              <div className="summary-stat">
-                <span className="stat-label">Total Scans:</span>
-                <span className="stat-value">{scans.length}</span>
-              </div>
-              <div className="summary-stat">
-                <span className="stat-label">High Risk:</span>
-                <span className="stat-value">
-                  {scans.filter((s) => s.riskLevel === "high").length}
-                </span>
-              </div>
-              <div className="summary-stat">
-                <span className="stat-label">Avg Score:</span>
-                <span className="stat-value">
-                  {(
-                    scans.reduce((sum, s) => sum + s.securityScore, 0) /
-                    scans.length
-                  ).toFixed(1)}
-                  /100
-                </span>
-              </div>
-              <div className="summary-stat">
-                <span className="stat-label">Total Files:</span>
-                <span className="stat-value">
-                  {scans.reduce((sum, s) => sum + s.fileCount, 0)}
-                </span>
-              </div>
-            </div>
-          </Tile>
-        </Column>
-      </Grid>
-
-      {/* Selected Scan Details */}
       {selectedScan && (
-        <Tile className="scan-details-tile">
-          <div className="details-header">
-            <h3>📊 Detailed Analysis: {selectedScan.name}</h3>
-            <Button
-              kind="tertiary"
-              size="sm"
-              onClick={() => setSelectedScan(null)}
-              className="close-details-btn"
-            >
-              Close
-            </Button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="glass-card w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold">Scan Details</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSelectedScan(null)}
+              >
+                <XCircle className="h-6 w-6 opacity-70 hover:opacity-100" />
+              </Button>
+            </div>
+
+            <div className="space-y-6">
+              <div className="flex items-center gap-4 p-4 rounded-lg bg-surface-elevated/50 border border-border">
+                <div className="w-16 h-16 rounded-xl bg-primary/20 flex items-center justify-center text-primary text-2xl">
+                  🛡️
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">{selectedScan.name}</h3>
+                  <p className="text-muted-foreground">{selectedScan.id}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 rounded-lg bg-surface/50 border border-border/50">
+                  <div className="text-sm text-muted-foreground mb-1">Security Score</div>
+                  <div className={`text-2xl font-bold ${selectedScan.securityScore < 30 ? "text-destructive" :
+                      selectedScan.securityScore < 60 ? "text-warning" : "text-success"
+                    }`}>
+                    {selectedScan.securityScore}/100
+                  </div>
+                </div>
+                <div className="p-4 rounded-lg bg-surface/50 border border-border/50">
+                  <div className="text-sm text-muted-foreground mb-1">Download Size</div>
+                  <div className="text-2xl font-bold text-foreground">{selectedScan.downloadSize}</div>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <Button onClick={() => setSelectedScan(null)}>
+                  Close Details
+                </Button>
+              </div>
+            </div>
           </div>
-
-          <Grid className="details-grid">
-            <Column lg={6} md={8} sm={4}>
-              <div className="detail-section">
-                <h4>📋 Extension Information</h4>
-                <div className="detail-content">
-                  <p>
-                    <strong>Extension ID:</strong> {selectedScan.id}
-                  </p>
-                  <p>
-                    <strong>Version:</strong> {selectedScan.version}
-                  </p>
-                  <p>
-                    <strong>Scan Time:</strong> {selectedScan.timestamp}
-                  </p>
-                  <p>
-                    <strong>File Count:</strong> {selectedScan.fileCount} files
-                  </p>
-                  <p>
-                    <strong>Download Size:</strong> {selectedScan.downloadSize}
-                  </p>
-                  <p>
-                    <strong>Log File:</strong> {selectedScan.logFile}
-                  </p>
-                </div>
-              </div>
-
-              <div className="detail-section">
-                <h4>🔒 Security Assessment</h4>
-                <div className="detail-content">
-                  <div className="security-score-display">
-                    <span className="score-label">Security Score:</span>
-                    <span
-                      className={`score-value score-${selectedScan.securityScore < 30 ? "low" : selectedScan.securityScore < 70 ? "medium" : "high"}`}
-                    >
-                      {selectedScan.securityScore}/100
-                    </span>
-                  </div>
-                  <p>
-                    <strong>Risk Level:</strong>
-                    <Tag type={getRiskColor(selectedScan.riskLevel)} size="sm">
-                      {selectedScan.riskLevel.toUpperCase()}
-                    </Tag>
-                  </p>
-                  <p>
-                    <strong>Total Findings:</strong>{" "}
-                    {selectedScan.totalFindings}
-                  </p>
-                </div>
-              </div>
-            </Column>
-
-            <Column lg={6} md={8} sm={4}>
-              <div className="detail-section">
-                <h4>📁 File Analysis</h4>
-                <div className="detail-content">
-                  <div className="file-breakdown">
-                    <div className="file-type">
-                      <span className="type-label">JavaScript:</span>
-                      <span className="type-count">
-                        {selectedScan.details.files.javascript} files
-                      </span>
-                    </div>
-                    <div className="file-type">
-                      <span className="type-label">HTML:</span>
-                      <span className="type-count">
-                        {selectedScan.details.files.html} files
-                      </span>
-                    </div>
-                    <div className="file-type">
-                      <span className="type-label">CSS:</span>
-                      <span className="type-count">
-                        {selectedScan.details.files.css} files
-                      </span>
-                    </div>
-                    <div className="file-type">
-                      <span className="type-label">Other:</span>
-                      <span className="type-count">
-                        {selectedScan.details.files.other} files
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="detail-section">
-                <h4>🚨 SAST Results</h4>
-                <div className="detail-content">
-                  <div className="sast-breakdown">
-                    <div className="sast-stat">
-                      <span className="stat-label">Overall Score:</span>
-                      <span className="stat-value">
-                        {selectedScan.details.sast.overallScore}/100
-                      </span>
-                    </div>
-                    <div className="sast-stat">
-                      <span className="stat-label">High Risk:</span>
-                      <span className="stat-value">
-                        {selectedScan.details.sast.riskDistribution.high}
-                      </span>
-                    </div>
-                    <div className="sast-stat">
-                      <span className="stat-label">Medium Risk:</span>
-                      <span className="stat-value">
-                        {selectedScan.details.sast.riskDistribution.medium || 0}
-                      </span>
-                    </div>
-                    <div className="sast-stat">
-                      <span className="stat-label">Low Risk:</span>
-                      <span className="stat-value">
-                        {selectedScan.details.sast.riskDistribution.low || 0}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Column>
-          </Grid>
-
-          <div className="details-actions">
-            <Button kind="primary" size="lg" className="download-report-btn">
-              <Download size={20} />
-              Download Full Report
-            </Button>
-            <Button kind="tertiary" size="lg" className="view-log-btn">
-              <Document size={20} />
-              View Raw Log
-            </Button>
-          </div>
-        </Tile>
+        </div>
       )}
     </div>
   );

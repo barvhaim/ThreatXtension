@@ -1,251 +1,303 @@
-// Enhanced Metric Card Component - Modern SaaS UI
+/* ============================================================================
+   Enhanced Metric Card Component - Modern Compact Design
+   ============================================================================ */
+
 .enhanced-metric-card {
-  background: linear-gradient(
-    135deg,
-    var(--cds-layer-01) 0%,
-    var(--cds-layer-02) 100%
-  );
-  border: 1px solid var(--cds-border-subtle);
-  border-radius: 12px;
-  padding: 1.5rem;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  background: hsla(var(--color-surface-elevated), 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid hsla(var(--color-border), 0.5);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.2),
-    0 4px 8px rgba(0, 0, 0, 0.1);
-
-  // Subtle top border accent
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #4ecdc4, #45b7d1, #96ceb4);
-    opacity: 0.6;
-  }
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow:
-      0 4px 12px rgba(0, 0, 0, 0.3),
-      0 8px 24px rgba(0, 0, 0, 0.15);
-    border-color: var(--cds-border-strong);
-
-    &::before {
-      opacity: 1;
-      height: 4px;
-    }
-  }
-
-  // Variants with distinct color coding
-  &--primary::before {
-    background: var(--cds-interactive-01);
-  }
-
-  &--success::before {
-    background: var(--cds-success);
-  }
-
-  &--warning::before {
-    background: var(--cds-warning);
-  }
-
-  &--danger::before {
-    background: var(--cds-danger);
-  }
-
-  // Enhanced variants with subtle background tints
-  &--primary {
-    background: linear-gradient(
-      135deg,
-      rgba(35, 134, 54, 0.05) 0%,
-      rgba(35, 134, 54, 0.02) 100%
-    );
-  }
-
-  &--success {
-    background: linear-gradient(
-      135deg,
-      rgba(78, 205, 196, 0.05) 0%,
-      rgba(69, 183, 209, 0.02) 100%
-    );
-  }
-
-  &--warning {
-    background: linear-gradient(
-      135deg,
-      rgba(255, 167, 38, 0.05) 0%,
-      rgba(255, 167, 38, 0.02) 100%
-    );
-  }
-
-  &--danger {
-    background: linear-gradient(
-      135deg,
-      rgba(218, 54, 51, 0.05) 0%,
-      rgba(218, 54, 51, 0.02) 100%
-    );
-  }
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    0 0 20px hsla(var(--color-primary), 0.05),
+    inset 0 1px 0 hsla(var(--color-background), 0.1);
 }
 
-// Card header
+/* Animated gradient background */
+.enhanced-metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg,
+      hsla(var(--color-primary), 0.04) 0%,
+      hsla(var(--color-secondary), 0.04) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.enhanced-metric-card:hover {
+  transform: translateY(-3px);
+  border-color: hsla(var(--color-primary), 0.3);
+  box-shadow:
+    0 6px 24px rgba(0, 0, 0, 0.25),
+    0 0 30px hsla(var(--color-primary), 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  background: hsla(var(--color-surface-elevated), 0.8);
+}
+
+.enhanced-metric-card:hover::before {
+  opacity: 1;
+}
+
+/* Card Variants - Subtle top border accent */
+.enhanced-metric-card--primary {
+  border-top: 2px solid transparent;
+  background-image:
+    linear-gradient(hsla(var(--color-surface-elevated), 0.5), hsla(var(--color-surface-elevated), 0.5)),
+    linear-gradient(90deg, hsl(var(--color-primary)), hsl(var(--color-accent)));
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+.enhanced-metric-card--success {
+  border-top: 2px solid transparent;
+  background-image:
+    linear-gradient(hsla(var(--color-surface-elevated), 0.5), hsla(var(--color-surface-elevated), 0.5)),
+    linear-gradient(90deg, hsl(var(--color-success)), hsl(142 76% 55%));
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+.enhanced-metric-card--warning {
+  border-top: 2px solid transparent;
+  background-image:
+    linear-gradient(hsla(var(--color-surface-elevated), 0.5), hsla(var(--color-surface-elevated), 0.5)),
+    linear-gradient(90deg, hsl(var(--color-warning)), hsl(38 92% 60%));
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+.enhanced-metric-card--danger {
+  border-top: 2px solid transparent;
+  background-image:
+    linear-gradient(hsla(var(--color-surface-elevated), 0.5), hsla(var(--color-surface-elevated), 0.5)),
+    linear-gradient(90deg, hsl(var(--color-destructive)), hsl(0 72% 60%));
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+/* Card Header - Compact layout */
 .enhanced-metric-card__header {
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-
-  .enhanced-metric-card__icon {
-    font-size: 1.5rem;
-    opacity: 0.9;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
-    flex-shrink: 0;
-  }
-
-  .enhanced-metric-card__header-content {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .enhanced-metric-card__title-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.25rem;
-  }
-
-  .enhanced-metric-card__title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    margin: 0;
-    color: var(--cds-text-primary);
-    line-height: 1.3;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  }
-
-  .enhanced-metric-card__help-icon {
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    color: var(--cds-text-secondary);
-    opacity: 0.7;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &:hover {
-      opacity: 1;
-      color: var(--cds-text-primary);
-    }
-  }
-
-  .enhanced-metric-card__subtitle {
-    font-size: 0.85rem;
-    color: var(--cds-text-secondary);
-    margin: 0;
-    line-height: 1.4;
-    opacity: 0.8;
-  }
+  gap: 0.875rem;
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 1;
 }
 
-// Card body
+.enhanced-metric-card__icon {
+  font-size: 1.5rem;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsla(var(--color-surface), 0.5);
+  border: 1px solid hsla(var(--color-border), 0.5);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.enhanced-metric-card:hover .enhanced-metric-card__icon {
+  transform: scale(1.05) rotate(-3deg);
+  background: hsla(var(--color-surface-hover), 0.8);
+  border-color: hsla(var(--color-primary), 0.3);
+  box-shadow: 0 0 15px hsla(var(--color-primary), 0.2);
+}
+
+.enhanced-metric-card__header-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.enhanced-metric-card__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.enhanced-metric-card__title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: hsl(var(--color-foreground));
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.enhanced-metric-card__help-icon {
+  background: transparent;
+  border: none;
+  color: hsl(var(--color-foreground-subtle));
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: var(--radius);
+}
+
+.enhanced-metric-card__help-icon:hover {
+  color: hsl(var(--color-primary));
+  background: hsla(var(--color-primary), 0.1);
+  transform: scale(1.1);
+}
+
+.enhanced-metric-card__subtitle {
+  font-size: 0.75rem;
+  color: hsl(var(--color-foreground-muted));
+  margin: 0;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+/* Card Body - Compact spacing */
 .enhanced-metric-card__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   position: relative;
+  z-index: 1;
 }
 
 .enhanced-metric-card__value-container {
   display: flex;
   align-items: baseline;
   gap: 0.75rem;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
 }
 
 .enhanced-metric-card__value {
   font-size: 2.5rem;
-  font-weight: 800;
-  color: var(--cds-text-primary);
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  font-weight: 700;
+  color: hsl(var(--color-foreground));
   line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
+/* Trend Indicator - Compact pill design */
 .enhanced-metric-card__trend {
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   font-weight: 700;
   padding: 0.25rem 0.5rem;
-  border-radius: 6px;
   display: inline-flex;
   align-items: center;
+  gap: 0.25rem;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-  &.trend-up {
-    color: #66bb6a;
-    background: rgba(102, 187, 106, 0.1);
-  }
+.enhanced-metric-card__trend.trend-up {
+  background: hsla(var(--color-success), 0.1);
+  border-color: hsla(var(--color-success), 0.2);
+  color: hsl(var(--color-success));
+}
 
-  &.trend-down {
-    color: #ff6b6b;
-    background: rgba(255, 107, 107, 0.1);
-  }
+.enhanced-metric-card__trend.trend-down {
+  background: hsla(var(--color-destructive), 0.1);
+  border-color: hsla(var(--color-destructive), 0.2);
+  color: hsl(var(--color-destructive));
+}
 
-  &.trend-neutral {
-    color: var(--cds-text-secondary);
-    background: rgba(255, 255, 255, 0.05);
-  }
+.enhanced-metric-card__trend.trend-neutral {
+  background: hsla(var(--color-muted), 0.5);
+  border-color: hsla(var(--color-border), 0.5);
+  color: hsl(var(--color-foreground-muted));
 }
 
 .enhanced-metric-card__label {
-  font-size: 0.9rem;
-  color: var(--cds-text-secondary);
-  font-weight: 500;
+  font-size: 0.875rem;
+  color: hsl(var(--color-foreground-muted));
   margin-bottom: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
-// Sparkline chart
+/* Sparkline Chart */
 .enhanced-metric-card__sparkline {
-  margin-top: 0.5rem;
-  height: 30px;
-  width: 100%;
+  height: 40px;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid hsla(var(--color-border), 0.3);
+  position: relative;
+}
 
-  .sparkline-path {
-    stroke: var(--cds-interactive-01);
-    stroke-linecap: round;
-    stroke-linejoin: round;
+.sparkline-path {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
 
-    &--primary {
-      stroke: var(--cds-interactive-01);
-    }
+.sparkline-path--primary {
+  stroke: hsl(var(--color-primary));
+}
 
-    &--success {
-      stroke: var(--cds-success);
-    }
+.sparkline-path--success {
+  stroke: hsl(var(--color-success));
+}
 
-    &--warning {
-      stroke: var(--cds-warning);
-    }
+.sparkline-path--warning {
+  stroke: hsl(var(--color-warning));
+}
 
-    &--danger {
-      stroke: var(--cds-danger);
-    }
+.sparkline-path--danger {
+  stroke: hsl(var(--color-destructive));
+}
+
+.sparkline-path--default {
+  stroke: hsl(var(--color-foreground-muted));
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .enhanced-metric-card {
+    padding: 1.125rem;
+  }
+
+  .enhanced-metric-card__value {
+    font-size: 2.25rem;
   }
 }
 
-// Responsive design
 @media (max-width: 768px) {
   .enhanced-metric-card {
-    padding: 1.25rem;
+    padding: 1rem;
+  }
 
-    .enhanced-metric-card__header {
-      margin-bottom: 1rem;
-    }
+  .enhanced-metric-card__value {
+    font-size: 2rem;
+  }
 
-    .enhanced-metric-card__value {
-      font-size: 2rem;
-    }
+  .enhanced-metric-card__sparkline {
+    height: 36px;
   }
 }
 
-// Made with Bob
+/* Print */
+@media print {
+  .enhanced-metric-card {
+    break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #000;
+    background: white;
+  }
+}

@@ -1,20 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
-import { TextInput, Button, InlineLoading, Dropdown } from "@carbon/react";
-import { Search, Code, ChevronDown } from "@carbon/icons-react";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Search, Code, ChevronDown } from "lucide-react";
 import "./EnhancedUrlInput.scss";
 
 /**
  * Enhanced URL Input Component with recent URLs dropdown and sample extension button
- *
- * @param {Object} props
- * @param {string} props.value - Current URL value
- * @param {function} props.onChange - Function to call when URL changes
- * @param {function} props.onScan - Function to call when scan button is clicked
- * @param {boolean} props.isScanning - Whether a scan is in progress
- * @param {Array} props.recentUrls - Array of recently scanned URLs
- * @param {function} props.onSelectRecent - Function to call when a recent URL is selected
- * @param {function} props.onScanSample - Function to call when scan sample button is clicked
- * @param {string} props.className - Additional CSS classes
  */
 const EnhancedUrlInput = ({
   value,
@@ -30,7 +21,6 @@ const EnhancedUrlInput = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -44,59 +34,56 @@ const EnhancedUrlInput = ({
     };
   }, []);
 
-  // Format URLs for display in dropdown
   const formatUrlForDisplay = (url) => {
     try {
-      // Extract extension ID and name if possible
       const match = url.match(/\/detail\/([^\/]+)\/([^\/\?]+)/);
       if (match && match[1]) {
         return `${match[1]} (${match[2]})`;
       }
-
-      // Fallback to just showing the URL with truncation
       return url.length > 40 ? url.substring(0, 37) + "..." : url;
     } catch (e) {
       return url;
     }
   };
 
-  // Handle key press (Enter to submit)
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && value.trim() && !isScanning) {
       onScan();
     }
   };
 
-  // Sample extension URLs
-  const sampleExtensions = [
-    {
-      name: "AdBlock",
-      url: "https://chromewebstore.google.com/detail/adblock/gighmmpiobklfepjocnamgkkbiglidom",
-    },
-    {
-      name: "Grammarly",
-      url: "https://chromewebstore.google.com/detail/grammarly/kbfnbcaeplbcioakkpcpgfkobkghlhen",
-    },
-    {
-      name: "LastPass",
-      url: "https://chromewebstore.google.com/detail/lastpass/hdokiejnpimakedhajhdlcegeplioahd",
-    },
-  ];
+  // Sample extensions removed per user feedback
 
   return (
     <div className={`enhanced-url-input ${className}`}>
       <div className="input-container">
         <div className="url-field-container">
-          <TextInput
-            id="extension-url"
-            labelText="Chrome Web Store URL"
-            placeholder="https://chromewebstore.google.com/detail/extension-name/extension-id"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyPress={handleKeyPress}
-            className="url-input-field"
-            size="lg"
-          />
+          <div className="space-y-2">
+            <label htmlFor="extension-url" className="text-sm font-medium url-label">
+              Chrome Web Store URL
+            </label>
+            <div className="url-input-wrapper">
+              <Input
+                id="extension-url"
+                placeholder="https://chromewebstore.google.com/detail/extension-name/extension-id"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="url-input-field"
+                style={{
+                  height: '56px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '2px solid rgba(59, 130, 246, 0.4)',
+                  borderRadius: '0.75rem',
+                  color: '#ffffff',
+                  fontSize: '0.9375rem',
+                  fontWeight: '500',
+                  padding: '0 3.5rem 0 1.25rem',
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3), 0 0 20px rgba(59, 130, 246, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                }}
+              />
+            </div>
+          </div>
 
           {recentUrls.length > 0 && (
             <div className="recent-urls-dropdown" ref={dropdownRef}>
@@ -129,49 +116,32 @@ const EnhancedUrlInput = ({
           )}
         </div>
 
-        <div className="action-buttons">
+        <div className="action-buttons flex gap-2">
           <Button
             onClick={onScan}
             disabled={isScanning || !value.trim()}
             className="scan-button"
             size="lg"
-            renderIcon={Search}
           >
             {isScanning ? (
-              <InlineLoading description="Scanning..." />
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Scanning...
+              </>
             ) : (
-              "Scan & Analyze"
+              <>
+                <Search className="mr-2 h-4 w-4" />
+                Scan & Analyze
+              </>
             )}
           </Button>
 
-          <Button
-            onClick={onScanSample}
-            disabled={isScanning}
-            className="sample-button"
-            kind="tertiary"
-            size="lg"
-            renderIcon={Code}
-          >
-            Sample
-          </Button>
         </div>
       </div>
 
-      {/* Sample extensions quick access */}
-      <div className="sample-extensions">
-        <span className="sample-label">Try:</span>
-        {sampleExtensions.map((ext, index) => (
-          <button
-            key={index}
-            className="sample-extension-link"
-            onClick={() => onChange(ext.url)}
-          >
-            {ext.name}
-          </button>
-        ))}
-      </div>
 
-      <p className="input-help-text">
+
+      <p className="input-help-text text-sm text-muted-foreground">
         Enter a Chrome Web Store URL to automatically scan and analyze the
         extension's security posture
       </p>
@@ -180,5 +150,3 @@ const EnhancedUrlInput = ({
 };
 
 export default EnhancedUrlInput;
-
-// Made with Bob

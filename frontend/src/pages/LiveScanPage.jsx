@@ -1,27 +1,9 @@
 import React, { useState } from "react";
-import {
-  TextInput,
-  Button,
-  Tile,
-  ProgressBar,
-  InlineLoading,
-  Tag,
-  Accordion,
-  AccordionItem,
-  CodeSnippet,
-  Grid,
-  Column,
-} from "@carbon/react";
-import {
-  Search,
-  Play,
-  Stop,
-  Download,
-  Security,
-  Document,
-  Warning,
-} from "@carbon/icons-react";
-// import './LiveScanPage.scss';
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
+import { Search, Play, Square, Download, Shield, FileText, AlertTriangle } from "lucide-react";
 
 const LiveScanPage = () => {
   const [scanUrl, setScanUrl] = useState("");
@@ -38,34 +20,18 @@ const LiveScanPage = () => {
     setScanLog([]);
     setShowResults(false);
 
-    // Simulate CLI scan process with realistic log messages
     const logMessages = [
-      {
-        type: "info",
-        message: "🔍 ThreatXtension CLI - Starting Extension Analysis",
-      },
-      {
-        type: "info",
-        message: "📅 Scan initiated at: " + new Date().toLocaleString(),
-      },
+      { type: "info", message: "🔍 ThreatXtension CLI - Starting Extension Analysis" },
+      { type: "info", message: "📅 Scan initiated at: " + new Date().toLocaleString() },
       { type: "info", message: "🎯 Target: " + scanUrl },
       { type: "info", message: "" },
       { type: "info", message: "📥 Phase 1: Extension Download" },
       { type: "info", message: "   🔍 Attempting to download extension..." },
-      {
-        type: "info",
-        message: "   📋 Checking Chrome Web Store availability...",
-      },
-      {
-        type: "warning",
-        message: "   ⚠️  Direct download failed (status: 204)",
-      },
+      { type: "info", message: "   📋 Checking Chrome Web Store availability..." },
+      { type: "warning", message: "   ⚠️  Direct download failed (status: 204)" },
       { type: "info", message: "   🔄 Trying alternative download methods..." },
       { type: "info", message: "   📥 Method 2: Chrome browser simulation" },
-      {
-        type: "info",
-        message: "      🔗 Using clients2.google.com service...",
-      },
+      { type: "info", message: "      🔗 Using clients2.google.com service..." },
       { type: "success", message: "      ✅ CRX file detected successfully!" },
       { type: "success", message: "   ✅ Download completed: 4.1 MB" },
       { type: "info", message: "" },
@@ -80,14 +46,8 @@ const LiveScanPage = () => {
       { type: "info", message: "🔒 Phase 3: Security Analysis (SAST)" },
       { type: "info", message: "   📊 Analyzing manifest.json..." },
       { type: "warning", message: "   ⚠️  High-risk permissions detected" },
-      {
-        type: "info",
-        message: "   📄 Scanning JavaScript files for vulnerabilities...",
-      },
-      {
-        type: "error",
-        message: "   🚨 eval() usage detected in background.js",
-      },
+      { type: "info", message: "   📄 Scanning JavaScript files for vulnerabilities..." },
+      { type: "error", message: "   🚨 eval() usage detected in background.js" },
       { type: "error", message: "   🚨 innerHTML assignment in popup.js" },
       { type: "warning", message: "   ⚠️  Suspicious URL patterns found" },
       { type: "info", message: "   📊 SAST analysis completed" },
@@ -95,11 +55,7 @@ const LiveScanPage = () => {
       { type: "info", message: "💾 Phase 4: Results & Logging" },
       { type: "info", message: "   📝 Generating security report..." },
       { type: "info", message: "   💾 Saving to CLI logs directory..." },
-      {
-        type: "success",
-        message:
-          "   ✅ Log saved: mdanidgdpmkimeiiojknlnekblgmpdll_20250818_141823.log",
-      },
+      { type: "success", message: "   ✅ Log saved: mdanidgdpmkimeiiojknlnekblgmpdll_20250818_141823.log" },
       { type: "success", message: "" },
       { type: "success", message: "🎉 SCAN COMPLETED SUCCESSFULLY!" },
       { type: "info", message: "📊 Final Security Score: 0.0/100 (HIGH RISK)" },
@@ -112,7 +68,6 @@ const LiveScanPage = () => {
       setScanProgress(((i + 1) / logMessages.length) * 100);
     }
 
-    // Show results after scan completes
     setTimeout(() => {
       setShowResults(true);
       setIsScanning(false);
@@ -130,241 +85,189 @@ const LiveScanPage = () => {
     setScanProgress(0);
   };
 
-  const getLogIcon = (type) => {
-    switch (type) {
-      case "info":
-        return "ℹ️";
-      case "success":
-        return "✅";
-      case "warning":
-        return "⚠️";
-      case "error":
-        return "🚨";
-      default:
-        return "📝";
-    }
-  };
-
   const getLogColor = (type) => {
     switch (type) {
-      case "info":
-        return "blue";
-      case "success":
-        return "green";
-      case "warning":
-        return "orange";
-      case "error":
-        return "red";
-      default:
-        return "gray";
+      case "info": return "text-blue-400";
+      case "success": return "text-green-400";
+      case "warning": return "text-yellow-400";
+      case "error": return "text-red-400";
+      default: return "text-gray-400";
     }
   };
 
   return (
-    <div className="live-scan-page">
+    <div className="page-container">
       <div className="page-header">
-        <h1>🔴 Live Extension Security Scan</h1>
-        <p>Real-time monitoring and analysis of Chrome extension security</p>
+        <h1 className="page-title">🔴 Live Extension Security Scan</h1>
+        <p className="page-subtitle">Real-time monitoring and analysis of Chrome extension security</p>
       </div>
 
-      <Grid className="scan-controls">
-        <Column lg={8} md={4} sm={4}>
-          <Tile className="scan-input-tile">
-            <div className="scan-input-section">
-              <TextInput
-                id="scan-url"
-                labelText="Chrome Web Store URL"
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 glass-card">
+          <h2 className="text-xl font-bold mb-4">Scan Configuration</h2>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground-muted">Chrome Web Store URL</label>
+              <Input
                 placeholder="https://chromewebstore.google.com/detail/extension-name/extension-id"
                 value={scanUrl}
                 onChange={(e) => setScanUrl(e.target.value)}
-                size="lg"
-                className="url-input"
+                className="h-12 bg-background/50 border-input"
               />
-              <div className="scan-actions">
-                <Button
-                  onClick={handleScan}
-                  disabled={isScanning || !scanUrl.trim()}
-                  className="scan-button"
-                  size="lg"
-                >
-                  {isScanning ? (
-                    <InlineLoading description="Scanning..." />
-                  ) : (
-                    <>
-                      <Play size={20} />
-                      Start Scan
-                    </>
-                  )}
-                </Button>
-                {isScanning && (
-                  <Button
-                    onClick={stopScan}
-                    kind="danger"
-                    size="lg"
-                    className="stop-button"
-                  >
-                    <Stop size={20} />
-                    Stop
-                  </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleScan}
+                disabled={isScanning || !scanUrl.trim()}
+                size="lg"
+                className="flex-1"
+              >
+                {isScanning ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Scanning...
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-2 h-4 w-4" />
+                    Start Scan
+                  </>
                 )}
-              </div>
+              </Button>
+              {isScanning && (
+                <Button onClick={stopScan} variant="destructive" size="lg">
+                  <Square className="mr-2 h-4 w-4" />
+                  Stop
+                </Button>
+              )}
             </div>
-          </Tile>
-        </Column>
+          </div>
+        </div>
 
-        <Column lg={4} md={4} sm={4}>
-          <Tile className="scan-status-tile">
-            <div className="status-header">
-              <Security size={24} />
-              <h3>Scan Status</h3>
-            </div>
-            <div className="status-content">
-              <div className="status-item">
-                <span className="status-label">Progress:</span>
-                <ProgressBar
-                  value={scanProgress}
-                  size="lg"
-                  className="progress-bar"
+        <div className="glass-card">
+          <div className="flex items-center gap-2 mb-4">
+            <Shield className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-bold">Scan Status</h2>
+          </div>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-foreground-muted">Progress:</span>
+                <span className="font-mono">{Math.round(scanProgress)}%</span>
+              </div>
+              <div className="w-full bg-surface rounded-full h-2 overflow-hidden">
+                <div
+                  className="bg-primary h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${scanProgress}%` }}
                 />
-                <span className="progress-text">
-                  {Math.round(scanProgress)}%
-                </span>
-              </div>
-              <div className="status-item">
-                <span className="status-label">Status:</span>
-                <Tag type={isScanning ? "blue" : "green"} size="sm">
-                  {isScanning ? "Scanning" : "Ready"}
-                </Tag>
-              </div>
-              <div className="status-item">
-                <span className="status-label">Log Entries:</span>
-                <span className="log-count">{scanLog.length}</span>
               </div>
             </div>
-          </Tile>
-        </Column>
-      </Grid>
+            <div className="flex justify-between items-center py-2 border-b border-border/50">
+              <span className="text-sm text-foreground-muted">Status:</span>
+              <Badge variant={isScanning ? "default" : "secondary"}>
+                {isScanning ? "Scanning" : "Ready"}
+              </Badge>
+            </div>
+            <div className="flex justify-between items-center pt-2">
+              <span className="text-sm text-foreground-muted">Log Entries:</span>
+              <span className="font-bold font-mono">{scanLog.length}</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      {/* Scan Progress and Logs */}
       {isScanning && (
-        <Tile className="scan-progress-tile">
-          <div className="progress-header">
-            <h3>📊 Scan Progress</h3>
-            <Button
-              onClick={clearLog}
-              kind="tertiary"
-              size="sm"
-              className="clear-log-btn"
-            >
+        <div className="glass-card">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">📊 Scan Progress</h2>
+            <Button onClick={clearLog} variant="outline" size="sm">
               Clear Log
             </Button>
           </div>
-          <div className="progress-content">
-            <div className="log-container">
-              {scanLog.map((log, index) => (
-                <div key={index} className={`log-entry log-${log.type}`}>
-                  <span className="log-icon">{getLogIcon(log.type)}</span>
-                  <span className="log-message">{log.message}</span>
-                  <Tag type={getLogColor(log.type)} size="sm">
-                    {log.type.toUpperCase()}
-                  </Tag>
-                </div>
-              ))}
-            </div>
+          <div className="bg-black/80 backdrop-blur-sm rounded-lg p-4 max-h-96 overflow-y-auto font-mono text-sm space-y-1 border border-border/50 shadow-inner">
+            {scanLog.map((log, index) => (
+              <div key={index} className={`flex items-start gap-2 ${getLogColor(log.type)}`}>
+                <span className="whitespace-pre opacity-90">{log.message}</span>
+              </div>
+            ))}
           </div>
-        </Tile>
+        </div>
       )}
 
-      {/* Scan Results */}
       {showResults && (
-        <Tile className="scan-results-tile">
-          <div className="results-header">
-            <h3>📋 Scan Results Summary</h3>
-            <div className="results-meta">
-              <span>Completed at: {new Date().toLocaleString()}</span>
-              <span>Target: {scanUrl}</span>
+        <div className="glass-card animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold mb-1">📋 Scan Results Summary</h2>
+            <div className="text-sm text-foreground-muted">
+              Completed at: {new Date().toLocaleString()} • Target: {scanUrl}
             </div>
           </div>
 
-          <Grid className="results-grid">
-            <Column lg={3} md={4} sm={4}>
-              <div className="result-card security-score">
-                <h4>Security Score</h4>
-                <div className="score-value">0.0/100</div>
-                <Tag type="red" size="lg">
-                  HIGH RISK
-                </Tag>
-              </div>
-            </Column>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="p-4 rounded-xl bg-surface/50 border border-border/50">
+              <div className="text-sm text-foreground-muted mb-2">Security Score</div>
+              <div className="text-3xl font-bold text-destructive">0.0/100</div>
+              <Badge variant="destructive" className="mt-2">HIGH RISK</Badge>
+            </div>
 
-            <Column lg={3} md={4} sm={4}>
-              <div className="result-card findings">
-                <h4>Total Findings</h4>
-                <div className="findings-value">20,249</div>
-                <Tag type="red" size="lg">
-                  CRITICAL
-                </Tag>
-              </div>
-            </Column>
+            <div className="p-4 rounded-xl bg-surface/50 border border-border/50">
+              <div className="text-sm text-foreground-muted mb-2">Total Findings</div>
+              <div className="text-3xl font-bold text-foreground">20,249</div>
+              <Badge variant="destructive" className="mt-2">CRITICAL</Badge>
+            </div>
 
-            <Column lg={3} md={4} sm={4}>
-              <div className="result-card files">
-                <h4>Files Analyzed</h4>
-                <div className="files-value">34</div>
-                <Tag type="blue" size="lg">
-                  COMPLETE
-                </Tag>
-              </div>
-            </Column>
+            <div className="p-4 rounded-xl bg-surface/50 border border-border/50">
+              <div className="text-sm text-foreground-muted mb-2">Files Analyzed</div>
+              <div className="text-3xl font-bold text-foreground">34</div>
+              <Badge variant="secondary" className="mt-2 text-foreground">COMPLETE</Badge>
+            </div>
 
-            <Column lg={3} md={4} sm={4}>
-              <div className="result-card download">
-                <h4>Download Size</h4>
-                <div className="download-value">4.1 MB</div>
-                <Tag type="green" size="lg">
-                  SUCCESS
-                </Tag>
-              </div>
-            </Column>
-          </Grid>
+            <div className="p-4 rounded-xl bg-surface/50 border border-border/50">
+              <div className="text-sm text-foreground-muted mb-2">Download Size</div>
+              <div className="text-3xl font-bold text-foreground">4.1 MB</div>
+              <Badge variant="outline" className="mt-2 bg-success/10 text-success border-success/20">SUCCESS</Badge>
+            </div>
+          </div>
 
-          <div className="results-actions">
-            <Button kind="primary" size="lg" className="download-report-btn">
-              <Download size={20} />
-              Download Full Report
+          <div className="flex gap-3">
+            <Button size="lg" className="shadow-lg shadow-primary/20">
+              <Download className="mr-2 h-4 w-4" />
+              Download Report
             </Button>
-            <Button kind="tertiary" size="lg" className="view-details-btn">
-              <Document size={20} />
-              View Detailed Analysis
+            <Button variant="outline" size="lg">
+              <FileText className="mr-2 h-4 w-4" />
+              Detailed Analysis
             </Button>
           </div>
-        </Tile>
+        </div>
       )}
 
-      {/* Quick Actions */}
-      <Tile className="quick-actions-tile">
-        <h3>⚡ Quick Actions</h3>
-        <Grid className="actions-grid">
-          <Column lg={4} md={4} sm={4}>
-            <Button kind="tertiary" size="lg" className="action-btn">
-              <Search size={20} />
-              Recent Scans
-            </Button>
-          </Column>
-          <Column lg={4} md={4} sm={4}>
-            <Button kind="tertiary" size="lg" className="action-btn">
-              <Warning size={20} />
-              High Risk Extensions
-            </Button>
-          </Column>
-          <Column lg={4} md={4} sm={4}>
-            <Button kind="tertiary" size="lg" className="action-btn">
-              <Document size={20} />
-              Scan History
-            </Button>
-          </Column>
-        </Grid>
-      </Tile>
+      <div className="glass-card">
+        <h2 className="text-xl font-bold mb-4">⚡ Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Button variant="outline" size="lg" className="w-full h-auto py-4 justify-start hover:bg-surface-hover/50">
+            <Search className="mr-3 h-5 w-5 text-primary" />
+            <div className="text-left">
+              <div className="font-semibold">Recent Scans</div>
+              <div className="text-xs text-foreground-muted font-normal">View your scan history</div>
+            </div>
+          </Button>
+          <Button variant="outline" size="lg" className="w-full h-auto py-4 justify-start hover:bg-surface-hover/50">
+            <AlertTriangle className="mr-3 h-5 w-5 text-warning" />
+            <div className="text-left">
+              <div className="font-semibold">High Risk Extensions</div>
+              <div className="text-xs text-foreground-muted font-normal">Review critical threats</div>
+            </div>
+          </Button>
+          <Button variant="outline" size="lg" className="w-full h-auto py-4 justify-start hover:bg-surface-hover/50">
+            <FileText className="mr-3 h-5 w-5 text-accent" />
+            <div className="text-left">
+              <div className="font-semibold">Generate Reports</div>
+              <div className="text-xs text-foreground-muted font-normal">Download compliance reports</div>
+            </div>
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };

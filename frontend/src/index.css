@@ -1,73 +1,379 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap");
+@import "tailwindcss";
+
+:root {
+  /* ============================================================================
+     MODERN COLOR SYSTEM - Vibrant & Professional
+     ============================================================================ */
+
+  /* Background Colors */
+  --color-background: 224 71% 4%;
+  --color-surface: 222 47% 11%;
+  --color-surface-elevated: 217 33% 17%;
+  --color-surface-hover: 217 33% 22%;
+
+  /* Foreground Colors */
+  --color-foreground: 210 40% 98%;
+  --color-foreground-muted: 215 20% 75%;
+  --color-foreground-subtle: 215 15% 55%;
+
+  /* Primary Brand */
+  --color-primary: 217 91% 60%;
+  --color-primary-hover: 217 100% 65%;
+  --color-primary-foreground: 210 40% 98%;
+
+  /* Secondary */
+  --color-secondary: 262 83% 58%;
+  --color-secondary-hover: 262 83% 63%;
+  --color-secondary-foreground: 210 40% 98%;
+
+  /* Accent */
+  --color-accent: 190 95% 50%;
+  --color-accent-hover: 190 95% 55%;
+  --color-accent-foreground: 222 47% 11%;
+
+  /* Status Colors */
+  --color-muted: 217 33% 17%;
+  --color-muted-foreground: 215 20% 65%;
+
+  --color-destructive: 346 87% 55%;
+  --color-destructive-hover: 346 87% 60%;
+  --color-destructive-foreground: 210 40% 98%;
+
+  --color-success: 152 76% 45%;
+  --color-success-hover: 152 76% 50%;
+  --color-success-foreground: 210 40% 98%;
+
+  --color-warning: 32 95% 55%;
+  --color-warning-hover: 32 95% 60%;
+  --color-warning-foreground: 224 71% 4%;
+
+  /* Boarders & Inputs */
+  --color-border: 217 33% 20%;
+  --color-border-subtle: 217 33% 15%;
+  --color-border-strong: 217 33% 25%;
+
+  --color-input: 217 33% 20%;
+  --color-input-focus: 217 91% 60%;
+  --color-ring: 217 91% 60%;
+
+  /* Radii */
+  --radius-sm: 0.5rem;
+  --radius: 0.75rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 2rem;
+  --radius-2xl: 3rem;
+  --radius-full: 9999px;
+}
+
+@theme {
+  /* Map CSS variables to Tailwind theme */
+  --color-background: hsl(var(--color-background));
+  --color-surface: hsl(var(--color-surface));
+  --color-surface-elevated: hsl(var(--color-surface-elevated));
+  --color-surface-hover: hsl(var(--color-surface-hover));
+
+  --color-foreground: hsl(var(--color-foreground));
+  --color-foreground-muted: hsl(var(--color-foreground-muted));
+  --color-foreground-subtle: hsl(var(--color-foreground-subtle));
+
+  --color-primary: hsl(var(--color-primary));
+  --color-primary-hover: hsl(var(--color-primary-hover));
+  --color-primary-foreground: hsl(var(--color-primary-foreground));
+
+  --color-secondary: hsl(var(--color-secondary));
+  --color-secondary-hover: hsl(var(--color-secondary-hover));
+
+  --color-accent: hsl(var(--color-accent));
+  --color-accent-hover: hsl(var(--color-accent-hover));
+
+  --color-muted: hsl(var(--color-muted));
+  --color-muted-foreground: hsl(var(--color-muted-foreground));
+
+  --color-destructive: hsl(var(--color-destructive));
+  --color-destructive-hover: hsl(var(--color-destructive-hover));
+
+  --color-success: hsl(var(--color-success));
+  --color-success-hover: hsl(var(--color-success-hover));
+
+  --color-warning: hsl(var(--color-warning));
+  --color-warning-hover: hsl(var(--color-warning-hover));
+
+  --color-border: hsl(var(--color-border));
+  --color-input: hsl(var(--color-input));
+  --color-ring: hsl(var(--color-ring));
+
+  --radius-sm: var(--radius-sm);
+  --radius: var(--radius);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+  --radius-full: var(--radius-full);
+}
+
+/* ============================================================================
+   GLOBAL STYLES - Modern Foundation
+   ============================================================================ */
 
 * {
-  margin: 0;
-  padding: 0;
+  border-color: hsl(var(--color-border));
   box-sizing: border-box;
 }
 
 html {
-  font-size: 16px;
-}
-
-body {
-  font-family:
-    "IBM Plex Sans",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    sans-serif;
-  line-height: 1.6;
-  color: #ffffff;
-  background: #0f1419;
+  scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#root {
+body {
+  background: linear-gradient(135deg, hsl(240 10% 3.9%) 0%, hsl(240 12% 6%) 100%);
+  color: hsl(var(--color-foreground));
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  line-height: 1.6;
   min-height: 100vh;
 }
 
-/* Dark mode overrides for Carbon Design System */
-:root {
-  --cds-ui-background: #0f1419;
-  --cds-layer: #1a1f2e;
-  --cds-layer-hover: #252b3d;
-  --cds-field: #252b3d;
-  --cds-interactive: #0066cc;
-  --cds-interactive-hover: #0052a3;
-  --cds-text-primary: #ffffff;
-  --cds-text-secondary: #b8c5d6;
-  --cds-border-strong: #4a5568;
-  --cds-border-subtle: #2f3649;
+/* ============================================================================
+   MODERN SCROLLBAR
+   ============================================================================ */
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
 }
 
-/* Ensure Carbon components use dark theme */
-.cds--layer,
-.cds--layer--01,
-.cds--layer--02,
-.cds--layer--03 {
-  background: var(--cds-layer) !important;
+::-webkit-scrollbar-track {
+  background: hsl(var(--color-surface));
+  border-radius: 10px;
 }
 
-.cds--text-input,
-.cds--text-input__field-wrapper {
-  background: var(--cds-field) !important;
-  border-color: var(--cds-border-subtle) !important;
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, hsl(var(--color-primary)), hsl(var(--color-secondary)));
+  border-radius: 10px;
+  border: 2px solid hsl(var(--color-surface));
 }
 
-.cds--text-input:focus,
-.cds--text-input__field-wrapper:focus-within {
-  border-color: var(--cds-interactive) !important;
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, hsl(var(--color-primary-hover)), hsl(var(--color-secondary-hover)));
 }
 
-.cds--btn--primary {
-  background: var(--cds-interactive) !important;
-  border-color: var(--cds-interactive) !important;
+/* ============================================================================
+   GLASSMORPHISM UTILITIES
+   ============================================================================ */
+
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.cds--btn--primary:hover {
-  background: var(--cds-interactive-hover) !important;
-  border-color: var(--cds-interactive-hover) !important;
+.glass-strong {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* ============================================================================
+   GRADIENT UTILITIES
+   ============================================================================ */
+
+.gradient-primary {
+  background: linear-gradient(135deg, hsl(var(--color-primary)), hsl(var(--color-secondary)));
+}
+
+.gradient-accent {
+  background: linear-gradient(135deg, hsl(var(--color-accent)), hsl(var(--color-primary)));
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, hsl(var(--color-primary)), hsl(var(--color-accent)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================================================
+   GLOW EFFECTS
+   ============================================================================ */
+
+.glow-primary {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3),
+    0 0 40px rgba(59, 130, 246, 0.2),
+    0 0 60px rgba(59, 130, 246, 0.1);
+}
+
+.glow-secondary {
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.3),
+    0 0 40px rgba(168, 85, 247, 0.2),
+    0 0 60px rgba(168, 85, 247, 0.1);
+}
+
+.glow-accent {
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.3),
+    0 0 40px rgba(6, 182, 212, 0.2),
+    0 0 60px rgba(6, 182, 212, 0.1);
+}
+
+/* ============================================================================
+   MODERN ANIMATIONS
+   ============================================================================ */
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+  }
+
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 40px rgba(59, 130, 246, 0.6);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Animation utility classes */
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 3s linear infinite;
+  background-size: 2000px 100%;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================================================
+   FOCUS STATES - Modern accessibility
+   ============================================================================ */
+
+*:focus-visible {
+  outline: 2px solid hsl(var(--color-ring));
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
+/* ============================================================================
+   SELECTION STYLING
+   ============================================================================ */
+
+::selection {
+  background: hsl(var(--color-primary) / 0.3);
+  color: hsl(var(--color-foreground));
+}
+
+::-moz-selection {
+  background: hsl(var(--color-primary) / 0.3);
+  color: hsl(var(--color-foreground));
+}
+
+/* ============================================================================
+   REDUCED MOTION SUPPORT
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+
+  .glass,
+  .glass-strong {
+    background: white;
+    backdrop-filter: none;
+    border: 1px solid #ccc;
+  }
 }

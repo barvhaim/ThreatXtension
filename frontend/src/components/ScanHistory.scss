@@ -1,20 +1,18 @@
-// Scan History Styles
+/* ============================================================================
+   Scan History Component
+   Carbon g100 Theme
+   ============================================================================ */
+
 .scan-history-section {
   margin-bottom: 2rem;
   padding: 1.5rem;
-  background: linear-gradient(
-    135deg,
-    var(--cds-layer-01) 0%,
-    var(--cds-layer-02) 100%
-  );
-  border: 1px solid var(--cds-border-subtle);
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle-01);
 
   h3 {
     margin-bottom: 1rem;
     color: var(--cds-text-primary);
-    font-size: 1.25rem;
+    font-size: 1rem;
     font-weight: 600;
   }
 
@@ -25,16 +23,13 @@
 
     .history-tile {
       background: var(--cds-layer-02);
-      border: 1px solid var(--cds-border-subtle);
-      border-radius: 12px;
+      border: 1px solid var(--cds-border-subtle-01);
       padding: 1rem;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: border-color 110ms;
 
       &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        border-color: #4ecdc4;
+        border-color: var(--cds-border-strong-01);
       }
 
       .history-content {
@@ -43,15 +38,14 @@
         gap: 1rem;
 
         .history-icon {
-          font-size: 1.5rem;
+          font-size: 1.25rem;
           width: 40px;
           height: 40px;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(135deg, #4ecdc4, #45b7d1);
-          border-radius: 50%;
-          color: white;
+          background: var(--cds-layer-accent-01);
+          color: var(--cds-icon-primary);
         }
 
         .history-info {
@@ -60,14 +54,14 @@
           h4 {
             margin: 0 0 0.25rem 0;
             color: var(--cds-text-primary);
-            font-size: 1rem;
+            font-size: 0.875rem;
             font-weight: 600;
           }
 
           p {
             margin: 0.125rem 0;
             color: var(--cds-text-secondary);
-            font-size: 0.875rem;
+            font-size: 0.75rem;
           }
         }
       }
@@ -82,23 +76,21 @@
   margin-bottom: 2rem;
 
   .history-toggle-btn {
-    background: linear-gradient(135deg, #4ecdc4, #45b7d1);
+    background: var(--cds-button-primary);
     border: none;
-    color: white;
+    color: var(--cds-text-on-color);
     font-weight: 600;
     padding: 0.5rem 1rem;
-    border-radius: 8px;
-    transition: all 0.3s ease;
+    transition: background-color 110ms;
 
     &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(78, 205, 196, 0.3);
+      background: var(--cds-button-primary-hover);
     }
   }
 }
 
-// Responsive styles for scan history
-@media (max-width: 768px) {
+/* Responsive */
+@media (max-width: 672px) {
   .overview-header {
     flex-direction: column;
     gap: 1rem;

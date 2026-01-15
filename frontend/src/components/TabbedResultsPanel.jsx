@@ -1,31 +1,13 @@
 import React, { useState } from "react";
-import {
-  Tabs,
-  Tab,
-  TabList,
-  TabPanels,
-  TabPanel,
-  Button,
-  Tag,
-  Tile,
-} from "@carbon/react";
-import {
-  Information,
-  Filter,
-  ChevronDown,
-  ChevronUp,
-} from "@carbon/icons-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Info, Filter, ChevronDown, ChevronUp } from "lucide-react";
 import "./TabbedResultsPanel.scss";
 
 /**
  * Tabbed Results Panel Component for organizing scan results
- *
- * @param {Object} props
- * @param {Object} props.scanResults - The scan results data
- * @param {Function} props.onViewFile - Function to call when viewing a file
- * @param {Function} props.onAnalyzeWithAI - Function to call when analyzing with AI
- * @param {Function} props.onViewFindingDetails - Function to call when viewing finding details
- * @param {Function} props.onViewAllFindings - Function to call when viewing all findings
  */
 const TabbedResultsPanel = ({
   scanResults,
@@ -34,13 +16,11 @@ const TabbedResultsPanel = ({
   onViewFindingDetails,
   onViewAllFindings,
 }) => {
-  const [selectedTab, setSelectedTab] = useState(0);
   const [severityFilter, setSeverityFilter] = useState("ALL");
   const [collapsedSections, setCollapsedSections] = useState({});
 
   if (!scanResults) return null;
 
-  // Toggle section collapse state
   const toggleSection = (sectionId) => {
     setCollapsedSections((prev) => ({
       ...prev,
@@ -48,12 +28,10 @@ const TabbedResultsPanel = ({
     }));
   };
 
-  // Check if a section is collapsed
   const isSectionCollapsed = (sectionId) => {
     return !!collapsedSections[sectionId];
   };
 
-  // Filter findings by severity
   const filteredFindings =
     severityFilter === "ALL"
       ? scanResults.sastResults || []
@@ -62,589 +40,413 @@ const TabbedResultsPanel = ({
         );
 
   return (
-    <div className="tabbed-results-panel">
-      <h2 className="results-title">🔒 Security Analysis Results</h2>
+    <div className="space-y-6">
+      <h2 className="text-3xl font-bold">🔒 Security Analysis Results</h2>
 
       {/* Key Metrics Summary */}
-      <div className="results-summary">
-        <div className="results-grid">
-          <Tile className="result-tile security-score">
-            <div className="tile-content">
-              <div className="tile-header">
-                <h3>Security Score</h3>
-                <div className="tile-icon">🛡️</div>
-              </div>
-              <div className="score-display">
-                <span
-                  className={`score ${scanResults.securityScore < 30 ? "critical" : scanResults.securityScore < 50 ? "high" : scanResults.securityScore < 80 ? "medium" : "low"}`}
-                >
-                  {scanResults.securityScore || 0}
-                </span>
-                <span className="score-max">/100</span>
-              </div>
-              <p className="score-description">
-                {scanResults.securityScore < 30
-                  ? "Critical Issues"
-                  : scanResults.securityScore < 50
-                    ? "High Risk"
-                    : scanResults.securityScore < 80
-                      ? "Moderate"
-                      : "Secure"}
-              </p>
-              <button className="what-does-this-mean-link">
-                What does this mean? <Information size={16} />
-              </button>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium">Security Score</CardTitle>
+              <span className="text-2xl">🛡️</span>
             </div>
-          </Tile>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-2">
+              <span className={`text-4xl font-bold ${
+                scanResults.securityScore < 30 ? "text-red-500" :
+                scanResults.securityScore < 50 ? "text-orange-500" :
+                scanResults.securityScore < 80 ? "text-yellow-500" : "text-green-500"
+              }`}>
+                {scanResults.securityScore || 0}
+              </span>
+              <span className="text-muted-foreground">/100</span>
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              {scanResults.securityScore < 30 ? "Critical Issues" :
+               scanResults.securityScore < 50 ? "High Risk" :
+               scanResults.securityScore < 80 ? "Moderate" : "Secure"}
+            </p>
+          </CardContent>
+        </Card>
 
-          <Tile className="result-tile risk-level">
-            <div className="tile-content">
-              <div className="tile-header">
-                <h3>Risk Level</h3>
-                <div className="tile-icon">⚠️</div>
-              </div>
-              <div className="risk-display">
-                <Tag
-                  type={
-                    scanResults.riskLevel === "HIGH"
-                      ? "red"
-                      : scanResults.riskLevel === "MEDIUM"
-                        ? "warm-gray"
-                        : "green"
-                  }
-                  size="lg"
-                >
-                  {scanResults.riskLevel || "UNKNOWN"}
-                </Tag>
-              </div>
-              <p className="risk-description">
-                {scanResults.riskLevel === "HIGH"
-                  ? "Immediate attention"
-                  : scanResults.riskLevel === "MEDIUM"
-                    ? "Review needed"
-                    : "Low risk"}
-              </p>
-              <button className="what-does-this-mean-link">
-                What does this mean? <Information size={16} />
-              </button>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium">Risk Level</CardTitle>
+              <span className="text-2xl">⚠️</span>
             </div>
-          </Tile>
+          </CardHeader>
+          <CardContent>
+            <Badge variant={
+              scanResults.riskLevel === "HIGH" ? "destructive" :
+              scanResults.riskLevel === "MEDIUM" ? "secondary" : "default"
+            } className="text-lg px-4 py-1">
+              {scanResults.riskLevel || "UNKNOWN"}
+            </Badge>
+            <p className="text-sm text-muted-foreground mt-2">
+              {scanResults.riskLevel === "HIGH" ? "Immediate attention" :
+               scanResults.riskLevel === "MEDIUM" ? "Review needed" : "Low risk"}
+            </p>
+          </CardContent>
+        </Card>
 
-          <Tile className="result-tile files-analyzed">
-            <div className="tile-content">
-              <div className="tile-header">
-                <h3>Files Analyzed</h3>
-                <div className="tile-icon">📁</div>
-              </div>
-              <div className="files-display">
-                <span className="files-count">
-                  {scanResults.totalFiles || 0}
-                </span>
-                <span className="files-label">files</span>
-              </div>
-              <p className="files-description">
-                {scanResults.totalFiles > 100
-                  ? "Large extension"
-                  : scanResults.totalFiles > 50
-                    ? "Medium-sized"
-                    : "Small extension"}
-              </p>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium">Files Analyzed</CardTitle>
+              <span className="text-2xl">📁</span>
             </div>
-          </Tile>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-bold">{scanResults.totalFiles || 0}</span>
+              <span className="text-muted-foreground">files</span>
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              {scanResults.totalFiles > 100 ? "Large extension" :
+               scanResults.totalFiles > 50 ? "Medium-sized" : "Small extension"}
+            </p>
+          </CardContent>
+        </Card>
 
-          <Tile className="result-tile security-findings">
-            <div className="tile-content">
-              <div className="tile-header">
-                <h3>Security Findings</h3>
-                <div className="tile-icon">🚨</div>
-              </div>
-              <div className="findings-display">
-                <span className="findings-count">
-                  {scanResults.totalFindings || 0}
-                </span>
-                <span className="findings-label">issues</span>
-              </div>
-              <p className="findings-description">
-                {scanResults.totalFindings > 1000
-                  ? "Critical concerns"
-                  : scanResults.totalFindings > 100
-                    ? "Multiple issues"
-                    : scanResults.totalFindings > 10
-                      ? "Some concerns"
-                      : "Minimal issues"}
-              </p>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium">Security Findings</CardTitle>
+              <span className="text-2xl">🚨</span>
             </div>
-          </Tile>
-        </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-bold">{scanResults.totalFindings || 0}</span>
+              <span className="text-muted-foreground">issues</span>
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              {scanResults.totalFindings > 1000 ? "Critical concerns" :
+               scanResults.totalFindings > 100 ? "Multiple issues" :
+               scanResults.totalFindings > 10 ? "Some concerns" : "Minimal issues"}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Tabbed Interface */}
-      <div className="results-tabs-container">
-        <Tabs
-          selectedIndex={selectedTab}
-          onChange={(index) => setSelectedTab(index)}
-          className="results-tabs"
-          type="container"
-        >
-          <TabList aria-label="Results Tabs" className="tab-list">
-            <Tab>Overview</Tab>
-            <Tab>Files ({scanResults.files?.length || 0})</Tab>
-            <Tab>SAST Findings ({scanResults.sastResults?.length || 0})</Tab>
-            <Tab>Recommendations</Tab>
-          </TabList>
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="files">Files ({scanResults.files?.length || 0})</TabsTrigger>
+          <TabsTrigger value="findings">SAST Findings ({scanResults.sastResults?.length || 0})</TabsTrigger>
+          <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
+        </TabsList>
 
-          <TabPanels className="tab-panels">
-            {/* Overview Tab */}
-            <TabPanel style={{ display: "block", visibility: "visible" }}>
-              <div className="overview-tab">
-                <div className="section-header">
-                  <h3>Extension Overview</h3>
-                  <button
-                    className="section-toggle"
-                    onClick={() => toggleSection("overview-extension")}
-                    aria-label={
-                      isSectionCollapsed("overview-extension")
-                        ? "Expand section"
-                        : "Collapse section"
-                    }
-                  >
-                    {isSectionCollapsed("overview-extension") ? (
-                      <ChevronDown size={16} />
-                    ) : (
-                      <ChevronUp size={16} />
-                    )}
-                  </button>
-                </div>
-
-                {!isSectionCollapsed("overview-extension") && (
-                  <div className="overview-content">
-                    <div className="overview-grid">
-                      <div className="overview-item">
-                        <div className="item-label">Extension Name</div>
-                        <div className="item-value">
-                          {scanResults.name || "Unknown"}
-                        </div>
-                      </div>
-                      <div className="overview-item">
-                        <div className="item-label">Developer</div>
-                        <div className="item-value">
-                          {scanResults.developer || "Unknown"}
-                        </div>
-                      </div>
-                      <div className="overview-item">
-                        <div className="item-label">Version</div>
-                        <div className="item-value">
-                          {scanResults.version || "Unknown"}
-                        </div>
-                      </div>
-                      <div className="overview-item">
-                        <div className="item-label">Last Updated</div>
-                        <div className="item-value">
-                          {scanResults.lastUpdated || "Unknown"}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="overview-description">
-                      <div className="item-label">Description</div>
-                      <div className="item-value description">
-                        {scanResults.description || "No description available"}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="section-header">
-                  <h3>Permissions Analysis</h3>
-                  <button
-                    className="section-toggle"
-                    onClick={() => toggleSection("overview-permissions")}
-                    aria-label={
-                      isSectionCollapsed("overview-permissions")
-                        ? "Expand section"
-                        : "Collapse section"
-                    }
-                  >
-                    {isSectionCollapsed("overview-permissions") ? (
-                      <ChevronDown size={16} />
-                    ) : (
-                      <ChevronUp size={16} />
-                    )}
-                  </button>
-                </div>
-
-                {!isSectionCollapsed("overview-permissions") && (
-                  <div className="permissions-content">
-                    <div className="permissions-list">
-                      {(scanResults.permissions || []).length > 0 ? (
-                        scanResults.permissions.map((permission, index) => (
-                          <div
-                            key={index}
-                            className={`permission-item ${permission.risk}`}
-                          >
-                            <div className="permission-name">
-                              {permission.name}
-                            </div>
-                            <div className="permission-risk">
-                              <Tag
-                                type={
-                                  permission.risk === "HIGH"
-                                    ? "red"
-                                    : permission.risk === "MEDIUM"
-                                      ? "warm-gray"
-                                      : "green"
-                                }
-                                size="sm"
-                              >
-                                {permission.risk}
-                              </Tag>
-                            </div>
-                            <div className="permission-description">
-                              {permission.description}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="no-data">
-                          No permissions data available
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <div className="section-header">
-                  <h3>Risk Summary</h3>
-                  <button
-                    className="section-toggle"
-                    onClick={() => toggleSection("overview-risk")}
-                    aria-label={
-                      isSectionCollapsed("overview-risk")
-                        ? "Expand section"
-                        : "Collapse section"
-                    }
-                  >
-                    {isSectionCollapsed("overview-risk") ? (
-                      <ChevronDown size={16} />
-                    ) : (
-                      <ChevronUp size={16} />
-                    )}
-                  </button>
-                </div>
-
-                {!isSectionCollapsed("overview-risk") && (
-                  <div className="risk-content">
-                    <div className="risk-summary">
-                      <div className="risk-item">
-                        <div className="risk-category">High Risk Findings</div>
-                        <div className="risk-count high">
-                          {
-                            (scanResults.sastResults || []).filter(
-                              (f) => f.severity === "HIGH",
-                            ).length
-                          }
-                        </div>
-                      </div>
-                      <div className="risk-item">
-                        <div className="risk-category">
-                          Medium Risk Findings
-                        </div>
-                        <div className="risk-count medium">
-                          {
-                            (scanResults.sastResults || []).filter(
-                              (f) => f.severity === "MEDIUM",
-                            ).length
-                          }
-                        </div>
-                      </div>
-                      <div className="risk-item">
-                        <div className="risk-category">Low Risk Findings</div>
-                        <div className="risk-count low">
-                          {
-                            (scanResults.sastResults || []).filter(
-                              (f) => f.severity === "LOW",
-                            ).length
-                          }
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Extension Overview</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => toggleSection("overview-extension")}
+                >
+                  {isSectionCollapsed("overview-extension") ? <ChevronDown /> : <ChevronUp />}
+                </Button>
               </div>
-            </TabPanel>
+            </CardHeader>
+            {!isSectionCollapsed("overview-extension") && (
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-sm text-muted-foreground">Extension Name</div>
+                    <div className="font-medium">{scanResults.name || "Unknown"}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Developer</div>
+                    <div className="font-medium">{scanResults.developer || "Unknown"}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Version</div>
+                    <div className="font-medium">{scanResults.version || "Unknown"}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Last Updated</div>
+                    <div className="font-medium">{scanResults.lastUpdated || "Unknown"}</div>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground mb-2">Description</div>
+                  <div className="text-sm">{scanResults.description || "No description available"}</div>
+                </div>
+              </CardContent>
+            )}
+          </Card>
 
-            {/* Files Tab */}
-            <TabPanel style={{ display: "block", visibility: "visible" }}>
-              <div className="files-tab">
-                <div className="section-header">
-                  <h3>Analyzed Files ({scanResults.files?.length || 0})</h3>
-                  <div className="section-actions">
-                    <Button
-                      kind="ghost"
-                      size="sm"
-                      renderIcon={Filter}
-                      className="filter-button"
-                    >
-                      Filter
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Permissions Analysis</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => toggleSection("overview-permissions")}
+                >
+                  {isSectionCollapsed("overview-permissions") ? <ChevronDown /> : <ChevronUp />}
+                </Button>
+              </div>
+            </CardHeader>
+            {!isSectionCollapsed("overview-permissions") && (
+              <CardContent>
+                <div className="space-y-3">
+                  {(scanResults.permissions || []).length > 0 ? (
+                    scanResults.permissions.map((permission, index) => (
+                      <div key={index} className="flex items-start justify-between p-3 border rounded-lg">
+                        <div className="flex-1">
+                          <div className="font-medium">{permission.name}</div>
+                          <div className="text-sm text-muted-foreground">{permission.description}</div>
+                        </div>
+                        <Badge variant={
+                          permission.risk === "HIGH" ? "destructive" :
+                          permission.risk === "MEDIUM" ? "secondary" : "default"
+                        }>
+                          {permission.risk}
+                        </Badge>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center text-muted-foreground py-4">No permissions data available</div>
+                  )}
+                </div>
+              </CardContent>
+            )}
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Risk Summary</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => toggleSection("overview-risk")}
+                >
+                  {isSectionCollapsed("overview-risk") ? <ChevronDown /> : <ChevronUp />}
+                </Button>
+              </div>
+            </CardHeader>
+            {!isSectionCollapsed("overview-risk") && (
+              <CardContent>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-red-500">
+                      {(scanResults.sastResults || []).filter((f) => f.severity === "HIGH").length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">High Risk</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-yellow-500">
+                      {(scanResults.sastResults || []).filter((f) => f.severity === "MEDIUM").length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Medium Risk</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-500">
+                      {(scanResults.sastResults || []).filter((f) => f.severity === "LOW").length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Low Risk</div>
+                  </div>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+        </TabsContent>
+
+        {/* Files Tab */}
+        <TabsContent value="files" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Analyzed Files ({scanResults.files?.length || 0})</h3>
+            <Button variant="outline" size="sm">
+              <Filter className="mr-2 h-4 w-4" />
+              Filter
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {(scanResults.files || []).map((file, index) => (
+              <Card key={index}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-base">{file.name}</CardTitle>
+                      <div className="flex gap-2 mt-1">
+                        <Badge variant="outline">{file.type}</Badge>
+                        <span className="text-xs text-muted-foreground">{file.path}</span>
+                      </div>
+                    </div>
+                    <Badge variant={
+                      file.riskLevel === "HIGH" ? "destructive" :
+                      file.riskLevel === "MEDIUM" ? "secondary" : "default"
+                    }>
+                      {file.riskLevel}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => onViewFile(file)}>
+                      👁️ View
+                    </Button>
+                    <Button size="sm" onClick={() => onAnalyzeWithAI(file)}>
+                      🤖 AI
                     </Button>
                   </div>
-                </div>
-
-                <div className="files-grid">
-                  {(scanResults.files || []).map((file, index) => (
-                    <Tile key={index} className="file-analysis-tile">
-                      <div className="file-header">
-                        <div className="file-info">
-                          <h4 className="file-name">{file.name}</h4>
-                          <div className="file-meta">
-                            <span className="file-type">{file.type}</span>
-                            <span className="file-path">{file.path}</span>
-                          </div>
-                        </div>
-                        <Tag
-                          type={
-                            file.riskLevel === "HIGH"
-                              ? "red"
-                              : file.riskLevel === "MEDIUM"
-                                ? "warm-gray"
-                                : "green"
-                          }
-                          size="sm"
-                        >
-                          {file.riskLevel}
-                        </Tag>
-                      </div>
-
-                      <div className="file-actions">
-                        <Button
-                          kind="tertiary"
-                          size="sm"
-                          className="view-file-btn"
-                          onClick={() => onViewFile(file)}
-                        >
-                          👁️ View
-                        </Button>
-                        <Button
-                          kind="primary"
-                          size="sm"
-                          className="analyze-ai-btn"
-                          onClick={() => onAnalyzeWithAI(file)}
-                        >
-                          🤖 AI
-                        </Button>
-                      </div>
-                    </Tile>
-                  ))}
-
-                  {(scanResults.files || []).length === 0 && (
-                    <div className="no-data">
-                      No files available for analysis
-                    </div>
-                  )}
-                </div>
+                </CardContent>
+              </Card>
+            ))}
+            {(scanResults.files || []).length === 0 && (
+              <div className="col-span-2 text-center text-muted-foreground py-8">
+                No files available for analysis
               </div>
-            </TabPanel>
+            )}
+          </div>
+        </TabsContent>
 
-            {/* SAST Findings Tab */}
-            <TabPanel style={{ display: "block", visibility: "visible" }}>
-              <div className="findings-tab">
-                <div className="section-header">
-                  <h3>
-                    Security Findings ({filteredFindings.length} of{" "}
-                    {scanResults.sastResults?.length || 0})
-                  </h3>
-                  <div className="section-actions">
-                    <div className="severity-filter">
-                      <span className="filter-label">Severity:</span>
-                      <div className="filter-options">
-                        <button
-                          className={`filter-option ${severityFilter === "ALL" ? "active" : ""}`}
-                          onClick={() => setSeverityFilter("ALL")}
-                        >
-                          All
-                        </button>
-                        <button
-                          className={`filter-option high ${severityFilter === "HIGH" ? "active" : ""}`}
-                          onClick={() => setSeverityFilter("HIGH")}
-                        >
-                          High
-                        </button>
-                        <button
-                          className={`filter-option medium ${severityFilter === "MEDIUM" ? "active" : ""}`}
-                          onClick={() => setSeverityFilter("MEDIUM")}
-                        >
-                          Medium
-                        </button>
-                        <button
-                          className={`filter-option low ${severityFilter === "LOW" ? "active" : ""}`}
-                          onClick={() => setSeverityFilter("LOW")}
-                        >
-                          Low
-                        </button>
+        {/* SAST Findings Tab */}
+        <TabsContent value="findings" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">
+              Security Findings ({filteredFindings.length} of {scanResults.sastResults?.length || 0})
+            </h3>
+            <div className="flex gap-2">
+              <Button
+                variant={severityFilter === "ALL" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSeverityFilter("ALL")}
+              >
+                All
+              </Button>
+              <Button
+                variant={severityFilter === "HIGH" ? "destructive" : "outline"}
+                size="sm"
+                onClick={() => setSeverityFilter("HIGH")}
+              >
+                High
+              </Button>
+              <Button
+                variant={severityFilter === "MEDIUM" ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setSeverityFilter("MEDIUM")}
+              >
+                Medium
+              </Button>
+              <Button
+                variant={severityFilter === "LOW" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSeverityFilter("LOW")}
+              >
+                Low
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {filteredFindings.slice(0, 15).map((finding, index) => (
+              <Card key={index} className={`border-l-4 ${
+                finding.severity === "HIGH" ? "border-l-red-500" :
+                finding.severity === "MEDIUM" ? "border-l-yellow-500" : "border-l-green-500"
+              }`}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex gap-2 text-sm text-muted-foreground mb-1">
+                        <span>{finding.file}</span>
+                        <span>Line {finding.line}</span>
                       </div>
+                      <CardTitle className="text-base">{finding.title}</CardTitle>
                     </div>
+                    <Badge variant={
+                      finding.severity === "HIGH" ? "destructive" :
+                      finding.severity === "MEDIUM" ? "secondary" : "default"
+                    }>
+                      {finding.severity}
+                    </Badge>
                   </div>
-                </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-3">{finding.description}</p>
+                  <Button variant="outline" size="sm" onClick={() => onViewFindingDetails(finding)}>
+                    📋 Details
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
 
-                <div className="findings-grid">
-                  {filteredFindings.slice(0, 15).map((finding, index) => (
-                    <Tile
-                      key={index}
-                      className={`finding-tile severity-${finding.severity?.toLowerCase()}`}
-                    >
-                      <div className="finding-header">
-                        <div className="finding-meta">
-                          <span className="finding-file">{finding.file}</span>
-                          <span className="finding-line">
-                            Line {finding.line}
-                          </span>
-                        </div>
-                        <Tag
-                          type={
-                            finding.severity === "HIGH"
-                              ? "red"
-                              : finding.severity === "MEDIUM"
-                                ? "warm-gray"
-                                : "green"
-                          }
-                          size="sm"
-                        >
-                          {finding.severity}
-                        </Tag>
-                      </div>
+            {filteredFindings.length > 15 && (
+              <Card>
+                <CardContent className="text-center py-6">
+                  <p className="mb-3">... and {filteredFindings.length - 15} more findings</p>
+                  <Button variant="outline" onClick={() => onViewAllFindings()}>
+                    View All
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
-                      <div className="finding-content">
-                        <h4 className="finding-title">{finding.title}</h4>
-                        <p className="finding-description">
-                          {finding.description}
-                        </p>
-                      </div>
-
-                      <div className="finding-actions">
-                        <Button
-                          kind="tertiary"
-                          size="sm"
-                          className="view-details-btn"
-                          onClick={() => onViewFindingDetails(finding)}
-                        >
-                          📋 Details
-                        </Button>
-                      </div>
-                    </Tile>
-                  ))}
-
-                  {filteredFindings.length > 15 && (
-                    <div className="more-findings">
-                      <Tile className="more-findings-tile">
-                        <p>
-                          ... and {filteredFindings.length - 15} more findings
-                        </p>
-                        <Button
-                          kind="tertiary"
-                          size="sm"
-                          onClick={() => onViewAllFindings()}
-                        >
-                          View All
-                        </Button>
-                      </Tile>
-                    </div>
-                  )}
-
-                  {filteredFindings.length === 0 && (
-                    <div className="no-data">
-                      No security findings match the current filter
-                    </div>
-                  )}
-                </div>
+            {filteredFindings.length === 0 && (
+              <div className="text-center text-muted-foreground py-8">
+                No security findings match the current filter
               </div>
-            </TabPanel>
+            )}
+          </div>
+        </TabsContent>
 
-            {/* Recommendations Tab */}
-            <TabPanel style={{ display: "block", visibility: "visible" }}>
-              <div className="recommendations-tab">
-                <div className="section-header">
-                  <h3>Security Recommendations</h3>
-                </div>
-
-                <div className="recommendations-content">
-                  {(scanResults.recommendations || []).length > 0 ? (
-                    <div className="recommendations-list">
-                      {scanResults.recommendations.map((rec, index) => (
-                        <div key={index} className="recommendation-item">
-                          <div className="recommendation-priority">
-                            <Tag
-                              type={
-                                rec.priority === "HIGH"
-                                  ? "red"
-                                  : rec.priority === "MEDIUM"
-                                    ? "warm-gray"
-                                    : "green"
-                              }
-                              size="sm"
-                            >
-                              {rec.priority}
-                            </Tag>
-                          </div>
-                          <div className="recommendation-content">
-                            <h4 className="recommendation-title">
-                              {rec.title}
-                            </h4>
-                            <p className="recommendation-description">
-                              {rec.description}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+        {/* Recommendations Tab */}
+        <TabsContent value="recommendations" className="space-y-4">
+          <h3 className="text-lg font-semibold">Security Recommendations</h3>
+          {(scanResults.recommendations || []).length > 0 ? (
+            <div className="space-y-3">
+              {scanResults.recommendations.map((rec, index) => (
+                <Card key={index}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="text-base">{rec.title}</CardTitle>
+                      <Badge variant={
+                        rec.priority === "HIGH" ? "destructive" :
+                        rec.priority === "MEDIUM" ? "secondary" : "default"
+                      }>
+                        {rec.priority}
+                      </Badge>
                     </div>
-                  ) : (
-                    <div className="ai-recommendations">
-                      <div className="ai-recommendation-header">
-                        <h4>🤖 AI-Generated Recommendations</h4>
-                      </div>
-                      <div className="ai-recommendation-content">
-                        <p>
-                          Based on the security scan results, here are some
-                          recommendations:
-                        </p>
-                        <ul className="recommendation-list">
-                          <li>
-                            Review high-risk permissions that may expose
-                            sensitive data
-                          </li>
-                          <li>
-                            Check for potential data leakage in network requests
-                          </li>
-                          <li>
-                            Validate third-party libraries for known
-                            vulnerabilities
-                          </li>
-                          <li>
-                            Implement Content Security Policy to prevent XSS
-                            attacks
-                          </li>
-                          <li>
-                            Review code that handles user data for proper
-                            sanitization
-                          </li>
-                        </ul>
-                      </div>
-                      <div className="ai-actions">
-                        <Button kind="primary" size="sm">
-                          Generate Detailed Report
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
-      </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">{rec.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>🤖 AI-Generated Recommendations</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p>Based on the security scan results, here are some recommendations:</p>
+                <ul className="list-disc list-inside space-y-2 text-sm">
+                  <li>Review high-risk permissions that may expose sensitive data</li>
+                  <li>Check for potential data leakage in network requests</li>
+                  <li>Validate third-party libraries for known vulnerabilities</li>
+                  <li>Implement Content Security Policy to prevent XSS attacks</li>
+                  <li>Review code that handles user data for proper sanitization</li>
+                </ul>
+                <Button>Generate Detailed Report</Button>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
 
 export default TabbedResultsPanel;
-
-// Made with Bob

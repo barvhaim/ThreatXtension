@@ -1,4 +1,4 @@
-.PHONY: help format lint test ui api frontend clean install analyze
+.PHONY: help format lint test api frontend clean install analyze
 
 # Default target - show help
 help:
@@ -12,7 +12,6 @@ help:
 	@echo "  make precommit       - Run pre-commit hooks on all files"
 	@echo ""
 	@echo "Run Applications:"
-	@echo "  make ui              - Start Gradio web interface (port 7860)"
 	@echo "  make api             - Start FastAPI server for frontend (port 8007)"
 	@echo "  make frontend        - Start React frontend dev server (port 5173)"
 	@echo "  make analyze URL=... - Analyze extension via CLI (requires URL parameter)"
@@ -45,12 +44,6 @@ precommit:
 	@echo "Running pre-commit hooks..."
 	pre-commit run --all-files
 	@echo "✓ Pre-commit checks complete"
-
-# Start Gradio UI
-ui:
-	@echo "Starting Gradio web interface..."
-	@echo "Access at: http://localhost:7860"
-	uv run gradio src/threatxtension/ui/app.py
 
 # Start FastAPI server
 api:

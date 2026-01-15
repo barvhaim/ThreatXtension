@@ -1,5 +1,14 @@
 import React from "react";
-import { Modal, Button, TextInput, TextArea } from "@carbon/react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
 import "./CacheConfirmationModal.scss";
 
 const CacheConfirmationModal = ({
@@ -10,7 +19,7 @@ const CacheConfirmationModal = ({
   cachedData,
   extensionId,
 }) => {
-  if (!isOpen || !cachedData) return null;
+  if (!cachedData) return null;
 
   const formatTimestamp = (timestamp) => {
     return new Date(timestamp).toLocaleString();
@@ -28,107 +37,101 @@ const CacheConfirmationModal = ({
   };
 
   return (
-    <Modal
-      open={isOpen}
-      modalHeading="Extension Previously Scanned"
-      primaryButtonText="View Cached Results"
-      secondaryButtonText="Re-scan Extension"
-      onRequestClose={onClose}
-      onRequestSubmit={onViewCached}
-      size="md"
-      className="cache-confirmation-modal"
-    >
-      <div className="cache-info">
-        <div className="cache-header">
-          <h3>This extension has been scanned before</h3>
-        </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Extension Previously Scanned</DialogTitle>
+          <DialogDescription>
+            This extension has been scanned before
+          </DialogDescription>
+        </DialogHeader>
 
-        <div className="cache-details">
-          <div className="detail-row">
-            <span className="label">Extension ID:</span>
-            <span className="value">{extensionId}</span>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Extension ID:</span>
+              <span className="font-medium">{extensionId}</span>
+            </div>
+
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Last Scanned:</span>
+              <span className="font-medium">
+                {formatTimestamp(cachedData.timestamp)}
+              </span>
+            </div>
+
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Age:</span>
+              <span className="font-medium">{formatAge(cachedData.timestamp)}</span>
+            </div>
+
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Times Scanned:</span>
+              <span className="font-medium">{cachedData.scanCount}</span>
+            </div>
           </div>
 
-          <div className="detail-row">
-            <span className="label">Last Scanned:</span>
-            <span className="value">
-              {formatTimestamp(cachedData.timestamp)}
-            </span>
-          </div>
-
-          <div className="detail-row">
-            <span className="label">Age:</span>
-            <span className="value">{formatAge(cachedData.timestamp)}</span>
-          </div>
-
-          <div className="detail-row">
-            <span className="label">Times Scanned:</span>
-            <span className="value">{cachedData.scanCount}</span>
-          </div>
-        </div>
-
-        <div className="cache-summary">
-          <h4>Previous Scan Summary:</h4>
           {cachedData.data && (
-            <div className="summary-details">
-              <div className="summary-item">
-                <span className="label">Security Score:</span>
-                <span
-                  className={`value score-${cachedData.data.securityScore < 50 ? "low" : cachedData.data.securityScore < 80 ? "medium" : "high"}`}
-                >
-                  {cachedData.data.securityScore || "N/A"}/100
-                </span>
-              </div>
+            <div className="space-y-3 border-t pt-4">
+              <h4 className="font-semibold">Previous Scan Summary:</h4>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <span className="text-sm text-muted-foreground">Security Score:</span>
+                  <div className={`text-lg font-bold ${
+                    cachedData.data.securityScore < 50 ? "text-red-500" :
+                    cachedData.data.securityScore < 80 ? "text-yellow-500" : "text-green-500"
+                  }`}>
+                    {cachedData.data.securityScore || "N/A"}/100
+                  </div>
+                </div>
 
-              <div className="summary-item">
-                <span className="label">Total Files:</span>
-                <span className="value">
-                  {cachedData.data.totalFiles || "N/A"}
-                </span>
-              </div>
+                <div className="space-y-1">
+                  <span className="text-sm text-muted-foreground">Total Files:</span>
+                  <div className="text-lg font-bold">
+                    {cachedData.data.totalFiles || "N/A"}
+                  </div>
+                </div>
 
-              <div className="summary-item">
-                <span className="label">Security Findings:</span>
-                <span className="value">
-                  {cachedData.data.totalFindings || "N/A"}
-                </span>
-              </div>
+                <div className="space-y-1">
+                  <span className="text-sm text-muted-foreground">Security Findings:</span>
+                  <div className="text-lg font-bold">
+                    {cachedData.data.totalFindings || "N/A"}
+                  </div>
+                </div>
 
-              <div className="summary-item">
-                <span className="label">Risk Level:</span>
-                <span
-                  className={`value risk-${cachedData.data.riskLevel?.toLowerCase() || "unknown"}`}
-                >
-                  {cachedData.data.riskLevel || "N/A"}
-                </span>
+                <div className="space-y-1">
+                  <span className="text-sm text-muted-foreground">Risk Level:</span>
+                  <Badge variant={
+                    cachedData.data.riskLevel === "HIGH" ? "destructive" :
+                    cachedData.data.riskLevel === "MEDIUM" ? "secondary" : "default"
+                  }>
+                    {cachedData.data.riskLevel || "N/A"}
+                  </Badge>
+                </div>
               </div>
             </div>
           )}
+
+          <div className="bg-muted p-3 rounded-md text-sm">
+            <p>
+              <strong>Note:</strong> Cached results are stored locally and expire
+              after 24 hours. Re-scanning will download and analyze the latest
+              version of the extension.
+            </p>
+          </div>
         </div>
 
-        <div className="action-buttons">
-          <Button
-            kind="tertiary"
-            onClick={onViewCached}
-            className="view-cached-btn"
-          >
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onViewCached}>
             View Cached Results
           </Button>
-
-          <Button kind="danger" onClick={onReScan} className="rescan-btn">
+          <Button variant="destructive" onClick={onReScan}>
             Re-scan Extension
           </Button>
-        </div>
-
-        <div className="cache-note">
-          <p>
-            <strong>Note:</strong> Cached results are stored locally and expire
-            after 24 hours. Re-scanning will download and analyze the latest
-            version of the extension.
-          </p>
-        </div>
-      </div>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

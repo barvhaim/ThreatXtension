@@ -175,3 +175,4 @@ CLAUDE.md
 .claude/
 extensions_storage/
 .bob/
+.playwright-mcp/

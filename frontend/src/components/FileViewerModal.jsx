@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from "react";
 import {
-  Modal,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Button,
-  TextArea,
-  Loading,
-  Copy,
-} from "@carbon/react";
-import { Close, Download, Copy as CopyIcon } from "@carbon/icons-react";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Textarea } from "./ui/textarea";
+import { X, Download, Copy, Loader2 } from "lucide-react";
 import "./FileViewerModal.scss";
 
 const FileViewerModal = ({
@@ -32,7 +32,6 @@ const FileViewerModal = ({
 
   const loadFileContent = async () => {
     if (!file || !extensionId) {
-      console.log("Missing file or extensionId:", { file, extensionId });
       return;
     }
 
@@ -40,15 +39,9 @@ const FileViewerModal = ({
     setError(null);
 
     try {
-      console.log("Loading file content for:", {
-        extensionId,
-        filePath: file.path,
-      });
       const content = await onGetFileContent(extensionId, file.path);
-      console.log("File content loaded successfully, length:", content?.length);
       setFileContent(content);
     } catch (err) {
-      console.error("Error loading file content:", err);
       setError(err.message || "Failed to load file content");
     } finally {
       setIsLoading(false);
@@ -80,162 +73,124 @@ const FileViewerModal = ({
   const getFileIcon = (filename) => {
     const ext = filename.split(".").pop()?.toLowerCase();
     switch (ext) {
-      case "js":
-        return "📄";
-      case "json":
-        return "⚙️";
-      case "html":
-        return "🌐";
-      case "css":
-        return "🎨";
+      case "js": return "📄";
+      case "json": return "⚙️";
+      case "html": return "🌐";
+      case "css": return "🎨";
       case "png":
       case "jpg":
       case "jpeg":
-      case "gif":
-        return "🖼️";
-      case "xml":
-        return "📋";
-      case "txt":
-        return "📝";
-      default:
-        return "📁";
+      case "gif": return "🖼️";
+      case "xml": return "📋";
+      case "txt": return "📝";
+      default: return "📁";
     }
   };
 
   const getFileType = (filename) => {
     const ext = filename.split(".").pop()?.toLowerCase();
     switch (ext) {
-      case "js":
-        return "JavaScript";
-      case "json":
-        return "JSON";
-      case "html":
-        return "HTML";
-      case "css":
-        return "CSS";
+      case "js": return "JavaScript";
+      case "json": return "JSON";
+      case "html": return "HTML";
+      case "css": return "CSS";
       case "png":
       case "jpg":
       case "jpeg":
-      case "gif":
-        return "Image";
-      case "xml":
-        return "XML";
-      case "txt":
-        return "Text";
-      default:
-        return "File";
+      case "gif": return "Image";
+      case "xml": return "XML";
+      case "txt": return "Text";
+      default: return "File";
     }
   };
 
   if (!file) return null;
 
   return (
-    <Modal
-      open={isOpen}
-      onRequestClose={onClose}
-      size="lg"
-      className="file-viewer-modal"
-      modalHeading=""
-      primaryButtonText=""
-      secondaryButtonText=""
-      hasScrollingContent
-    >
-      <ModalHeader>
-        <div className="file-header">
-          <div className="file-info">
-            <span className="file-icon">{getFileIcon(file.name)}</span>
-            <div className="file-details">
-              <h3 className="file-name">{file.name}</h3>
-              <p className="file-meta">
-                {getFileType(file.name)} •{" "}
-                {file.size
-                  ? `${(file.size / 1024).toFixed(1)} KB`
-                  : "Unknown size"}
-              </p>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[700px] max-h-[80vh]">
+        <DialogHeader>
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">{getFileIcon(file.name)}</span>
+            <div className="flex-1">
+              <DialogTitle>{file.name}</DialogTitle>
+              <DialogDescription>
+                {getFileType(file.name)} • {file.size ? `${(file.size / 1024).toFixed(1)} KB` : "Unknown size"}
+              </DialogDescription>
             </div>
           </div>
-          <Button
-            kind="ghost"
-            size="sm"
-            onClick={onClose}
-            className="close-button"
-            hasIconOnly
-            iconDescription="Close"
-          >
-            <Close size={16} />
-          </Button>
-        </div>
-      </ModalHeader>
+        </DialogHeader>
 
-      <ModalBody>
-        {isLoading && (
-          <div className="loading-container">
-            <Loading description="Loading file content..." />
-          </div>
-        )}
+        <div className="space-y-4">
+          {isLoading && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Loading file content...</span>
+            </div>
+          )}
 
-        {error && (
-          <div className="error-container">
-            <p className="error-message">❌ {error}</p>
-            <Button onClick={loadFileContent} size="sm">
-              🔄 Retry
-            </Button>
-          </div>
-        )}
+          {error && (
+            <div className="flex flex-col items-center justify-center py-8 space-y-3">
+              <p className="text-destructive">❌ {error}</p>
+              <Button onClick={loadFileContent} size="sm">
+                🔄 Retry
+              </Button>
+            </div>
+          )}
 
-        {!isLoading && !error && fileContent && (
-          <div className="file-content-container">
-            <div className="content-header">
-              <span className="content-label">File Content</span>
-              <div className="content-actions">
-                <Button
-                  kind="ghost"
-                  size="sm"
-                  onClick={handleCopy}
-                  className={copied ? "copied" : ""}
-                  hasIconOnly
-                  iconDescription={copied ? "Copied!" : "Copy content"}
-                >
-                  <CopyIcon size={16} />
-                </Button>
-                <Button
-                  kind="ghost"
-                  size="sm"
-                  onClick={handleDownload}
-                  hasIconOnly
-                  iconDescription="Download file"
-                >
-                  <Download size={16} />
-                </Button>
+          {!isLoading && !error && fileContent && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">File Content</span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCopy}
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    {copied ? "Copied!" : "Copy"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDownload}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                </div>
               </div>
-            </div>
 
-            <div className="content-wrapper">
-              <TextArea
+              <Textarea
                 value={fileContent}
                 readOnly
-                className="file-content-textarea"
-                rows={20}
+                className="font-mono text-xs min-h-[400px]"
                 placeholder="File content will appear here..."
               />
+
+              {copied && (
+                <div className="text-sm text-green-500">
+                  ✅ Content copied to clipboard!
+                </div>
+              )}
             </div>
+          )}
+        </div>
 
-            {copied && (
-              <div className="copy-notification">
-                ✅ Content copied to clipboard!
-              </div>
-            )}
-          </div>
-        )}
-      </ModalBody>
-
-      <ModalFooter>
-        <Button kind="secondary" onClick={onClose}>
-          Close
-        </Button>
-        {fileContent && <Button onClick={handleDownload}>Download File</Button>}
-      </ModalFooter>
-    </Modal>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+          {fileContent && (
+            <Button onClick={handleDownload}>
+              <Download className="h-4 w-4 mr-2" />
+              Download File
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

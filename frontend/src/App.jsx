@@ -1,13 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import {
-  Header,
-  HeaderContainer,
-  HeaderName,
-  HeaderNavigation,
-  HeaderMenuItem,
-} from "@carbon/react";
-import { Dashboard, Document, Play, ChartLine } from "@carbon/icons-react";
+import { BrowserRouter as Router, Routes, Route, NavLink } from "react-router-dom";
 import DashboardPage from "./pages/DashboardPage";
 import ScanHistoryPage from "./pages/ScanHistoryPage";
 import LiveScanPage from "./pages/LiveScanPage";
@@ -16,44 +8,74 @@ import SettingsPage from "./pages/SettingsPage";
 import "./App.scss";
 
 function App() {
-  // Set dark theme by default
+  // Set dark mode
   React.useEffect(() => {
-    document.documentElement.setAttribute("data-theme", "dark");
+    document.documentElement.classList.add('dark');
   }, []);
 
   return (
     <Router>
       <div className="app">
-        <HeaderContainer
-          render={({ isSideNavExpanded, onClickSideNavExpand }) => (
-            <Header className="professional-header">
-              <HeaderName className="header-brand" href="#" prefix="">
-                🔍 ThreatXtension
-              </HeaderName>
-              <HeaderNavigation className="header-navigation">
-                <HeaderMenuItem className="header-menu-item" href="/">
-                  <Dashboard size={20} />
-                  <span>Dashboard</span>
-                </HeaderMenuItem>
-                <HeaderMenuItem
-                  className="header-menu-item"
-                  href="/scan-history"
-                >
-                  <Document size={20} />
-                  <span>Scan History</span>
-                </HeaderMenuItem>
-                <HeaderMenuItem className="header-menu-item" href="/live-scan">
-                  <Play size={20} />
-                  <span>Live Scan</span>
-                </HeaderMenuItem>
-                <HeaderMenuItem className="header-menu-item" href="/analysis">
-                  <ChartLine size={20} />
-                  <span>Analysis</span>
-                </HeaderMenuItem>
-              </HeaderNavigation>
-            </Header>
-          )}
-        />
+        <header className="modern-header">
+          <div className="header-content">
+            <NavLink to="/" className="logo-link">
+              <div className="logo-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+              </div>
+              <div className="flex flex-col">
+                <span className="logo-text">ThreatXtension</span>
+                <span className="text-[10px] text-muted-foreground font-medium tracking-wider uppercase">Security Suite</span>
+              </div>
+              <div className="logo-badge">BETA</div>
+            </NavLink>
+            
+            <nav className="main-nav">
+              <NavLink 
+                to="/" 
+                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                end
+              >
+                <span className="nav-icon">📊</span>
+                <span className="nav-text">Dashboard</span>
+              </NavLink>
+              <NavLink 
+                to="/scan-history" 
+                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              >
+                <span className="nav-icon">📋</span>
+                <span className="nav-text">History</span>
+              </NavLink>
+              <NavLink 
+                to="/live-scan" 
+                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              >
+                <span className="nav-icon">🔴</span>
+                <span className="nav-text">Live Scan</span>
+              </NavLink>
+              <NavLink 
+                to="/analysis" 
+                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              >
+                <span className="nav-icon">🔬</span>
+                <span className="nav-text">Analysis</span>
+              </NavLink>
+            </nav>
+
+            <div className="header-actions">
+              <button className="action-btn notification-btn" aria-label="Notifications">
+                <span className="notification-icon">🔔</span>
+                <span className="notification-badge" />
+              </button>
+              <button className="action-btn settings-btn" aria-label="Settings">
+                <span>⚙️</span>
+              </button>
+            </div>
+          </div>
+          <div className="header-glow"></div>
+        </header>
+        
         <main className="main-content">
           <Routes>
             <Route path="/" element={<DashboardPage />} />
