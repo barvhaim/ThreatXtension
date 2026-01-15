@@ -55,8 +55,8 @@ const TabbedResultsPanel = ({
           <CardContent>
             <div className="flex items-baseline gap-2">
               <span className={`text-4xl font-bold ${scanResults.securityScore < 30 ? "text-red-500" :
-                  scanResults.securityScore < 50 ? "text-orange-500" :
-                    scanResults.securityScore < 80 ? "text-yellow-500" : "text-green-500"
+                scanResults.securityScore < 50 ? "text-orange-500" :
+                  scanResults.securityScore < 80 ? "text-yellow-500" : "text-green-500"
                 }`}>
                 {scanResults.securityScore || 0}
               </span>
@@ -142,6 +142,18 @@ const TabbedResultsPanel = ({
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4">
+          {/* Executive Summary Card */}
+          <Card className="border-l-4 border-l-primary">
+            <CardHeader>
+              <CardTitle>Executive Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm leading-relaxed whitespace-pre-line">
+                {scanResults.executiveSummary || "No summary available."}
+              </p>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -352,7 +364,7 @@ const TabbedResultsPanel = ({
           <div className="space-y-3">
             {filteredFindings.slice(0, 15).map((finding, index) => (
               <Card key={index} className={`border-l-4 ${finding.severity === "HIGH" ? "border-l-red-500" :
-                  finding.severity === "MEDIUM" ? "border-l-yellow-500" : "border-l-green-500"
+                finding.severity === "MEDIUM" ? "border-l-yellow-500" : "border-l-green-500"
                 }`}>
                 <CardHeader>
                   <div className="flex items-start justify-between">

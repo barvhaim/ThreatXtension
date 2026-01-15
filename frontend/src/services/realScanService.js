@@ -106,6 +106,22 @@ class RealScanService {
         url: cliResults.url,
         downloadResult: cliResults.download_result,
 
+        // Metadata mapping
+        name: cliResults.metadata?.title || cliResults.manifest?.name || "Unknown Extension",
+        description: cliResults.metadata?.description || cliResults.manifest?.description || "",
+        version: cliResults.metadata?.version || cliResults.manifest?.version || "0.0.0",
+        developer: cliResults.metadata?.developer_name || cliResults.manifest?.author || "Unknown",
+        lastUpdated: cliResults.metadata?.last_updated || "Unknown",
+
+        // Permissions mapping
+        permissions: this.formatPermissions(cliResults.permissions_analysis || {}),
+
+        // Recommendations mapping
+        recommendations: this.formatRecommendations(cliResults.summary || {}),
+
+        // AI Summary
+        executiveSummary: cliResults.summary?.summary || "No summary available",
+
         // Risk distribution
         riskDistribution:
           cliResults.risk_distribution || sastResults.risk_distribution || {},
@@ -275,6 +291,36 @@ class RealScanService {
       console.error("Failed to get file list:", error);
       throw error;
     }
+  }
+
+  // Format permissions from CLI analysis
+  formatPermissions(permissionsAnalysis) {
+    if (!permissionsAnalysis || !permissionsAnalysis.permissions_details) {
+      return [];
+    }
+
+    const details = permissionsAnalysis.permissions_details;
+    return Object.keys(details).map(name => {
+      const info = details[name];
+      return {
+        name: name,
+        description: info.justification_reasoning || "No details available",
+        risk: info.is_reasonable ? "LOW" : "HIGH" // Infer risk if not provided
+      };
+    });
+  }
+
+  // Format recommendations from CLI summary
+  formatRecommendations(summary) {
+    if (!summary || !summary.recommendations) {
+      return [];
+    }
+
+    return summary.recommendations.map(rec => ({
+      title: rec,
+      priority: "MEDIUM", // Default priority
+      description: ""
+    }));
   }
 }
 

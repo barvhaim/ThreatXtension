@@ -324,16 +324,14 @@ def serve(host: str, port: int, reload: bool):
             border_style="cyan",
         )
     )
-    
-    console.print(f"\n[bold green]✓[/bold green] Server running at [blue]http://{host}:{port}[/blue]")
+
+    console.print(
+        f"\n[bold green]✓[/bold green] Server running at [blue]http://{host}:{port}[/blue]"
+    )
     console.print("[dim]Press CTRL+C to stop[/dim]\n")
-    
+
     uvicorn.run(
-        "threatxtension.api.main:app",
-        host=host,
-        port=port,
-        reload=reload,
-        log_level="info"
+        "threatxtension.api.main:app", host=host, port=port, reload=reload, log_level="info"
     )
 
 

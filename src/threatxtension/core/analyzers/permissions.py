@@ -151,7 +151,10 @@ class PermissionsAnalyzer(BaseAnalyzer):
             return None, None
 
         is_permissions_reasonable = RunnableParallel(**tasks).invoke({})
-        return self._format_permissions_analysis_result(permissions, is_permissions_reasonable), is_permissions_reasonable
+        return (
+            self._format_permissions_analysis_result(permissions, is_permissions_reasonable),
+            is_permissions_reasonable,
+        )
 
     @staticmethod
     def _extract_domain_from_permission(permission: str) -> Optional[str]:

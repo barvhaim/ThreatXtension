@@ -58,10 +58,7 @@ function App() {
             </nav>
 
             <div className="header-actions">
-              <button className="action-btn notification-btn" aria-label="Notifications">
-                <span className="notification-icon">🔔</span>
-                <span className="notification-badge" />
-              </button>
+
               <NavLink to="/settings" className="action-btn settings-btn" aria-label="Settings">
                 <span>⚙️</span>
               </NavLink>

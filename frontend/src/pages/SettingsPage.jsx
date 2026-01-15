@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Settings, Shield, Bell, Lock, Save, RotateCcw } from "lucide-react";
+import { Settings, Shield, Bell, Save, RotateCcw } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 
@@ -7,7 +7,6 @@ const SettingsPage = () => {
   const [settings, setSettings] = useState({
     securityEngine: "standard", // standard, aggressive
     notifications: true,
-    apiKey: ""
   });
   const [saved, setSaved] = useState(false);
 
@@ -111,26 +110,7 @@ const SettingsPage = () => {
             </div>
           </div>
 
-          {/* API Access */}
-          <div className="p-6 rounded-lg bg-surface/50 border border-border/50">
-            <div className="flex items-start gap-4">
-              <Lock className="w-6 h-6 text-accent mt-1" />
-              <div className="flex-1">
-                <div className="font-semibold text-lg">AI Analysis Key</div>
-                <p className="text-sm text-foreground-muted mb-4">Enter your OpenAI or Anthropic API Key for AI-powered code explanation.</p>
-                <div className="flex gap-2">
-                  <Input
-                    type="password"
-                    placeholder="sk-..."
-                    value={settings.apiKey}
-                    onChange={(e) => handleChange('apiKey', e.target.value)}
-                    className="bg-background/50"
-                  />
-                </div>
-                <p className="text-xs text-foreground-muted mt-2">Keys are stored locally in your browser and never sent to our servers.</p>
-              </div>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>

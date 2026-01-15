@@ -47,10 +47,10 @@ precommit:
 
 # Start FastAPI server
 api:
-	@echo "Starting FastAPI server..."
+	@echo "Starting FastAPI server with auto-reload..."
 	@echo "Access at: http://localhost:8007"
 	@echo "API docs at: http://localhost:8007/docs"
-	uv run threatxtension serve
+	uv run threatxtension serve --reload
 
 # Start React frontend
 frontend:
