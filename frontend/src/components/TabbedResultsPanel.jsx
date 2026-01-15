@@ -4,7 +4,7 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Info, Filter, ChevronDown, ChevronUp } from "lucide-react";
-import "./TabbedResultsPanel.scss";
+
 
 /**
  * Tabbed Results Panel Component for organizing scan results
@@ -36,8 +36,8 @@ const TabbedResultsPanel = ({
     severityFilter === "ALL"
       ? scanResults.sastResults || []
       : (scanResults.sastResults || []).filter(
-          (finding) => finding.severity === severityFilter,
-        );
+        (finding) => finding.severity === severityFilter,
+      );
 
   return (
     <div className="space-y-6">
@@ -54,19 +54,18 @@ const TabbedResultsPanel = ({
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
-              <span className={`text-4xl font-bold ${
-                scanResults.securityScore < 30 ? "text-red-500" :
-                scanResults.securityScore < 50 ? "text-orange-500" :
-                scanResults.securityScore < 80 ? "text-yellow-500" : "text-green-500"
-              }`}>
+              <span className={`text-4xl font-bold ${scanResults.securityScore < 30 ? "text-red-500" :
+                  scanResults.securityScore < 50 ? "text-orange-500" :
+                    scanResults.securityScore < 80 ? "text-yellow-500" : "text-green-500"
+                }`}>
                 {scanResults.securityScore || 0}
               </span>
               <span className="text-muted-foreground">/100</span>
             </div>
             <p className="text-sm text-muted-foreground mt-2">
               {scanResults.securityScore < 30 ? "Critical Issues" :
-               scanResults.securityScore < 50 ? "High Risk" :
-               scanResults.securityScore < 80 ? "Moderate" : "Secure"}
+                scanResults.securityScore < 50 ? "High Risk" :
+                  scanResults.securityScore < 80 ? "Moderate" : "Secure"}
             </p>
           </CardContent>
         </Card>
@@ -81,13 +80,13 @@ const TabbedResultsPanel = ({
           <CardContent>
             <Badge variant={
               scanResults.riskLevel === "HIGH" ? "destructive" :
-              scanResults.riskLevel === "MEDIUM" ? "secondary" : "default"
+                scanResults.riskLevel === "MEDIUM" ? "secondary" : "default"
             } className="text-lg px-4 py-1">
               {scanResults.riskLevel || "UNKNOWN"}
             </Badge>
             <p className="text-sm text-muted-foreground mt-2">
               {scanResults.riskLevel === "HIGH" ? "Immediate attention" :
-               scanResults.riskLevel === "MEDIUM" ? "Review needed" : "Low risk"}
+                scanResults.riskLevel === "MEDIUM" ? "Review needed" : "Low risk"}
             </p>
           </CardContent>
         </Card>
@@ -106,7 +105,7 @@ const TabbedResultsPanel = ({
             </div>
             <p className="text-sm text-muted-foreground mt-2">
               {scanResults.totalFiles > 100 ? "Large extension" :
-               scanResults.totalFiles > 50 ? "Medium-sized" : "Small extension"}
+                scanResults.totalFiles > 50 ? "Medium-sized" : "Small extension"}
             </p>
           </CardContent>
         </Card>
@@ -125,8 +124,8 @@ const TabbedResultsPanel = ({
             </div>
             <p className="text-sm text-muted-foreground mt-2">
               {scanResults.totalFindings > 1000 ? "Critical concerns" :
-               scanResults.totalFindings > 100 ? "Multiple issues" :
-               scanResults.totalFindings > 10 ? "Some concerns" : "Minimal issues"}
+                scanResults.totalFindings > 100 ? "Multiple issues" :
+                  scanResults.totalFindings > 10 ? "Some concerns" : "Minimal issues"}
             </p>
           </CardContent>
         </Card>
@@ -209,7 +208,7 @@ const TabbedResultsPanel = ({
                         </div>
                         <Badge variant={
                           permission.risk === "HIGH" ? "destructive" :
-                          permission.risk === "MEDIUM" ? "secondary" : "default"
+                            permission.risk === "MEDIUM" ? "secondary" : "default"
                         }>
                           {permission.risk}
                         </Badge>
@@ -286,7 +285,7 @@ const TabbedResultsPanel = ({
                     </div>
                     <Badge variant={
                       file.riskLevel === "HIGH" ? "destructive" :
-                      file.riskLevel === "MEDIUM" ? "secondary" : "default"
+                        file.riskLevel === "MEDIUM" ? "secondary" : "default"
                     }>
                       {file.riskLevel}
                     </Badge>
@@ -352,10 +351,9 @@ const TabbedResultsPanel = ({
 
           <div className="space-y-3">
             {filteredFindings.slice(0, 15).map((finding, index) => (
-              <Card key={index} className={`border-l-4 ${
-                finding.severity === "HIGH" ? "border-l-red-500" :
-                finding.severity === "MEDIUM" ? "border-l-yellow-500" : "border-l-green-500"
-              }`}>
+              <Card key={index} className={`border-l-4 ${finding.severity === "HIGH" ? "border-l-red-500" :
+                  finding.severity === "MEDIUM" ? "border-l-yellow-500" : "border-l-green-500"
+                }`}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -367,7 +365,7 @@ const TabbedResultsPanel = ({
                     </div>
                     <Badge variant={
                       finding.severity === "HIGH" ? "destructive" :
-                      finding.severity === "MEDIUM" ? "secondary" : "default"
+                        finding.severity === "MEDIUM" ? "secondary" : "default"
                     }>
                       {finding.severity}
                     </Badge>
@@ -413,7 +411,7 @@ const TabbedResultsPanel = ({
                       <CardTitle className="text-base">{rec.title}</CardTitle>
                       <Badge variant={
                         rec.priority === "HIGH" ? "destructive" :
-                        rec.priority === "MEDIUM" ? "secondary" : "default"
+                          rec.priority === "MEDIUM" ? "secondary" : "default"
                       }>
                         {rec.priority}
                       </Badge>

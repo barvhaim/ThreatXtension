@@ -529,4 +529,5 @@ class JavaScriptAnalyzer(BaseAnalyzer):
 
         return {
             "sast_analysis": sast_analysis,
+            "sast_findings": all_findings,
         }

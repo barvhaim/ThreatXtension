@@ -64,7 +64,11 @@ class RealScanService {
       return { scanned: false };
     } catch (error) {
       console.error("Failed to check scan status:", error);
-      return { scanned: false };
+      // Determine if it's a network error (server down)
+      if (error.message.includes("fetch") || error.message.includes("network")) {
+        throw new Error("Backend server unavailable. Please make sure the API server is running (make api).");
+      }
+      return { scanned: false, status: "error", error: error.message };
     }
   }
 
@@ -82,8 +86,8 @@ class RealScanService {
           0,
         riskLevel: this.determineRiskLevel(
           cliResults.overall_security_score ||
-            sastResults.overall_security_score ||
-            0,
+          sastResults.overall_security_score ||
+          0,
         ),
         totalFiles: cliResults.extracted_files?.length || 0,
         totalFindings:

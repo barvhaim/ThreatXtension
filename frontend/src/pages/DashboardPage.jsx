@@ -108,7 +108,8 @@ const DashboardPage = () => {
         setError("🔄 Starting security scan... This may take a few minutes for large extensions.");
         const scanTrigger = await realScanService.triggerScan(url);
 
-        if (!scanTrigger.success) {
+        // Check for success based on running status available in the response
+        if (scanTrigger.status !== "running") {
           throw new Error(scanTrigger.error || "Failed to start scan");
         }
 
@@ -133,17 +134,23 @@ const DashboardPage = () => {
 
   const waitForScanCompletion = async (extensionId, maxAttempts = 120) => {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      await new Promise((resolve) => setTimeout(resolve, 10000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       const status = await realScanService.checkScanStatus(extensionId);
+
       if (status.scanned) {
         setError("✅ Scan completed! Loading results...");
         return;
       }
-      const minutes = Math.floor(((attempt + 1) * 10) / 60);
-      const seconds = ((attempt + 1) * 10) % 60;
+
+      if (status.status === "failed") {
+        throw new Error(status.error || "Scan failed on the server.");
+      }
+
+      const minutes = Math.floor(((attempt + 1) * 5) / 60);
+      const seconds = ((attempt + 1) * 5) % 60;
       setError(`🔄 Scanning in progress... ${minutes}m ${seconds}s - Large extensions take time to analyze.`);
     }
-    throw new Error("Scan timeout - extension analysis took too long (20 minutes limit)");
+    throw new Error("Scan timeout - extension analysis took too long (10 minutes limit)");
   };
 
   const handleViewCached = () => {

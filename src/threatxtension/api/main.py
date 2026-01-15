@@ -87,42 +87,45 @@ async def run_analysis_workflow(url: str, extension_id: str):
         graph = build_graph()
         
         initial_state: WorkflowState = {
-            "extension_path": url,
-            "status": WorkflowStatus.PENDING,
-            "metadata": {},
-            "manifest": {},
-            "permissions_analysis": {},
-            "sast_results": {},
-            "webstore_analysis": {},
-            "summary": {},
-            "error": None,
-            "extracted_path": None,
+            "workflow_id": extension_id,
+            "chrome_extension_path": url,
+            "extension_dir": None,
             "downloaded_crx_path": None,
+            "extension_metadata": None,
+            "manifest_data": None,
+            "analysis_results": None,
+            "executive_summary": None,
+            "status": WorkflowStatus.PENDING,
+            "start_time": datetime.now().isoformat(),
+            "end_time": None,
+            "error": None,
         }
         
         # Run workflow
         final_state = await graph.ainvoke(initial_state)
         
         # Store results
-        if final_state["status"] == WorkflowStatus.COMPLETED:
+        if final_state["status"] == WorkflowStatus.COMPLETED or final_state["status"] == "completed":
+            analysis_results = final_state.get("analysis_results", {}) or {}
+            
             scan_results[extension_id] = {
                 "extension_id": extension_id,
                 "url": url,
                 "timestamp": datetime.now().isoformat(),
                 "status": "completed",
-                "metadata": final_state.get("metadata", {}),
-                "manifest": final_state.get("manifest", {}),
-                "permissions_analysis": final_state.get("permissions_analysis", {}),
-                "sast_results": final_state.get("sast_results", {}),
-                "webstore_analysis": final_state.get("webstore_analysis", {}),
-                "summary": final_state.get("summary", {}),
-                "extracted_path": final_state.get("extracted_path"),
-                "extracted_files": get_extracted_files(final_state.get("extracted_path")),
-                "overall_security_score": calculate_security_score(final_state),
-                "total_findings": count_total_findings(final_state),
-                "risk_distribution": calculate_risk_distribution(final_state),
-                "overall_risk": determine_overall_risk(final_state),
-                "total_risk_score": calculate_total_risk_score(final_state),
+                "metadata": final_state.get("extension_metadata", {}),
+                "manifest": final_state.get("manifest_data", {}),
+                "permissions_analysis": analysis_results.get("permissions_analysis", {}),
+                "sast_results": analysis_results.get("javascript_analysis", {}),
+                "webstore_analysis": analysis_results.get("webstore_analysis", {}),
+                "summary": final_state.get("executive_summary", {}),
+                "extracted_path": final_state.get("extension_dir"),
+                "extracted_files": get_extracted_files(final_state.get("extension_dir")),
+                "overall_security_score": calculate_security_score(final_state), # This helper also needs update or a wrapper
+                "total_findings": count_total_findings(final_state), # This helper also needs update or a wrapper
+                "risk_distribution": calculate_risk_distribution(final_state), # This helper also needs update or a wrapper
+                "overall_risk": determine_overall_risk(final_state), # This helper also needs update or a wrapper
+                "total_risk_score": calculate_total_risk_score(final_state), # This helper also needs update or a wrapper
             }
             scan_status[extension_id] = "completed"
             
@@ -167,27 +170,43 @@ def get_extracted_files(extracted_path: Optional[str]) -> list[str]:
 
 def calculate_security_score(state: WorkflowState) -> int:
     """Calculate overall security score from analysis results."""
-    sast_results = state.get("sast_results", {})
-    permissions_analysis = state.get("permissions_analysis", {})
-    
     # Start with perfect score
     score = 100
     
-    # Deduct for SAST findings
-    js_analysis = sast_results.get("javascript_analysis", [])
-    for finding in js_analysis:
-        risk_level = finding.get("risk_level", "low").lower()
-        if risk_level == "high" or risk_level == "malicious":
-            score -= 20
-        elif risk_level == "medium" or risk_level == "suspicious":
-            score -= 10
-        else:
-            score -= 2
+    analysis_results = state.get("analysis_results", {}) or {}
     
+    # Deduct for SAST findings
+    javascript_analysis = analysis_results.get("javascript_analysis", {})
+    js_analysis = []
+    if javascript_analysis and isinstance(javascript_analysis, dict):
+        sast_findings = javascript_analysis.get("sast_findings", {})
+        for findings_list in sast_findings.values():
+            js_analysis.extend(findings_list)
+    elif isinstance(javascript_analysis, list):
+        # Fallback if it is a list
+        js_analysis = javascript_analysis
+
+    for finding in js_analysis:
+        risk_level = finding.get("extra", {}).get("severity", "INFO") # Semgrep returns severity in extra.severity or just top level? 
+        # Checking sast.py: severity = finding.get("extra", {}).get("severity", "INFO")
+        
+        # Map semgrep severity to score deduction
+        if risk_level == "CRITICAL" or risk_level == "HIGH":
+            score -= 20
+        elif risk_level == "ERROR" or risk_level == "MEDIUM":
+            score -= 10
+        elif risk_level == "WARNING":
+            score -= 2
+            
     # Deduct for risky permissions
-    permissions = permissions_analysis.get("permissions", [])
-    for perm in permissions:
-        risk = perm.get("risk_level", "low").lower()
+    permissions_analysis = analysis_results.get("permissions_analysis", {})
+    permissions_details = permissions_analysis.get("permissions_details", {}) if isinstance(permissions_analysis, dict) else {}
+    
+    for _, perm_analysis in permissions_details.items():
+        # Permission analysis format: {"is_reasonable": bool, "risk_level": "low/medium/high", ...}
+        # Note: permissions.py returns {permission: {JSON from LLM}}
+        # We need to verify the structure or assume LLM returns risk_level
+        risk = perm_analysis.get("risk_level", "low").lower()
         if risk == "high":
             score -= 15
         elif risk == "medium":
@@ -198,23 +217,37 @@ def calculate_security_score(state: WorkflowState) -> int:
 
 def count_total_findings(state: WorkflowState) -> int:
     """Count total security findings."""
-    sast_results = state.get("sast_results", {})
-    js_analysis = sast_results.get("javascript_analysis", [])
-    return len(js_analysis)
+    analysis_results = state.get("analysis_results", {}) or {}
+    javascript_analysis = analysis_results.get("javascript_analysis", {})
+    
+    total = 0
+    if javascript_analysis:
+         sast_findings = javascript_analysis.get("sast_findings", {})
+         for findings_list in sast_findings.values():
+             total += len(findings_list)
+             
+    return total
 
 
 def calculate_risk_distribution(state: WorkflowState) -> Dict[str, int]:
     """Calculate distribution of risk levels."""
     distribution = {"high": 0, "medium": 0, "low": 0}
     
-    sast_results = state.get("sast_results", {})
-    js_analysis = sast_results.get("javascript_analysis", [])
+    analysis_results = state.get("analysis_results", {}) or {}
+    javascript_analysis = analysis_results.get("javascript_analysis", {})
+    js_analysis = []
+    if javascript_analysis and isinstance(javascript_analysis, dict):
+        sast_findings = javascript_analysis.get("sast_findings", {})
+        for findings_list in sast_findings.values():
+            js_analysis.extend(findings_list)
+    elif isinstance(javascript_analysis, list):
+         js_analysis = javascript_analysis
     
     for finding in js_analysis:
-        risk_level = finding.get("risk_level", "low").lower()
-        if risk_level in ["high", "malicious"]:
+        risk_level = finding.get("extra", {}).get("severity", "INFO").lower() # Semgrep format
+        if risk_level == "critical" or risk_level == "high":
             distribution["high"] += 1
-        elif risk_level in ["medium", "suspicious"]:
+        elif risk_level == "error" or risk_level == "medium":
             distribution["medium"] += 1
         else:
             distribution["low"] += 1
@@ -236,12 +269,24 @@ def determine_overall_risk(state: WorkflowState) -> str:
 
 def calculate_total_risk_score(state: WorkflowState) -> int:
     """Calculate total risk score."""
-    sast_results = state.get("sast_results", {})
-    js_analysis = sast_results.get("javascript_analysis", [])
+    analysis_results = state.get("analysis_results", {}) or {}
+    javascript_analysis = analysis_results.get("javascript_analysis", {})
+    
+    js_analysis = []
+    if javascript_analysis and isinstance(javascript_analysis, dict):
+        sast_findings = javascript_analysis.get("sast_findings", {})
+        for findings_list in sast_findings.values():
+            js_analysis.extend(findings_list)
+    elif isinstance(javascript_analysis, list):
+        js_analysis = javascript_analysis
     
     total_score = 0
+    # map severity to score if risk_score not present
+    severity_scores = {"CRITICAL": 10, "HIGH": 8, "ERROR": 5, "MEDIUM": 5, "WARNING": 1, "INFO": 0}
+    
     for finding in js_analysis:
-        total_score += finding.get("risk_score", 0)
+        severity = finding.get("extra", {}).get("severity", "INFO")
+        total_score += severity_scores.get(severity, 0)
     
     return total_score
 

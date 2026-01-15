@@ -10,7 +10,7 @@ import {
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { X, Download, Copy, Loader2 } from "lucide-react";
-import "./FileViewerModal.scss";
+
 
 const FileViewerModal = ({
   isOpen,

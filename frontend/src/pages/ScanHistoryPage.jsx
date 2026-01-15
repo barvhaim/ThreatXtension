@@ -5,6 +5,8 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Download, Eye, Shield, FileText, AlertTriangle, CheckCircle, XCircle, Info } from "lucide-react";
 
+import cacheService from "../services/cacheService";
+
 /**
  * ScanHistoryPage Component
  * Displays viewing history of scanned extensions with a premium glassmorphism design.
@@ -16,45 +18,23 @@ const ScanHistoryPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    // Simulate fetching data
-    setTimeout(() => {
-      setScans([
-        {
-          id: "mdanidgdpmkimeiiojknlnekblgmpdll",
-          name: "Boomerang for Gmail",
-          version: "1.8.8",
-          timestamp: "2025-08-18 14:18:23",
-          securityScore: 0.0,
-          riskLevel: "high",
-          totalFindings: 20249,
-          filesAnalyzed: 34,
-          downloadSize: "4.1 MB",
-        },
-        {
-          id: "gighmmpiobklfepjocnamgkkbiglidom",
-          name: "AdBlock",
-          version: "5.17.0",
-          timestamp: "2025-08-17 10:30:15",
-          securityScore: 75.0,
-          riskLevel: "low",
-          totalFindings: 12,
-          filesAnalyzed: 28,
-          downloadSize: "2.3 MB",
-        },
-        {
-          id: "kbfnbcaeplbcioakkpcpgfkobkghlhen",
-          name: "Grammarly",
-          version: "14.1097.0",
-          timestamp: "2025-08-16 15:45:30",
-          securityScore: 45.0,
-          riskLevel: "medium",
-          totalFindings: 156,
-          filesAnalyzed: 52,
-          downloadSize: "8.7 MB",
-        },
-      ]);
+    const loadHistory = () => {
+      const history = cacheService.getScanHistory();
+      // Map history items to ensure they have expected properties if needed, 
+      // but cacheService structure should be consistent.
+      // We might need to adapt checking for 'extensionName' vs 'name' based on what's saved.
+      const formattedHistory = history.map(item => ({
+        ...item,
+        name: item.extensionName || item.extensionId, // Fallback
+        id: item.extensionId,
+        filesAnalyzed: item.totalFiles || 0, // Ensure property match
+        downloadSize: item.downloadSize || "N/A"
+      }));
+      setScans(formattedHistory);
       setLoading(false);
-    }, 1000);
+    };
+
+    loadHistory();
   }, []);
 
   const getRiskBadgeVariant = (riskLevel) => {
@@ -140,7 +120,7 @@ const ScanHistoryPage = () => {
                     <div>
                       <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Score</div>
                       <div className={`text-xl font-bold ${scan.securityScore < 30 ? "text-destructive" :
-                          scan.securityScore < 60 ? "text-warning" : "text-success"
+                        scan.securityScore < 60 ? "text-warning" : "text-success"
                         }`}>
                         {scan.securityScore}/100
                       </div>
@@ -223,7 +203,7 @@ const ScanHistoryPage = () => {
                 <div className="p-4 rounded-lg bg-surface/50 border border-border/50">
                   <div className="text-sm text-muted-foreground mb-1">Security Score</div>
                   <div className={`text-2xl font-bold ${selectedScan.securityScore < 30 ? "text-destructive" :
-                      selectedScan.securityScore < 60 ? "text-warning" : "text-success"
+                    selectedScan.securityScore < 60 ? "text-warning" : "text-success"
                     }`}>
                     {selectedScan.securityScore}/100
                   </div>

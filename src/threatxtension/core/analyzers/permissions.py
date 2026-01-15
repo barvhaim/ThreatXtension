@@ -133,7 +133,7 @@ class PermissionsAnalyzer(BaseAnalyzer):
 
     def _analyze_permissions(
         self, extension_name: str, extension_description: str, permissions: List
-    ) -> Optional[str]:
+    ) -> tuple[Optional[str], Optional[Dict]]:
         """Analyze the permissions requested by the extension."""
         tasks = {
             permission: self._analyze_permission(
@@ -148,10 +148,10 @@ class PermissionsAnalyzer(BaseAnalyzer):
 
         if not tasks:
             logger.info("No known permissions to analyze.")
-            return None
+            return None, None
 
         is_permissions_reasonable = RunnableParallel(**tasks).invoke({})
-        return self._format_permissions_analysis_result(permissions, is_permissions_reasonable)
+        return self._format_permissions_analysis_result(permissions, is_permissions_reasonable), is_permissions_reasonable
 
     @staticmethod
     def _extract_domain_from_permission(permission: str) -> Optional[str]:
@@ -294,7 +294,7 @@ class PermissionsAnalyzer(BaseAnalyzer):
         permissions = manifest.get("permissions", [])
         host_permissions = manifest.get("host_permissions", [])
 
-        permissions_analysis = self._analyze_permissions(
+        permissions_analysis, permissions_details = self._analyze_permissions(
             extension_name=extension_name,
             extension_description=extension_description,
             permissions=permissions,
@@ -306,5 +306,6 @@ class PermissionsAnalyzer(BaseAnalyzer):
 
         return {
             "permissions_analysis": permissions_analysis,
+            "permissions_details": permissions_details,
             "host_permissions_analysis": host_permissions_analysis,
         }

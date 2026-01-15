@@ -62,9 +62,9 @@ function App() {
                 <span className="notification-icon">🔔</span>
                 <span className="notification-badge" />
               </button>
-              <button className="action-btn settings-btn" aria-label="Settings">
+              <NavLink to="/settings" className="action-btn settings-btn" aria-label="Settings">
                 <span>⚙️</span>
-              </button>
+              </NavLink>
             </div>
           </div>
           <div className="header-glow"></div>

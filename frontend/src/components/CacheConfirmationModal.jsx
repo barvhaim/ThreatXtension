@@ -9,7 +9,7 @@ import {
 } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import "./CacheConfirmationModal.scss";
+
 
 const CacheConfirmationModal = ({
   isOpen,
@@ -74,14 +74,13 @@ const CacheConfirmationModal = ({
           {cachedData.data && (
             <div className="space-y-3 border-t pt-4">
               <h4 className="font-semibold">Previous Scan Summary:</h4>
-              
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <span className="text-sm text-muted-foreground">Security Score:</span>
-                  <div className={`text-lg font-bold ${
-                    cachedData.data.securityScore < 50 ? "text-red-500" :
-                    cachedData.data.securityScore < 80 ? "text-yellow-500" : "text-green-500"
-                  }`}>
+                  <div className={`text-lg font-bold ${cachedData.data.securityScore < 50 ? "text-red-500" :
+                      cachedData.data.securityScore < 80 ? "text-yellow-500" : "text-green-500"
+                    }`}>
                     {cachedData.data.securityScore || "N/A"}/100
                   </div>
                 </div>
@@ -104,7 +103,7 @@ const CacheConfirmationModal = ({
                   <span className="text-sm text-muted-foreground">Risk Level:</span>
                   <Badge variant={
                     cachedData.data.riskLevel === "HIGH" ? "destructive" :
-                    cachedData.data.riskLevel === "MEDIUM" ? "secondary" : "default"
+                      cachedData.data.riskLevel === "MEDIUM" ? "secondary" : "default"
                   }>
                     {cachedData.data.riskLevel || "N/A"}
                   </Badge>

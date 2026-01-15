@@ -1,30 +1,98 @@
-import React from "react";
-
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import cacheService from "../services/cacheService";
+import TabbedResultsPanel from "../components/TabbedResultsPanel";
+import { Search } from "lucide-react";
+import { Button } from "../components/ui/button";
 
 const AnalysisPage = () => {
+  const [scanResults, setScanResults] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const loadData = () => {
+      // 1. Try to get ID from URL query params
+      const params = new URLSearchParams(location.search);
+      const scanId = params.get("id");
+
+      if (scanId) {
+        const cached = cacheService.getCachedResult(scanId);
+        if (cached && cached.data) {
+          setScanResults(cached.data);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 2. Fallback: Get most recent scan from history
+      const history = cacheService.getScanHistory();
+      if (history.length > 0) {
+        const lastScanId = history[0].extensionId; // Assuming history is sorted desc
+        const cached = cacheService.getCachedResult(lastScanId);
+        if (cached && cached.data) {
+          setScanResults(cached.data);
+        }
+      }
+      setLoading(false);
+    };
+
+    loadData();
+  }, [location.search]);
+
+  // Mock handlers since AnalysisPage is read-only view of past results mainly
+  const handleViewFile = (file) => alert(`View file: ${file.name}`);
+  const handleAnalyzeWithAI = (file) => alert(`AI analysis for ${file.name}`);
+  const handleViewFindingDetails = (finding) => alert(finding.title);
+  const handleViewAllFindings = () => alert("All findings view");
+
+  if (loading) {
+    return (
+      <div className="page-container flex items-center justify-center min-h-[50vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!scanResults) {
+    return (
+      <div className="page-container">
+        <div className="page-header">
+          <h1 className="page-title">🔬 Analysis Center</h1>
+          <p className="page-subtitle">Detailed security reports and code insights</p>
+        </div>
+        <div className="glass-card flex flex-col items-center justify-center py-20 text-center">
+          <div className="bg-surface-elevated/50 p-6 rounded-full mb-6">
+            <Search className="h-12 w-12 text-muted-foreground opacity-50" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">No Analysis Data Available</h2>
+          <p className="text-muted-foreground max-w-md mb-8">
+            Run a new scan from the Dashboard or select a previous scan from History to view detailed analysis.
+          </p>
+          <Button onClick={() => navigate("/")}>Go to Dashboard</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1 className="page-title">🔒 Security Analysis</h1>
+        <h1 className="page-title">🔬 Analysis Report: {scanResults.extensionName || scanResults.extensionId}</h1>
         <p className="page-subtitle">
-          Detailed security analysis and SAST findings for Chrome extensions
+          Detailed security analysis and SAST findings
         </p>
       </div>
 
       <div className="glass-card">
-        <div className="flex items-center gap-3 mb-6">
-          <span className="text-2xl">🚨</span>
-          <h2 className="text-xl font-bold">High-Risk Extensions Analysis</h2>
-        </div>
-
-        <div className="p-8 text-center text-foreground-muted border border-dashed border-border/50 rounded-xl bg-surface/30">
-          <p className="mb-4">
-            This module provides deep-dive SAST (Static Application Security Testing) analysis.
-          </p>
-          <p>
-            Select a scan from the History or run a Live Scan to populate this data.
-          </p>
-        </div>
+        <TabbedResultsPanel
+          scanResults={scanResults}
+          onViewFile={handleViewFile}
+          onAnalyzeWithAI={handleAnalyzeWithAI}
+          onViewFindingDetails={handleViewFindingDetails}
+          onViewAllFindings={handleViewAllFindings}
+        />
       </div>
     </div>
   );
