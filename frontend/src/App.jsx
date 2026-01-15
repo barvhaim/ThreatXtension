@@ -2,7 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, NavLink } from "react-router-dom";
 import DashboardPage from "./pages/DashboardPage";
 import ScanHistoryPage from "./pages/ScanHistoryPage";
-import LiveScanPage from "./pages/LiveScanPage";
+
 import AnalysisPage from "./pages/AnalysisPage";
 import SettingsPage from "./pages/SettingsPage";
 import "./App.scss";
@@ -30,32 +30,26 @@ function App() {
               </div>
               <div className="logo-badge">BETA</div>
             </NavLink>
-            
+
             <nav className="main-nav">
-              <NavLink 
-                to="/" 
+              <NavLink
+                to="/"
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                 end
               >
                 <span className="nav-icon">📊</span>
                 <span className="nav-text">Dashboard</span>
               </NavLink>
-              <NavLink 
-                to="/scan-history" 
+              <NavLink
+                to="/scan-history"
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               >
                 <span className="nav-icon">📋</span>
                 <span className="nav-text">History</span>
               </NavLink>
-              <NavLink 
-                to="/live-scan" 
-                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-              >
-                <span className="nav-icon">🔴</span>
-                <span className="nav-text">Live Scan</span>
-              </NavLink>
-              <NavLink 
-                to="/analysis" 
+
+              <NavLink
+                to="/analysis"
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               >
                 <span className="nav-icon">🔬</span>
@@ -75,12 +69,12 @@ function App() {
           </div>
           <div className="header-glow"></div>
         </header>
-        
+
         <main className="main-content">
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/scan-history" element={<ScanHistoryPage />} />
-            <Route path="/live-scan" element={<LiveScanPage />} />
+
             <Route path="/analysis" element={<AnalysisPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
