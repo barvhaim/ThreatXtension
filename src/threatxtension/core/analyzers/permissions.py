@@ -110,9 +110,13 @@ class PermissionsAnalyzer(BaseAnalyzer):
     def _format_permissions_analysis_result(
         permissions: List, is_permissions_reasonable: Dict
     ) -> str:
-        result = "The extension requests the following permissions:\n"
-        for permission in permissions:
-            result += f"- {permission}\n"
+        """Format permissions analysis result with reasonable analysis."""
+        permission_lines = [f"- {permission}" for permission in permissions]
+        result = (
+            "The extension requests the following permissions:\n"
+            + "\n".join(permission_lines)
+            + "\n"
+        )
 
         suspicious_permissions = [
             permission

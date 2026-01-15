@@ -166,14 +166,14 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                 capture_output=True,
                 text=True,
                 timeout=300,  # 5 minute timeout
+                check=False,
             )
 
             if result.stdout:
                 findings = json.loads(result.stdout)
                 return findings
-            else:
-                logger.info("No findings from Semgrep scan on file: %s", file_path)
-                return None
+            logger.info("No findings from Semgrep scan on file: %s", file_path)
+            return None
 
         except subprocess.TimeoutExpired:
             logger.error("Semgrep scan timed out for file: %s", file_path)
@@ -472,7 +472,7 @@ class JavaScriptAnalyzer(BaseAnalyzer):
             return None
 
         js_files = self._extract_javascript_files(extension_dir, manifest)
-        files_to_scan, skipped_files = self._filter_files(js_files, extension_dir)
+        files_to_scan, _ = self._filter_files(js_files, extension_dir)
 
         if not files_to_scan:
             logger.info("No files to scan after filtering")

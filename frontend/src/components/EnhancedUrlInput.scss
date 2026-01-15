@@ -79,8 +79,22 @@
 
 .url-input-field input::placeholder,
 .url-input-field .h-12::placeholder {
-  color: rgba(255, 255, 255, 0.3) !important;
-  font-weight: 400 !important;
+  color: #808080 !important;
+  font-weight: 300 !important;
+  opacity: 1 !important;
+}
+
+input#extension-url::placeholder {
+  color: #808080 !important;
+  font-weight: 300 !important;
+  opacity: 1 !important;
+}
+
+/* Additional specificity for placeholder */
+.url-input-wrapper input::placeholder {
+  color: #808080 !important;
+  font-weight: 300 !important;
+  opacity: 1 !important;
 }
 
 /* Recent URLs Dropdown */

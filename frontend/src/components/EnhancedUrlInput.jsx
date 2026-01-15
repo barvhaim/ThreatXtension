@@ -63,6 +63,30 @@ const EnhancedUrlInput = ({
               Chrome Web Store URL
             </label>
             <div className="url-input-wrapper">
+              <style>
+                {`
+                  #extension-url::placeholder {
+                    color: #6b7280 !important;
+                    opacity: 1 !important;
+                    font-weight: 300 !important;
+                  }
+                  #extension-url::-webkit-input-placeholder {
+                    color: #6b7280 !important;
+                    opacity: 1 !important;
+                    font-weight: 300 !important;
+                  }
+                  #extension-url::-moz-placeholder {
+                    color: #6b7280 !important;
+                    opacity: 1 !important;
+                    font-weight: 300 !important;
+                  }
+                  #extension-url:-ms-input-placeholder {
+                    color: #6b7280 !important;
+                    opacity: 1 !important;
+                    font-weight: 300 !important;
+                  }
+                `}
+              </style>
               <Input
                 id="extension-url"
                 placeholder="https://chromewebstore.google.com/detail/extension-name/extension-id"

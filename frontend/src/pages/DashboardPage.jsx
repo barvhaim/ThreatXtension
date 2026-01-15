@@ -9,6 +9,7 @@ import TabbedResultsPanel from "../components/TabbedResultsPanel";
 import StatusMessage from "../components/StatusMessage";
 import realScanService from "../services/realScanService";
 import cacheService from "../services/cacheService";
+import databaseService from "../services/databaseService";
 import CacheConfirmationModal from "../components/CacheConfirmationModal";
 import FileViewerModal from "../components/FileViewerModal";
 import "./DashboardPage.scss";
@@ -32,18 +33,45 @@ const DashboardPage = () => {
 
   useEffect(() => {
     loadScanHistory();
-    // Initially show history if there is any
-    const history = cacheService.getScanHistory();
-    if (history.length > 0) {
-      setShowHistory(true);
-    }
+    loadDashboardStats();
   }, []);
 
-  const loadScanHistory = () => {
-    const history = cacheService.getScanHistory();
-    setScanHistory(history);
-    const urls = history.map((item) => item.url).filter(Boolean);
-    setRecentUrls(urls.slice(0, 5));
+  const loadScanHistory = async () => {
+    try {
+      const history = await databaseService.getScanHistory(50);
+      setScanHistory(history);
+      
+      // Initially show history if there is any
+      if (history.length > 0) {
+        setShowHistory(true);
+      }
+      
+      const urls = await databaseService.getRecentUrls(5);
+      setRecentUrls(urls);
+    } catch (error) {
+      console.error("Error loading scan history:", error);
+      // Fallback to localStorage
+      const history = cacheService.getScanHistory();
+      setScanHistory(history);
+      const urls = history.map((item) => item.url).filter(Boolean);
+      setRecentUrls(urls.slice(0, 5));
+    }
+  };
+
+  const [dashboardStats, setDashboardStats] = useState({
+    totalScans: { value: 0, sparkline: [0] },
+    highRisk: { value: 0, sparkline: [0] },
+    totalFiles: { value: 0, sparkline: [0] },
+    totalVulnerabilities: { value: 0, sparkline: [0] }
+  });
+
+  const loadDashboardStats = async () => {
+    try {
+      const metrics = await databaseService.getDashboardMetrics();
+      setDashboardStats(metrics);
+    } catch (error) {
+      console.error("Error loading dashboard stats:", error);
+    }
   };
 
   const extractExtensionId = (url) => {
@@ -124,7 +152,8 @@ const DashboardPage = () => {
       cacheService.cacheScanResult(extId, results);
       setScanResults(results);
       setError("");
-      loadScanHistory();
+      await loadScanHistory();
+      await loadDashboardStats();
     } catch (err) {
       setError(err.message || "Failed to scan extension.");
     } finally {
@@ -171,7 +200,14 @@ const DashboardPage = () => {
 
   const loadScanFromHistory = async (extId) => {
     try {
-      const results = await realScanService.getRealScanResults(extId);
+      // Try database first
+      let results = await databaseService.getScanResult(extId);
+      
+      // Fallback to API if not in database
+      if (!results) {
+        results = await realScanService.getRealScanResults(extId);
+      }
+      
       setScanResults(results);
       setError("");
     } catch (err) {
@@ -251,44 +287,44 @@ const DashboardPage = () => {
             icon="🔍"
             title="Total Scans"
             subtitle="Analyzed Extensions"
-            value={scanHistory.length}
-            label={scanHistory.length === 1 ? "Scan completed" : "Scans completed"}
+            value={dashboardStats.totalScans.value}
+            label={dashboardStats.totalScans.value === 1 ? "Scan completed" : "Scans completed"}
             variant="primary"
-            trend={scanHistory.length > 0 ? 5 : 0}
-            sparklineData={[4, 6, 8, 7, 9, 11, scanHistory.length]}
+            trend={null}
+            sparklineData={dashboardStats.totalScans.sparkline}
             helpText="Total number of unique Chrome extensions analyzed."
           />
           <EnhancedMetricCard
             icon="🛡️"
             title="High Risk"
             subtitle="Critical Threats"
-            value={scanHistory.filter((s) => s.riskLevel === "HIGH").length}
+            value={dashboardStats.highRisk.value}
             label="Critical issues found"
             variant="danger"
-            trend={-10}
-            sparklineData={[8, 7, 9, 6, 5, 4, scanHistory.filter((s) => s.riskLevel === "HIGH").length]}
+            trend={null}
+            sparklineData={dashboardStats.highRisk.sparkline}
             helpText="Extensions identified with critical security vulnerabilities."
           />
           <EnhancedMetricCard
             icon="📁"
             title="Code Analysis"
             subtitle="Files Processed"
-            value={scanHistory.reduce((sum, s) => sum + (s.totalFiles || 0), 0)}
+            value={dashboardStats.totalFiles.value}
             label="Source files analyzed"
             variant="success"
-            trend={15}
-            sparklineData={[120, 150, 180, 210, 190, 230, scanHistory.reduce((sum, s) => sum + (s.totalFiles || 0), 0)]}
+            trend={null}
+            sparklineData={dashboardStats.totalFiles.sparkline}
             helpText="Total file count processed across all scans."
           />
           <EnhancedMetricCard
             icon="🚨"
             title="Vulnerabilities"
             subtitle="Issues Detected"
-            value={scanHistory.reduce((sum, s) => sum + (s.totalFindings || 0), 0)}
+            value={dashboardStats.totalVulnerabilities.value}
             label="Security alerts"
             variant="warning"
-            trend={8}
-            sparklineData={[45, 52, 48, 60, 55, 65, scanHistory.reduce((sum, s) => sum + (s.totalFindings || 0), 0)]}
+            trend={null}
+            sparklineData={dashboardStats.totalVulnerabilities.sparkline}
             helpText="Aggregated count of security findings and potential risks."
           />
         </div>
@@ -305,29 +341,29 @@ const DashboardPage = () => {
               <div
                 key={index}
                 className="history-tile"
-                onClick={() => loadScanFromHistory(scan.extensionId)}
+                onClick={() => loadScanFromHistory(scan.extension_id || scan.extensionId)}
               >
                 <div className="history-content">
                   <div className="history-icon-wrapper">
                     <span className="history-icon">📦</span>
                   </div>
                   <div className="history-info">
-                    <h4>{scan.extensionName || scan.extensionId}</h4>
+                    <h4>{scan.extension_name || scan.extensionName || scan.extension_id || scan.extensionId}</h4>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                       <span>{new Date(scan.timestamp).toLocaleDateString()}</span>
                       <span className="w-1 h-1 rounded-full bg-border"></span>
-                      <span>Score: {scan.securityScore || "N/A"}</span>
+                      <span>Score: {scan.security_score || scan.securityScore || "N/A"}</span>
                     </div>
                     <div className="mt-2">
                       <Badge
                         variant={
-                          scan.riskLevel === "HIGH" ? "destructive" :
-                            scan.riskLevel === "MEDIUM" ? "secondary" :
+                          (scan.risk_level || scan.riskLevel || "").toUpperCase() === "HIGH" ? "destructive" :
+                            (scan.risk_level || scan.riskLevel || "").toUpperCase() === "MEDIUM" ? "secondary" :
                               "outline"
                         }
                         className="text-[10px] h-5 px-2"
                       >
-                        {scan.riskLevel || "UNKNOWN"}
+                        {(scan.risk_level || scan.riskLevel || "UNKNOWN").toUpperCase()}
                       </Badge>
                     </div>
                   </div>

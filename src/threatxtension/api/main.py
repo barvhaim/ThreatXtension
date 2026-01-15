@@ -7,17 +7,19 @@ and retrieve results.
 
 import os
 import json
-import asyncio
+
+# import asyncio  # Unused import
 from pathlib import Path
 from typing import Optional, Dict, Any
 from datetime import datetime
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel
 
 from threatxtension.workflow.graph import build_graph
 from threatxtension.workflow.state import WorkflowState, WorkflowStatus
+from threatxtension.api.database import db
 
 
 # Pydantic models for request/response
@@ -65,9 +67,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Storage for scan results (in-memory for now, could be Redis/DB later)
+# Storage for scan results (in-memory cache + database persistence)
 scan_results: Dict[str, Dict[str, Any]] = {}
 scan_status: Dict[str, str] = {}
+
+
+# Load existing results from database on startup
+def load_existing_results():
+    """Load existing scan results from database into memory cache."""
+    history = db.get_scan_history(limit=100)
+    for item in history:
+        ext_id = item.get("extension_id")
+        if ext_id:
+            scan_status[ext_id] = item.get("status", "completed")
+
+
+load_existing_results()
 
 # Directory for storing analysis results
 RESULTS_DIR = Path("extensions_storage")
@@ -147,7 +162,10 @@ async def run_analysis_workflow(url: str, extension_id: str):
             }
             scan_status[extension_id] = "completed"
 
-            # Save to file
+            # Save to database
+            db.save_scan_result(scan_results[extension_id])
+
+            # Save to file (backup)
             result_file = RESULTS_DIR / f"{extension_id}_results.json"
             with open(result_file, "w", encoding="utf-8") as f:
                 json.dump(scan_results[extension_id], f, indent=2)
@@ -211,9 +229,9 @@ def calculate_security_score(state: WorkflowState) -> int:
         # Checking sast.py: severity = finding.get("extra", {}).get("severity", "INFO")
 
         # Map semgrep severity to score deduction
-        if risk_level == "CRITICAL" or risk_level == "HIGH":
+        if risk_level in ("CRITICAL", "HIGH"):
             score -= 20
-        elif risk_level == "ERROR" or risk_level == "MEDIUM":
+        elif risk_level in ("ERROR", "MEDIUM"):
             score -= 10
         elif risk_level == "WARNING":
             score -= 2
@@ -274,9 +292,9 @@ def calculate_risk_distribution(state: WorkflowState) -> Dict[str, int]:
 
     for finding in js_analysis:
         risk_level = finding.get("extra", {}).get("severity", "INFO").lower()  # Semgrep format
-        if risk_level == "critical" or risk_level == "high":
+        if risk_level in ("critical", "high"):
             distribution["high"] += 1
-        elif risk_level == "error" or risk_level == "medium":
+        elif risk_level in ("error", "medium"):
             distribution["medium"] += 1
         else:
             distribution["low"] += 1
@@ -290,10 +308,9 @@ def determine_overall_risk(state: WorkflowState) -> str:
 
     if score < 30:
         return "high"
-    elif score < 70:
+    if score < 70:
         return "medium"
-    else:
-        return "low"
+    return "low"
 
 
 def calculate_total_risk_score(state: WorkflowState) -> int:
@@ -406,7 +423,13 @@ async def get_scan_results(extension_id: str):
     if extension_id in scan_results:
         return scan_results[extension_id]
 
-    # Try loading from file
+    # Try loading from database
+    results = db.get_scan_result(extension_id)
+    if results:
+        scan_results[extension_id] = results  # Cache in memory
+        return results
+
+    # Try loading from file (fallback)
     result_file = RESULTS_DIR / f"{extension_id}_results.json"
     if result_file.exists():
         with open(result_file, "r", encoding="utf-8") as f:
@@ -474,11 +497,103 @@ async def get_file_content(extension_id: str, file_path: str) -> FileContentResp
         with open(full_path, "r", encoding="utf-8") as f:
             content = f.read()
         return FileContentResponse(content=content, file_path=file_path)
-    except UnicodeDecodeError:
+    except UnicodeDecodeError as exc:
         # Binary file
-        raise HTTPException(status_code=400, detail="Cannot read binary file")
+        raise HTTPException(status_code=400, detail="Cannot read binary file") from exc
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}") from e
+
+
+@app.get("/api/statistics")
+async def get_statistics():
+    """
+    Get aggregated statistics.
+
+    Returns:
+        Statistics including total scans, high risk count, etc.
+    """
+    stats = db.get_statistics()
+    risk_dist = db.get_risk_distribution()
+
+    return {
+        "total_scans": stats.get("total_scans", 0),
+        "high_risk_extensions": stats.get("high_risk_extensions", 0),
+        "total_files_analyzed": stats.get("total_files_analyzed", 0),
+        "total_vulnerabilities": stats.get("total_vulnerabilities", 0),
+        "avg_security_score": stats.get("avg_security_score", 0),
+        "risk_distribution": risk_dist,
+    }
+
+
+@app.get("/api/history")
+async def get_history(limit: int = 50):
+    """
+    Get scan history.
+
+    Args:
+        limit: Maximum number of results to return
+
+    Returns:
+        List of scan history items
+    """
+    history = db.get_scan_history(limit=limit)
+    return {"history": history, "total": len(history)}
+
+
+@app.get("/api/recent")
+async def get_recent_scans(limit: int = 10):
+    """
+    Get recent scans with summary info.
+
+    Args:
+        limit: Maximum number of results to return
+
+    Returns:
+        List of recent scans
+    """
+    recent = db.get_recent_scans(limit=limit)
+    return {"recent": recent}
+
+
+@app.delete("/api/scan/{extension_id}")
+async def delete_scan(extension_id: str):
+    """
+    Delete a scan result.
+
+    Args:
+        extension_id: Chrome extension ID
+
+    Returns:
+        Deletion confirmation
+    """
+    success = db.delete_scan_result(extension_id)
+
+    if success:
+        # Remove from memory cache
+        scan_results.pop(extension_id, None)
+        scan_status.pop(extension_id, None)
+
+        return {"message": "Scan deleted successfully", "extension_id": extension_id}
+
+    raise HTTPException(status_code=404, detail="Scan not found")
+
+
+@app.post("/api/clear")
+async def clear_all_scans():
+    """
+    Clear all scan results.
+
+    Returns:
+        Confirmation message
+    """
+    success = db.clear_all_results()
+
+    if success:
+        scan_results.clear()
+        scan_status.clear()
+        return {"message": "All scans cleared successfully"}
+
+    raise HTTPException(status_code=500, detail="Failed to clear scans")
 
 
 if __name__ == "__main__":

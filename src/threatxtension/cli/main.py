@@ -133,7 +133,7 @@ def build_metadata_table(metadata: dict) -> Table:
                 table.add_row(label, f"{value:,}")
             elif key == "ratings_count":
                 table.add_row(label, f"{value:,}")
-            elif key == "follows_best_practices" or key == "is_featured":
+            elif key in ("follows_best_practices", "is_featured"):
                 table.add_row(label, "Yes" if value else "No")
             else:
                 table.add_row(label, str(value))
@@ -210,7 +210,7 @@ def print_results(result: dict):
                 console.print(f"  {i}. {rec}")
             console.print()
 
-    console.print(f"[bold green]✓[/bold green] Analysis completed\n")
+    console.print("[bold green]✓[/bold green] Analysis completed\n")
 
 
 def save_results_json(result: dict, output_path: Path):
@@ -313,7 +313,8 @@ def serve(host: str, port: int, reload: bool):
         threatxtension serve --port 8080 --reload
     """
     import uvicorn
-    from threatxtension.api.main import app
+
+    # from threatxtension.api.main import app  # Unused import
 
     console.print(
         Panel.fit(

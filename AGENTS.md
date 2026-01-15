@@ -14,6 +14,7 @@ This file provides guidance to agents when working with code in this repository.
 - **FastMCP** for Claude Desktop integration
 - **Click** for CLI framework
 - **Gradio** for web UI
+- **FastAPI** for REST API backend
 - **Rich** for terminal output formatting
 
 ### Architecture
@@ -39,6 +40,7 @@ The project follows a **workflow-based architecture** using LangGraph:
 4. **Multiple Interfaces**:
    - **CLI** (`src/threatxtension/cli/main.py`): Primary interface with rich console output
    - **Web UI** (`src/threatxtension/ui/app.py`): Gradio-based demo interface
+   - **REST API** (`src/threatxtension/api/main.py`): FastAPI backend for React frontend
    - **MCP Server** (`src/threatxtension/mcp_server/main.py`): Claude Desktop integration
 
 ## Building and Running
@@ -70,6 +72,18 @@ uv run threatxtension analyze --url <chrome_web_store_url>
 ```bash
 make ui
 # Access at http://localhost:7860
+```
+
+**REST API + React Frontend**:
+```bash
+# Terminal 1: Start API server
+make api
+# Access API at http://localhost:8007
+# API docs at http://localhost:8007/docs
+
+# Terminal 2: Start React frontend
+make frontend
+# Access at http://localhost:5173
 ```
 
 **Example Workflow Script**:
@@ -142,6 +156,7 @@ make clean       # Remove caches and output files
 - `fastmcp>=1.0` - MCP server framework
 - `click>=8.1.0` - CLI framework
 - `gradio>=5.49.1` - Web UI
+- `fastapi>=0.115.0` - REST API
 - `rich>=13.5.2` - Terminal formatting
 
 ### Project Structure Notes
@@ -161,6 +176,6 @@ make clean       # Remove caches and output files
 
 ### Security Considerations
 - Tool designed for legitimate security research and malware analysis
-- Custom Semgrep rules target banking fraud, credential theft, data exfiltration
+- Custom Semgrep rules target banking fraud, credential theft, data exfiltraction
 - Sensitive domain detection for privacy-critical permissions
 - All analysis results include MITRE ATT&CK and CWE mappings where applicable

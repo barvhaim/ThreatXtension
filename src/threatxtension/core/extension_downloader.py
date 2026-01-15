@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 import requests
 from threatxtension.utils.extension import calculate_file_hash, extract_extension_id_by_url
 
-load_dotenv()
+load_dotenv(override=True)
 logger = logging.getLogger(__name__)
 
 
@@ -32,7 +32,7 @@ class ExtensionDownloader:
         Returns:
             str: The download URL for the extension
         """
-        chrome_version = os.getenv("CHROME_VERSION", "118.0")
+        chrome_version = os.getenv("CHROME_VERSION", "131.0")
         download_url = (
             "https://clients2.google.com/service/update2/crx"
             f"?response=redirect&prodversion={chrome_version}"

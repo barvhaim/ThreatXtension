@@ -46,10 +46,9 @@ class ManifestParser:
         """
         if manifest.get("manifest_version") == 3:
             return manifest.get("host_permissions", [])
-        else:
-            # V2: Extract URL patterns from permissions
-            permissions = manifest.get("permissions", [])
-            return [p for p in permissions if self._is_url_pattern(p)]
+        # V2: Extract URL patterns from permissions
+        permissions = manifest.get("permissions", [])
+        return [p for p in permissions if self._is_url_pattern(p)]
 
     @staticmethod
     def _is_url_pattern(permission: str) -> bool:
@@ -134,7 +133,6 @@ class ManifestParser:
         # V3 format: array of objects
         if manifest.get("manifest_version") == 3 and war and isinstance(war[0], dict):
             return war
-
         # V2 format: array of strings
         return war
 
@@ -247,7 +245,7 @@ class ManifestParser:
         if not manifest_path.exists():
             raise FileNotFoundError(f"manifest.json not found in {self.extension_dir}")
 
-        logger.info(f"Parsing manifest from: {manifest_path}")
+        logger.info("Parsing manifest from: %s", manifest_path)
 
         try:
             with open(manifest_path, "r", encoding="utf-8") as f:
@@ -284,16 +282,18 @@ class ManifestParser:
                 "author": raw_manifest.get("author"),
             }
 
-            logger.info(f"Manifest parsed successfully: {parsed['name']} v{parsed['version']}")
+            logger.info("Manifest parsed successfully: %s v%s", parsed["name"], parsed["version"])
             logger.debug(
-                f"Permissions: {len(parsed['permissions'])}, Content Scripts: {len(parsed['content_scripts'])}"
+                "Permissions: %d, Content Scripts: %d",
+                len(parsed["permissions"]),
+                len(parsed["content_scripts"]),
             )
 
             return parsed
 
         except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON in manifest.json: {e}")
+            logger.error("Invalid JSON in manifest.json: %s", e)
             raise
         except Exception as e:
-            logger.error(f"Error parsing manifest: {e}")
+            logger.error("Error parsing manifest: %s", e)
             raise
