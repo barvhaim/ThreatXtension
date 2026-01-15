@@ -1,0 +1,74 @@
+/* ============================================================================
+   ThreatXtension - Carbon-Compliant Animations
+   ============================================================================ */
+
+/* Fade In */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Slide Up */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Spin (for loaders) */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Pulse (for status indicators) */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* Scanning pulse (for loading states) */
+@keyframes scanning-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Animation Utility Classes */
+.animate-fade-in {
+  animation: fade-in 240ms ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 240ms ease-out;
+}
+
+.animate-scanning {
+  animation: scanning-pulse 1.5s ease-in-out infinite;
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-scanning {
+    animation: none;
+  }
+}
