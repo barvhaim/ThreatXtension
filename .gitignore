@@ -174,3 +174,4 @@ cython_debug/
 CLAUDE.md
 .claude/
 extensions_storage/
+.bob/

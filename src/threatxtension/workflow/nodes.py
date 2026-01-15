@@ -296,10 +296,18 @@ def cleanup_node(state: WorkflowState) -> Command:
     if cleanup_errors:
         logger.warning("Cleanup completed with warnings: %s", "; ".join(cleanup_errors))
 
+    # Preserve FAILED status if already set, otherwise mark as COMPLETED
+    current_status = state.get("status")
+    final_status = (
+        current_status
+        if current_status == WorkflowStatus.FAILED.value
+        else WorkflowStatus.COMPLETED.value
+    )
+
     return Command(
         goto=END,
         update={
-            "status": WorkflowStatus.COMPLETED.value,
+            "status": final_status,
             "end_time": datetime.now().isoformat(),
         },
     )
