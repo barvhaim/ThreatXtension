@@ -1,7 +1,7 @@
 # ThreatXtension
 
 <p align="center">
-  <img src="images/logo.png" alt="ThreatXtension Logo" width="800"/>
+  <img src="images/ui.png" alt="ThreatXtension Logo" width="800"/>
 </p>
 
 <p align="center">
@@ -292,4 +292,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <p align="center">
   <sub>This tool is intended for legitimate security research, malware analysis, and educational purposes only.</sub>
+</p>
+
+<p align="center">
+  <img src="images/logo.png" alt="ThreatXtension Logo" width="800"/>
 </p>
