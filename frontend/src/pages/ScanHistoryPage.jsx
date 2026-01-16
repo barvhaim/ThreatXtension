@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -16,6 +17,7 @@ const ScanHistoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedScan, setSelectedScan] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadHistory = async () => {
@@ -155,7 +157,7 @@ const ScanHistoryPage = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setSelectedScan(scan)}
+                      onClick={() => navigate(`/analysis?id=${scan.id}`)}
                       className="flex-1 lg:flex-none"
                     >
                       <Eye className="mr-2 h-4 w-4" />
