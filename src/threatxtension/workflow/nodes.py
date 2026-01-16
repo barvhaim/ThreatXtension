@@ -50,7 +50,7 @@ def extension_path_routing_node(state: WorkflowState) -> Command:
         goto=END,
         update={
             "status": WorkflowStatus.FAILED.value,
-            "error": "Provided Chrome extension path is not a valid Chrome Web Store URL or local CRX file.",
+            "error": "Invalid input: not a Chrome Web Store URL or local CRX file.",
         },
     )
 
@@ -272,8 +272,27 @@ def cleanup_node(state: WorkflowState) -> Command:
     """
     cleanup_errors = []
 
-    # Clean up temporary extraction directory
+    # Collect file list BEFORE cleanup (if not already collected)
     extension_dir = state.get("extension_dir")
+    extracted_files = state.get("extracted_files", [])
+
+    if extension_dir and not extracted_files:
+        try:
+            import os
+
+            files = []
+            if os.path.exists(extension_dir):
+                for root, _, filenames in os.walk(extension_dir):
+                    for filename in filenames:
+                        file_path = os.path.join(root, filename)
+                        rel_path = os.path.relpath(file_path, extension_dir)
+                        files.append(rel_path)
+                extracted_files = files
+                logger.info("Collected %d files before cleanup", len(files))
+        except Exception as exc:
+            logger.warning("Failed to collect file list: %s", exc)
+
+    # Clean up temporary extraction directory
     if extension_dir:
         try:
             logger.info("Cleaning up extension directory: %s", extension_dir)
@@ -309,5 +328,6 @@ def cleanup_node(state: WorkflowState) -> Command:
         update={
             "status": final_status,
             "end_time": datetime.now().isoformat(),
+            "extracted_files": extracted_files,
         },
     )

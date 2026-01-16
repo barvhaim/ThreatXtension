@@ -123,8 +123,14 @@ class Database:
 
                 # Extract metadata
                 extension_id = result.get("extension_id")
-                metadata = result.get("metadata", {})
-                extension_name = metadata.get("name", extension_id)
+                metadata = result.get("metadata", {}) or {}
+                # Get extension_name from top-level first, then try metadata fields
+                extension_name = (
+                    result.get("extension_name")
+                    or metadata.get("title")
+                    or metadata.get("name")
+                    or extension_id
+                )
 
                 # Calculate risk distribution
                 risk_dist = result.get("risk_distribution", {})
@@ -149,7 +155,7 @@ class Database:
                         result.get("overall_security_score"),
                         result.get("overall_risk"),
                         result.get("total_findings", 0),
-                        len(result.get("extracted_files", [])),
+                        len(result.get("extracted_files") or []),
                         risk_dist.get("high", 0),
                         risk_dist.get("medium", 0),
                         risk_dist.get("low", 0),
@@ -203,7 +209,7 @@ class Database:
                 cursor.execute(
                     """
                     SELECT 
-                        extension_id, extension_name, timestamp, status,
+                        extension_id, extension_name, url, timestamp, status,
                         security_score, risk_level, total_findings, total_files,
                         high_risk_count, medium_risk_count, low_risk_count
                     FROM scan_results
@@ -356,7 +362,9 @@ class Database:
                 cursor.execute(
                     """
                     UPDATE statistics 
-                    SET metric_value = (SELECT COUNT(*) FROM scan_results WHERE status = 'completed'),
+                    SET metric_value = (
+                        SELECT COUNT(*) FROM scan_results WHERE status = 'completed'
+                    ),
                         updated_at = ?
                     WHERE metric_name = 'total_scans'
                 """,

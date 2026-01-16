@@ -20,12 +20,17 @@ def extract_extension_id_by_url(url):
     try:
         # Handle different URL formats
         if "/detail/" in url:
-            # Format: https://chromewebstore.google.com/detail/name/id
+            # Format: https://chromewebstore.google.com/detail/name/id or
+            # https://chromewebstore.google.com/detail/id
             parts = url.split("/detail/")
             if len(parts) > 1:
                 extension_part = parts[1]
                 # Split by '/' and take the last part (the ID)
                 extension_id = extension_part.split("/")[-1]
+                # Remove query parameters (e.g., ?utm_source=...)
+                extension_id = extension_id.split("?")[0]
+                # Remove any trailing slashes
+                extension_id = extension_id.rstrip("/")
                 return extension_id
         elif "id=" in url:
             # Format: https://chromewebstore.google.com/detail/...?id=...

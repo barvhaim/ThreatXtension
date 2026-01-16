@@ -93,7 +93,7 @@ def extract_extension_id(url: str) -> Optional[str]:
     """Extract extension ID from Chrome Web Store URL."""
     import re
 
-    match = re.search(r"/detail/[^/]+/([a-z]{32})", url)
+    match = re.search(r"/detail/(?:[^/]+/)?([a-z]{32})", url)
     return match.group(1) if match else None
 
 
@@ -115,6 +115,7 @@ async def run_analysis_workflow(url: str, extension_id: str):
             "manifest_data": None,
             "analysis_results": None,
             "executive_summary": None,
+            "extracted_files": None,
             "status": WorkflowStatus.PENDING,
             "start_time": datetime.now().isoformat(),
             "end_time": None,
@@ -131,19 +132,35 @@ async def run_analysis_workflow(url: str, extension_id: str):
         ):
             analysis_results = final_state.get("analysis_results", {}) or {}
 
+            # Extract extension name from metadata or manifest
+            metadata = final_state.get("extension_metadata") or {}
+            manifest = final_state.get("manifest_data") or {}
+            extension_name = (
+                metadata.get("title")
+                or metadata.get("name")
+                or manifest.get("name")
+                or extension_id
+            )
+
+            # Ensure all values are not None
+            extracted_files = final_state.get("extracted_files")
+            if extracted_files is None:
+                extracted_files = []
+
             scan_results[extension_id] = {
                 "extension_id": extension_id,
+                "extension_name": extension_name,
                 "url": url,
                 "timestamp": datetime.now().isoformat(),
                 "status": "completed",
-                "metadata": final_state.get("extension_metadata", {}),
-                "manifest": final_state.get("manifest_data", {}),
-                "permissions_analysis": analysis_results.get("permissions_analysis", {}),
-                "sast_results": analysis_results.get("javascript_analysis", {}),
-                "webstore_analysis": analysis_results.get("webstore_analysis", {}),
-                "summary": final_state.get("executive_summary", {}),
+                "metadata": metadata,
+                "manifest": manifest,
+                "permissions_analysis": analysis_results.get("permissions_analysis") or {},
+                "sast_results": analysis_results.get("javascript_analysis") or {},
+                "webstore_analysis": analysis_results.get("webstore_analysis") or {},
+                "summary": final_state.get("executive_summary") or {},
                 "extracted_path": final_state.get("extension_dir"),
-                "extracted_files": get_extracted_files(final_state.get("extension_dir")),
+                "extracted_files": extracted_files,
                 "overall_security_score": calculate_security_score(
                     final_state
                 ),  # This helper also needs update or a wrapper
@@ -205,73 +222,162 @@ def get_extracted_files(extracted_path: Optional[str]) -> list[str]:
 
 
 def calculate_security_score(state: WorkflowState) -> int:
-    """Calculate overall security score from analysis results."""
-    # Start with perfect score
-    score = 100
+    """
+    Calculate overall security RISK score using weighted multi-factor analysis.
 
+    Scoring Components (0-100 scale, where 100 = HIGHEST RISK):
+    - SAST Findings (40%): Critical code vulnerabilities
+    - Permissions Risk (30%): Unreasonable/excessive permissions
+    - Webstore Trust (20%): User ratings, install count, developer reputation
+    - Manifest Quality (10%): Proper metadata, CSP, update URL
+
+    Returns:
+        int: Risk score from 0 (safest) to 100 (highest risk)
+    """
     analysis_results = state.get("analysis_results", {}) or {}
+    manifest = state.get("manifest_data", {}) or {}
 
-    # Deduct for SAST findings
+    # Component 1: SAST Analysis (40 points max risk)
+    sast_score = 0  # Start at 0 risk
     javascript_analysis = analysis_results.get("javascript_analysis", {})
-    js_analysis = []
     if javascript_analysis and isinstance(javascript_analysis, dict):
         sast_findings = javascript_analysis.get("sast_findings", {})
         for findings_list in sast_findings.values():
-            js_analysis.extend(findings_list)
-    elif isinstance(javascript_analysis, list):
-        # Fallback if it is a list
-        js_analysis = javascript_analysis
+            for finding in findings_list:
+                severity = finding.get("extra", {}).get("severity", "INFO").upper()
+                if severity in ("CRITICAL", "HIGH"):
+                    sast_score += 8  # Add risk points
+                elif severity in ("ERROR", "MEDIUM"):
+                    sast_score += 4
+                elif severity == "WARNING":
+                    sast_score += 1
+    sast_score = min(40, sast_score)  # Cap at 40
 
-    for finding in js_analysis:
-        risk_level = finding.get("extra", {}).get(
-            "severity", "INFO"
-        )  # Semgrep returns severity in extra.severity or just top level?
-        # Checking sast.py: severity = finding.get("extra", {}).get("severity", "INFO")
-
-        # Map semgrep severity to score deduction
-        if risk_level in ("CRITICAL", "HIGH"):
-            score -= 20
-        elif risk_level in ("ERROR", "MEDIUM"):
-            score -= 10
-        elif risk_level == "WARNING":
-            score -= 2
-
-    # Deduct for risky permissions
-    permissions_analysis = analysis_results.get("permissions_analysis", {})
+    # Component 2: Permissions Analysis (30 points max risk)
+    permissions_score = 0  # Start at 0 risk
+    permissions_analysis = analysis_results.get("permissions_analysis", {}) or {}
     permissions_details = (
-        permissions_analysis.get("permissions_details", {})
+        permissions_analysis.get("permissions_details")
         if isinstance(permissions_analysis, dict)
-        else {}
+        else None
     )
+    # Ensure permissions_details is a dict, not None
+    if not isinstance(permissions_details, dict):
+        permissions_details = {}
+
+    _ = len(permissions_details)  # total_permissions - kept for potential future use
+    unreasonable_count = 0
+    high_risk_perms = 0
 
     for _, perm_analysis in permissions_details.items():
-        # Permission analysis format: {"is_reasonable": bool, "risk_level": "low/medium/high", ...}
-        # Note: permissions.py returns {permission: {JSON from LLM}}
-        # If risk_level is missing, infer from is_reasonable
-        risk = perm_analysis.get("risk_level", "").lower()
         is_reasonable = perm_analysis.get("is_reasonable", True)
+        risk = perm_analysis.get("risk_level", "").lower()
 
-        if risk == "high":
-            score -= 15
-        elif risk == "medium":
-            score -= 5
-        elif not is_reasonable:
-            # Fallback: if not reasonable and no explicit risk level, treat as medium/high risk
-            score -= 10
+        if not is_reasonable:
+            unreasonable_count += 1
+            if risk == "high":
+                high_risk_perms += 1
+                permissions_score += 5  # Add risk points
+            elif risk == "medium":
+                permissions_score += 2
+            else:
+                permissions_score += 1
 
-    return max(0, min(100, score))
+    permissions_score = min(30, permissions_score)  # Cap at 30
+
+    # Component 3: Webstore Trust Score (20 points max risk)
+    webstore_score = 0  # Start at 0 risk
+    _ = analysis_results.get("webstore_analysis", {})  # webstore_analysis - for future use
+    metadata = state.get("extension_metadata", {}) or {}
+
+    # Check user ratings (low rating = higher risk)
+    rating = metadata.get("rating")
+    if rating:
+        try:
+            rating_val = float(rating)
+            if rating_val >= 4.5:
+                webstore_score += 0  # Excellent - no risk
+            elif rating_val >= 4.0:
+                webstore_score += 2  # Good - slight risk
+            elif rating_val >= 3.0:
+                webstore_score += 5  # Average - moderate risk
+            else:
+                webstore_score += 10  # Poor - high risk
+        except (ValueError, TypeError):
+            webstore_score += 3  # No valid rating - some risk
+    else:
+        webstore_score += 3  # No rating data
+
+    # Check install count (low adoption = higher risk)
+    users = metadata.get("users", "0")
+    try:
+        user_count = int(users.replace(",", "").replace("+", ""))
+        if user_count >= 1000000:
+            webstore_score += 0  # Very popular - trusted
+        elif user_count >= 100000:
+            webstore_score += 2  # Popular - low risk
+        elif user_count >= 10000:
+            webstore_score += 5  # Moderate - some risk
+        else:
+            webstore_score += 8  # Low adoption - higher risk
+    except (ValueError, TypeError):
+        webstore_score += 5  # Unknown user count
+
+    webstore_score = min(20, webstore_score)  # Cap at 20
+
+    # Component 4: Manifest Quality (10 points max risk)
+    manifest_score = 0  # Start at 0 risk
+
+    # Check for proper metadata (missing = risk)
+    if not manifest.get("name") or manifest.get("name", "").startswith("__MSG_"):
+        manifest_score += 3  # Missing/placeholder name = risk
+    if not manifest.get("description") or manifest.get("description", "").startswith("__MSG_"):
+        manifest_score += 2  # Missing/placeholder description = risk
+
+    # Check for Content Security Policy (missing = risk)
+    if not manifest.get("content_security_policy"):
+        manifest_score += 2
+
+    # Check for update URL (missing = risk)
+    if not manifest.get("update_url"):
+        manifest_score += 1
+
+    manifest_score = min(10, manifest_score)  # Cap at 10
+
+    # Calculate final weighted score
+    final_score = sast_score + permissions_score + webstore_score + manifest_score
+
+    return max(0, min(100, final_score))
 
 
 def count_total_findings(state: WorkflowState) -> int:
-    """Count total security findings."""
+    """Count total security findings including unreasonable permissions."""
     analysis_results = state.get("analysis_results", {}) or {}
-    javascript_analysis = analysis_results.get("javascript_analysis", {})
 
+    # Count SAST findings
+    javascript_analysis = analysis_results.get("javascript_analysis", {})
     total = 0
     if javascript_analysis:
         sast_findings = javascript_analysis.get("sast_findings", {})
         for findings_list in sast_findings.values():
-            total += len(findings_list)
+            if findings_list is not None:
+                total += len(findings_list)
+
+    # Count unreasonable permissions as findings
+    permissions_analysis = analysis_results.get("permissions_analysis", {}) or {}
+    permissions_details = (
+        permissions_analysis.get("permissions_details")
+        if isinstance(permissions_analysis, dict)
+        else None
+    )
+    # Ensure permissions_details is a dict, not None
+    if not isinstance(permissions_details, dict):
+        permissions_details = {}
+
+    for _, perm_analysis in permissions_details.items():
+        is_reasonable = perm_analysis.get("is_reasonable", True)
+        if not is_reasonable:
+            total += 1
 
     return total
 
@@ -281,23 +387,51 @@ def calculate_risk_distribution(state: WorkflowState) -> Dict[str, int]:
     distribution = {"high": 0, "medium": 0, "low": 0}
 
     analysis_results = state.get("analysis_results", {}) or {}
+
+    # Count SAST findings
     javascript_analysis = analysis_results.get("javascript_analysis", {})
     js_analysis = []
     if javascript_analysis and isinstance(javascript_analysis, dict):
         sast_findings = javascript_analysis.get("sast_findings", {})
         for findings_list in sast_findings.values():
-            js_analysis.extend(findings_list)
+            if findings_list is not None:
+                js_analysis.extend(findings_list)
     elif isinstance(javascript_analysis, list):
         js_analysis = javascript_analysis
 
     for finding in js_analysis:
-        risk_level = finding.get("extra", {}).get("severity", "INFO").lower()  # Semgrep format
+        risk_level = finding.get("extra", {}).get("severity", "INFO").lower()
         if risk_level in ("critical", "high"):
             distribution["high"] += 1
         elif risk_level in ("error", "medium"):
             distribution["medium"] += 1
         else:
             distribution["low"] += 1
+
+    # Count unreasonable permissions as findings
+    permissions_analysis = analysis_results.get("permissions_analysis", {}) or {}
+    permissions_details = (
+        permissions_analysis.get("permissions_details")
+        if isinstance(permissions_analysis, dict)
+        else None
+    )
+    # Ensure permissions_details is a dict, not None
+    if not isinstance(permissions_details, dict):
+        permissions_details = {}
+
+    for _, perm_analysis in permissions_details.items():
+        is_reasonable = perm_analysis.get("is_reasonable", True)
+        risk = perm_analysis.get("risk_level", "").lower()
+
+        if not is_reasonable:
+            # Classify unreasonable permissions by explicit risk_level or default to medium
+            if risk == "high":
+                distribution["high"] += 1
+            elif risk == "low":
+                distribution["low"] += 1
+            else:
+                # Default unreasonable permissions to medium risk
+                distribution["medium"] += 1
 
     return distribution
 
@@ -426,8 +560,33 @@ async def get_scan_results(extension_id: str):
     # Try loading from database
     results = db.get_scan_result(extension_id)
     if results:
-        scan_results[extension_id] = results  # Cache in memory
-        return results
+        # Ensure consistent field naming for frontend
+        formatted_results = {
+            "extension_id": results.get("extension_id"),
+            "extension_name": results.get("extension_name"),
+            "url": results.get("url"),
+            "timestamp": results.get("timestamp"),
+            "status": results.get("status"),
+            "metadata": results.get("metadata", {}),
+            "manifest": results.get("manifest", {}),
+            "permissions_analysis": results.get("permissions_analysis", {}),
+            "sast_results": results.get("sast_results", {}),
+            "webstore_analysis": results.get("webstore_analysis", {}),
+            "summary": results.get("summary", {}),
+            "extracted_path": results.get("extracted_path"),
+            "extracted_files": results.get("extracted_files", []),
+            "overall_security_score": results.get("security_score", 0),
+            "total_findings": results.get("total_findings", 0),
+            "risk_distribution": {
+                "high": results.get("high_risk_count", 0),
+                "medium": results.get("medium_risk_count", 0),
+                "low": results.get("low_risk_count", 0),
+            },
+            "overall_risk": results.get("risk_level", "unknown"),
+            "total_risk_score": results.get("total_findings", 0),
+        }
+        scan_results[extension_id] = formatted_results  # Cache in memory
+        return formatted_results
 
     # Try loading from file (fallback)
     result_file = RESULTS_DIR / f"{extension_id}_results.json"

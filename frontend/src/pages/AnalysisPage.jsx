@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import cacheService from "../services/cacheService";
+import databaseService from "../services/databaseService";
 import TabbedResultsPanel from "../components/TabbedResultsPanel";
 import { Search } from "lucide-react";
 import { Button } from "../components/ui/button";
@@ -12,27 +12,27 @@ const AnalysisPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const loadData = () => {
+    const loadData = async () => {
       // 1. Try to get ID from URL query params
       const params = new URLSearchParams(location.search);
       const scanId = params.get("id");
 
       if (scanId) {
-        const cached = cacheService.getCachedResult(scanId);
-        if (cached && cached.data) {
-          setScanResults(cached.data);
+        const dbResult = await databaseService.getScanResult(scanId);
+        if (dbResult) {
+          setScanResults(dbResult);
           setLoading(false);
           return;
         }
       }
 
       // 2. Fallback: Get most recent scan from history
-      const history = cacheService.getScanHistory();
+      const history = await databaseService.getScanHistory(1);
       if (history.length > 0) {
-        const lastScanId = history[0].extensionId; // Assuming history is sorted desc
-        const cached = cacheService.getCachedResult(lastScanId);
-        if (cached && cached.data) {
-          setScanResults(cached.data);
+        const lastScanId = history[0].extension_id;
+        const dbResult = await databaseService.getScanResult(lastScanId);
+        if (dbResult) {
+          setScanResults(dbResult);
         }
       }
       setLoading(false);

@@ -5,7 +5,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Download, Eye, Shield, FileText, AlertTriangle, CheckCircle, XCircle, Info } from "lucide-react";
 
-import cacheService from "../services/cacheService";
+import databaseService from "../services/databaseService";
 
 /**
  * ScanHistoryPage Component
@@ -18,20 +18,26 @@ const ScanHistoryPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    const loadHistory = () => {
-      const history = cacheService.getScanHistory();
-      // Map history items to ensure they have expected properties if needed, 
-      // but cacheService structure should be consistent.
-      // We might need to adapt checking for 'extensionName' vs 'name' based on what's saved.
-      const formattedHistory = history.map(item => ({
-        ...item,
-        name: item.extensionName || item.extensionId, // Fallback
-        id: item.extensionId,
-        filesAnalyzed: item.totalFiles || 0, // Ensure property match
-        downloadSize: item.downloadSize || "N/A"
-      }));
-      setScans(formattedHistory);
-      setLoading(false);
+    const loadHistory = async () => {
+      try {
+        const history = await databaseService.getScanHistory(100);
+        const formattedHistory = history.map(item => ({
+          ...item,
+          name: item.extension_name || item.extensionId || item.extension_id,
+          id: item.extension_id || item.extensionId,
+          filesAnalyzed: item.total_files || 0,
+          downloadSize: item.downloadSize || "N/A",
+          version: item.version || "N/A",
+          securityScore: item.security_score || 0,
+          riskLevel: item.risk_level || "unknown",
+          totalFindings: item.total_findings || 0
+        }));
+        setScans(formattedHistory);
+      } catch (error) {
+        console.error("Failed to load scan history:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     loadHistory();

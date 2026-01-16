@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 
 class PermissionsAnalyzer(BaseAnalyzer):
+    """Analyzes Chrome extension permissions for security risks and reasonableness."""
+
     def __init__(self):
         """Initialize the PermissionsAnalyzer."""
         super().__init__(name="PermissionsAnalyzer")

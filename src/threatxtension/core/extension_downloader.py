@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 import requests
 from threatxtension.utils.extension import calculate_file_hash, extract_extension_id_by_url
 
-load_dotenv(override=True)
+load_dotenv()
 logger = logging.getLogger(__name__)
 
 
@@ -32,7 +32,7 @@ class ExtensionDownloader:
         Returns:
             str: The download URL for the extension
         """
-        chrome_version = os.getenv("CHROME_VERSION", "131.0")
+        chrome_version = os.getenv("CHROME_VERSION", "118.0")
         download_url = (
             "https://clients2.google.com/service/update2/crx"
             f"?response=redirect&prodversion={chrome_version}"
@@ -76,6 +76,15 @@ class ExtensionDownloader:
 
             file_size = os.path.getsize(file_path)
             logger.info("Downloaded %s to %s (%s bytes)", extension_id, file_path, file_size)
+
+            # Validate file size - Chrome extensions should be at least a few KB
+            if file_size < 1024:
+                logger.error(
+                    "Downloaded file too small (%s bytes) - likely not a valid extension", file_size
+                )
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                return None
 
             return {
                 "extension_id": extension_id,

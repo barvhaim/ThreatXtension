@@ -215,7 +215,8 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                 capture_output=True,
                 text=True,
                 timeout=timeout,
-                check=False,  # Don't raise on non-zero exit (Semgrep returns non-zero if findings found)
+                # Don't raise on non-zero exit (Semgrep returns non-zero if findings)
+                check=False,
             )
 
             if result.stdout:
@@ -242,12 +243,11 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                     len(file_paths),
                 )
                 return findings_by_file
-            else:
-                logger.info("No findings from batch Semgrep scan")
-                return {
-                    JavaScriptAnalyzer._get_relative_path(fp, extension_dir): []
-                    for fp in file_paths
-                }
+            logger.info("No findings from batch Semgrep scan")
+            return {
+                JavaScriptAnalyzer._get_relative_path(fp, extension_dir): []
+                for fp in file_paths
+            }
 
         except subprocess.TimeoutExpired:
             logger.error(

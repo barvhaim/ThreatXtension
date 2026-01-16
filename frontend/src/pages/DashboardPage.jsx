@@ -8,9 +8,7 @@ import EnhancedUrlInput from "../components/EnhancedUrlInput";
 import TabbedResultsPanel from "../components/TabbedResultsPanel";
 import StatusMessage from "../components/StatusMessage";
 import realScanService from "../services/realScanService";
-import cacheService from "../services/cacheService";
 import databaseService from "../services/databaseService";
-import CacheConfirmationModal from "../components/CacheConfirmationModal";
 import FileViewerModal from "../components/FileViewerModal";
 import "./DashboardPage.scss";
 
@@ -19,12 +17,8 @@ const DashboardPage = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scanResults, setScanResults] = useState(null);
   const [error, setError] = useState(null);
-  const [showCacheModal, setShowCacheModal] = useState(false);
-  const [cachedData, setCachedData] = useState(null);
-  const [extensionId, setExtensionId] = useState("");
   const [scanHistory, setScanHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [recentUrls, setRecentUrls] = useState([]);
   // const [showSampleModal, setShowSampleModal] = useState(false);
   const [fileViewerModal, setFileViewerModal] = useState({
     isOpen: false,
@@ -45,16 +39,9 @@ const DashboardPage = () => {
       if (history.length > 0) {
         setShowHistory(true);
       }
-      
-      const urls = await databaseService.getRecentUrls(5);
-      setRecentUrls(urls);
     } catch (error) {
       console.error("Error loading scan history:", error);
-      // Fallback to localStorage
-      const history = cacheService.getScanHistory();
-      setScanHistory(history);
-      const urls = history.map((item) => item.url).filter(Boolean);
-      setRecentUrls(urls.slice(0, 5));
+      setScanHistory([]);
     }
   };
 
@@ -78,37 +65,15 @@ const DashboardPage = () => {
     return realScanService.extractExtensionId(url);
   };
 
-  const checkCache = (url) => {
-    const extId = extractExtensionId(url);
-    if (!extId) return false;
-    const cached = cacheService.getCachedResult(extId);
-    if (cached) {
-      setCachedData(cached);
-      setExtensionId(extId);
-      setShowCacheModal(true);
-      return true;
-    }
-    return false;
-  };
-
   const handleScanClick = async () => {
     if (!url.trim()) {
       setError("Please enter a Chrome Web Store URL");
       return;
     }
-    if (checkCache(url)) {
-      return;
-    }
     await startScan();
   };
 
-  const handleSelectRecentUrl = (selectedUrl) => {
-    setUrl(selectedUrl);
-  };
 
-  const handleSampleExtensionClick = () => {
-    setShowSampleModal(true);
-  };
 
   // const handleScanSampleExtension = () => {
   //   const sampleUrl = "https://chromewebstore.google.com/detail/adblock/gighmmpiobklfepjocnamgkkbiglidom";
@@ -149,7 +114,6 @@ const DashboardPage = () => {
       }
 
       const results = await realScanService.getRealScanResults(extId);
-      cacheService.cacheScanResult(extId, results);
       setScanResults(results);
       setError("");
       await loadScanHistory();
@@ -182,22 +146,6 @@ const DashboardPage = () => {
     throw new Error("Scan timeout - extension analysis took too long (10 minutes limit)");
   };
 
-  const handleViewCached = () => {
-    setShowCacheModal(false);
-    setScanResults(cachedData.data);
-  };
-
-  const handleReScan = () => {
-    setShowCacheModal(false);
-    startScan();
-  };
-
-  const handleCloseCacheModal = () => {
-    setShowCacheModal(false);
-    setCachedData(null);
-    setExtensionId("");
-  };
-
   const loadScanFromHistory = async (extId) => {
     try {
       // Try database first
@@ -206,6 +154,11 @@ const DashboardPage = () => {
       // Fallback to API if not in database
       if (!results) {
         results = await realScanService.getRealScanResults(extId);
+      }
+      
+      // Format the results if they're raw from database
+      if (results && !results.files) {
+        results = realScanService.formatRealResults(results);
       }
       
       setScanResults(results);
@@ -259,9 +212,6 @@ const DashboardPage = () => {
             onChange={setUrl}
             onScan={handleScanClick}
             isScanning={isScanning}
-            recentUrls={recentUrls}
-            onSelectRecent={handleSelectRecentUrl}
-            onScanSample={handleSampleExtensionClick}
           />
         </div>
       </section>
@@ -421,14 +371,6 @@ const DashboardPage = () => {
         file={fileViewerModal.file}
         extensionId={scanResults?.extensionId}
         onGetFileContent={getFileContent}
-      />
-      <CacheConfirmationModal
-        isOpen={showCacheModal}
-        onClose={handleCloseCacheModal}
-        onViewCached={handleViewCached}
-        onReScan={handleReScan}
-        cachedData={cachedData}
-        extensionId={extensionId}
       />
     </div>
   );

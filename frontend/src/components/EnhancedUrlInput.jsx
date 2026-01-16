@@ -1,50 +1,20 @@
-import React, { useState, useRef, useEffect } from "react";
+import React from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Search, Code, ChevronDown } from "lucide-react";
+import { Search } from "lucide-react";
 import "./EnhancedUrlInput.scss";
 
 /**
- * Enhanced URL Input Component with recent URLs dropdown and sample extension button
+ * Enhanced URL Input Component
  */
 const EnhancedUrlInput = ({
   value,
   onChange,
   onScan,
   isScanning = false,
-  recentUrls = [],
-  onSelectRecent,
-  onScanSample,
   className = "",
   ...props
 }) => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  const formatUrlForDisplay = (url) => {
-    try {
-      const match = url.match(/\/detail\/([^\/]+)\/([^\/\?]+)/);
-      if (match && match[1]) {
-        return `${match[1]} (${match[2]})`;
-      }
-      return url.length > 40 ? url.substring(0, 37) + "..." : url;
-    } catch (e) {
-      return url;
-    }
-  };
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && value.trim() && !isScanning) {
@@ -109,35 +79,7 @@ const EnhancedUrlInput = ({
             </div>
           </div>
 
-          {recentUrls.length > 0 && (
-            <div className="recent-urls-dropdown" ref={dropdownRef}>
-              <button
-                className="dropdown-toggle"
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                aria-label="Show recent URLs"
-              >
-                <ChevronDown size={16} />
-              </button>
 
-              {isDropdownOpen && (
-                <div className="dropdown-menu">
-                  <div className="dropdown-header">Recent Extensions</div>
-                  {recentUrls.map((url, index) => (
-                    <button
-                      key={index}
-                      className="dropdown-item"
-                      onClick={() => {
-                        onSelectRecent(url);
-                        setIsDropdownOpen(false);
-                      }}
-                    >
-                      {formatUrlForDisplay(url)}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         <div className="action-buttons flex gap-2">

@@ -34,8 +34,8 @@
 
 ### 🖥️ Multiple Interfaces
 - **CLI**: Fast command-line analysis with rich console output (Click framework)
-- **Web UI**: Quick demo interface for simple web-based analysis
-- **MCP Server**: FastMCP integration for Claude Code direct integration
+- **Web UI**: React frontend with FastAPI backend for interactive analysis
+- **MCP Server**: FastMCP integration for Claude Desktop direct integration
 
 ## Installation
 
@@ -84,23 +84,7 @@ make analyze URL=<chrome_web_store_url>
   <img src="images/cli.png" alt="ThreatXtension CLI" width="800"/>
 </p>
 
-### 2. Web UI (Gradio)
-
-Quick demo interface for web-based analysis.
-
-```bash
-make ui
-# or
-uv run gradio src/threatxtension/ui/app.py
-
-# Access at http://localhost:7860
-```
-
-<p align="center">
-  <img src="images/ui.png" alt="ThreatXtension UI" width="800"/>
-</p>
-
-### 3. React Frontend with FastAPI Backend
+### 2. Web UI (React + FastAPI)
 
 Full-featured web application with real-time analysis and interactive results.
 
@@ -123,6 +107,10 @@ cd frontend && npm run dev
 # Access at http://localhost:5173
 ```
 
+<p align="center">
+  <img src="images/ui.png" alt="ThreatXtension UI" width="800"/>
+</p>
+
 **API Endpoints**:
 - `POST /api/scan/trigger` - Trigger a new extension scan
 - `GET /api/scan/status/{extension_id}` - Check scan status
@@ -130,7 +118,7 @@ cd frontend && npm run dev
 - `GET /api/scan/files/{extension_id}` - List extracted files
 - `GET /api/scan/file/{extension_id}/{file_path}` - Get file content
 
-### 4. Claude Desktop Integration (MCP)
+### 3. Claude Desktop Integration (MCP)
 
 Analyze extensions directly from Claude Desktop conversations. See [MCP Server for Claude Desktop](#mcp-server-for-claude-desktop) for setup instructions.
 
@@ -138,7 +126,7 @@ Analyze extensions directly from Claude Desktop conversations. See [MCP Server f
   <img src="images/claude.png" alt="ThreatXtension Claude" width="800"/>
 </p>
 
-### Example Workflow Script
+### 4. Example Workflow Script
 
 Run the example script to see the complete workflow in action:
 

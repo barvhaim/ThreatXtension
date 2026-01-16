@@ -5,7 +5,7 @@ class RealScanService {
 
   // Extract extension ID from Chrome Web Store URL
   extractExtensionId(url) {
-    const match = url.match(/\/detail\/[^\/]+\/([a-z]{32})/);
+    const match = url.match(/\/detail\/(?:[^\/]+\/)?([a-z]{32})/);
     return match ? match[1] : null;
   }
 

@@ -37,6 +37,8 @@ class WorkflowState(TypedDict):
             webstore, SAST).
         executive_summary (Optional[Dict]): Executive summary with overall risk assessment,
             key findings, and recommendations.
+        extracted_files (Optional[list]): List of relative file paths extracted from the
+            extension, collected before cleanup.
         status (WorkflowStatus): Current status of the workflow.
         start_time (Optional[str]): ISO 8601 formatted start time of the workflow,
             if available.
@@ -52,6 +54,7 @@ class WorkflowState(TypedDict):
     manifest_data: Optional[Dict]
     analysis_results: Optional[Dict]
     executive_summary: Optional[Dict]
+    extracted_files: Optional[list]
     status: WorkflowStatus
     start_time: Optional[str]
     end_time: Optional[str]

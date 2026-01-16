@@ -108,14 +108,13 @@ class ManifestParser:
                 "service_worker": background.get("service_worker"),
                 "type_module": background.get("type") == "module",
             }
-        else:
-            # V2: Scripts or page
-            return {
-                "type": "scripts" if "scripts" in background else "page",
-                "scripts": background.get("scripts", []),
-                "page": background.get("page"),
-                "persistent": background.get("persistent", True),
-            }
+        # V2: Scripts or page
+        return {
+            "type": "scripts" if "scripts" in background else "page",
+            "scripts": background.get("scripts", []),
+            "page": background.get("page"),
+            "persistent": background.get("persistent", True),
+        }
 
     @staticmethod
     def _extract_web_accessible_resources(manifest: dict) -> List:

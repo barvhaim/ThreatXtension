@@ -13,7 +13,7 @@ class CLIService {
    * @returns {string} Extension ID
    */
   extractExtensionId(url) {
-    const match = url.match(/\/detail\/[^\/]+\/([a-zA-Z0-9]+)/);
+    const match = url.match(/\/detail\/(?:[^\/]+\/)?([a-zA-Z0-9]+)/);
     return match ? match[1] : null;
   }
 
@@ -25,7 +25,7 @@ class CLIService {
   validateUrl(url) {
     if (!url) return false;
 
-    const chromeWebStorePattern = /^https:\/\/chromewebstore\.google\.com\/detail\/[^\/]+\/[a-zA-Z0-9]+$/;
+    const chromeWebStorePattern = /^https:\/\/chromewebstore\.google\.com\/detail\/(?:[^\/]+\/)?[a-zA-Z0-9]+$/;
     return chromeWebStorePattern.test(url);
   }
 
@@ -207,7 +207,7 @@ class CLIService {
    * @returns {string} Extension ID
    */
   extractExtensionId(url) {
-    const match = url.match(/\/detail\/[^\/]+\/([a-zA-Z0-9]+)/);
+    const match = url.match(/\/detail\/(?:[^\/]+\/)?([a-zA-Z0-9]+)/);
     return match ? match[1] : null;
   }
 
@@ -219,7 +219,7 @@ class CLIService {
   validateUrl(url) {
     if (!url) return false;
 
-    const chromeWebStorePattern = /^https:\/\/chromewebstore\.google\.com\/detail\/[^\/]+\/[a-zA-Z0-9]+$/;
+    const chromeWebStorePattern = /^https:\/\/chromewebstore\.google\.com\/detail\/(?:[^\/]+\/)?[a-zA-Z0-9]+$/;
     return chromeWebStorePattern.test(url);
   }
 

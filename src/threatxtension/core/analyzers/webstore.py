@@ -72,9 +72,9 @@ class WebstoreAnalyzer(BaseAnalyzer):
         """Check developer reputation indicators."""
         flags = []
 
-        developer_website = metadata.get("developer_website", "")
-        developer_email = metadata.get("developer_email", "")
-        developer_name = metadata.get("developer_name", "")
+        developer_website = metadata.get("developer_website") or ""
+        developer_email = metadata.get("developer_email") or ""
+        developer_name = metadata.get("developer_name") or ""
 
         # Missing developer website
         if not developer_website:
@@ -89,7 +89,9 @@ class WebstoreAnalyzer(BaseAnalyzer):
             "protonmail.com",
         ]
 
-        if any(domain in developer_email.lower() for domain in unprofessional_domains):
+        if developer_email and any(
+            domain in developer_email.lower() for domain in unprofessional_domains
+        ):
             flags.append(f"Personal email domain used: {developer_email}")
 
         # Unusual developer name
