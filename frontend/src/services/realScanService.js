@@ -131,6 +131,12 @@ class RealScanService {
           cliResults.overall_risk || sastResults.overall_risk || "unknown",
         totalRiskScore:
           cliResults.total_risk_score || sastResults.total_risk_score || 0,
+
+        // VirusTotal threat intelligence
+        virustotalAnalysis: cliResults.virustotal_analysis || null,
+
+        // Entropy/Obfuscation analysis
+        entropyAnalysis: cliResults.entropy_analysis || null,
       };
     } catch (error) {
       console.error("Error formatting CLI results:", error);

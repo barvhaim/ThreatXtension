@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Info, Filter, ChevronDown, ChevronUp } from "lucide-react";
+import { Info, Filter, ChevronDown, ChevronUp, Download, Shield, AlertTriangle, FileWarning } from "lucide-react";
 
 
 /**
@@ -131,12 +131,32 @@ const TabbedResultsPanel = ({
         </Card>
       </div>
 
+      {/* Export PDF Button */}
+      <div className="flex justify-end mb-4">
+        <Button
+          variant="outline"
+          onClick={() => {
+            const extensionId = scanResults.extensionId;
+            if (extensionId) {
+              window.open(`http://localhost:8007/api/scan/report/${extensionId}`, '_blank');
+            } else {
+              alert('No extension ID available for report generation');
+            }
+          }}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Export PDF Report
+        </Button>
+      </div>
+
       {/* Tabbed Interface */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="threatintel">Threat Intel</TabsTrigger>
+          <TabsTrigger value="obfuscation">Obfuscation</TabsTrigger>
           <TabsTrigger value="files">Files ({scanResults.files?.length || 0})</TabsTrigger>
-          <TabsTrigger value="findings">SAST Findings ({scanResults.sastResults?.length || 0})</TabsTrigger>
+          <TabsTrigger value="findings">SAST ({scanResults.sastResults?.length || 0})</TabsTrigger>
           <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
         </TabsList>
 
@@ -271,6 +291,213 @@ const TabbedResultsPanel = ({
                 </div>
               </CardContent>
             )}
+          </Card>
+        </TabsContent>
+
+        {/* Threat Intelligence Tab (VirusTotal) */}
+        <TabsContent value="threatintel" className="space-y-4">
+          <Card className="border-l-4 border-l-blue-500">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-blue-500" />
+                <CardTitle>VirusTotal Threat Intelligence</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {scanResults.virustotalAnalysis ? (
+                <div className="space-y-4">
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-4 bg-muted rounded-lg">
+                      <div className="text-2xl font-bold">{scanResults.virustotalAnalysis.files_analyzed || 0}</div>
+                      <div className="text-sm text-muted-foreground">Files Scanned</div>
+                    </div>
+                    <div className="text-center p-4 bg-muted rounded-lg">
+                      <div className="text-2xl font-bold text-red-500">{scanResults.virustotalAnalysis.files_with_detections || 0}</div>
+                      <div className="text-sm text-muted-foreground">With Detections</div>
+                    </div>
+                    <div className="text-center p-4 bg-muted rounded-lg">
+                      <div className="text-2xl font-bold text-orange-500">{scanResults.virustotalAnalysis.total_malicious || 0}</div>
+                      <div className="text-sm text-muted-foreground">Malicious Flags</div>
+                    </div>
+                    <div className="text-center p-4 bg-muted rounded-lg">
+                      <div className="text-2xl font-bold text-yellow-500">{scanResults.virustotalAnalysis.total_suspicious || 0}</div>
+                      <div className="text-sm text-muted-foreground">Suspicious Flags</div>
+                    </div>
+                  </div>
+
+                  {/* Threat Level Badge */}
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Threat Level:</span>
+                    <Badge variant={
+                      scanResults.virustotalAnalysis.summary?.threat_level === "malicious" ? "destructive" :
+                      scanResults.virustotalAnalysis.summary?.threat_level === "suspicious" ? "secondary" : "default"
+                    }>
+                      {scanResults.virustotalAnalysis.summary?.threat_level?.toUpperCase() || "UNKNOWN"}
+                    </Badge>
+                  </div>
+
+                  {/* Detected Malware Families */}
+                  {scanResults.virustotalAnalysis.summary?.detected_families?.length > 0 && (
+                    <div>
+                      <h4 className="font-medium mb-2">Detected Malware Families:</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {scanResults.virustotalAnalysis.summary.detected_families.map((family, idx) => (
+                          <Badge key={idx} variant="destructive">{family}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* File Results */}
+                  {scanResults.virustotalAnalysis.file_results?.length > 0 && (
+                    <div>
+                      <h4 className="font-medium mb-2">File Hash Analysis:</h4>
+                      <div className="space-y-2">
+                        {scanResults.virustotalAnalysis.file_results.slice(0, 10).map((file, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                            <div>
+                              <div className="font-medium">{file.file_name}</div>
+                              <code className="text-xs text-muted-foreground">{file.hashes?.sha256?.substring(0, 32)}...</code>
+                            </div>
+                            <Badge variant={
+                              file.virustotal?.found && file.virustotal?.detection_stats?.malicious > 0 ? "destructive" :
+                              file.virustotal?.found ? "default" : "outline"
+                            }>
+                              {file.virustotal?.found
+                                ? `${file.virustotal.detection_stats?.malicious || 0}/${file.virustotal.detection_stats?.total_engines || 0}`
+                                : "Not in DB"}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recommendation */}
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                    <p className="text-sm">{scanResults.virustotalAnalysis.summary?.recommendation || "No recommendation available."}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>VirusTotal analysis not available.</p>
+                  <p className="text-sm">Configure VIRUSTOTAL_API_KEY to enable threat intelligence.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Obfuscation Analysis Tab (Entropy) */}
+        <TabsContent value="obfuscation" className="space-y-4">
+          <Card className="border-l-4 border-l-purple-500">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <FileWarning className="h-5 w-5 text-purple-500" />
+                <CardTitle>Obfuscation & Entropy Analysis</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {scanResults.entropyAnalysis ? (
+                <div className="space-y-4">
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-4 bg-muted rounded-lg">
+                      <div className="text-2xl font-bold">{scanResults.entropyAnalysis.files_analyzed || 0}</div>
+                      <div className="text-sm text-muted-foreground">Files Analyzed</div>
+                    </div>
+                    <div className="text-center p-4 bg-muted rounded-lg">
+                      <div className="text-2xl font-bold">{scanResults.entropyAnalysis.files_skipped || 0}</div>
+                      <div className="text-sm text-muted-foreground">Libraries Skipped</div>
+                    </div>
+                    <div className="text-center p-4 bg-muted rounded-lg">
+                      <div className="text-2xl font-bold text-red-500">{scanResults.entropyAnalysis.obfuscated_files || 0}</div>
+                      <div className="text-sm text-muted-foreground">Obfuscated</div>
+                    </div>
+                    <div className="text-center p-4 bg-muted rounded-lg">
+                      <div className="text-2xl font-bold text-yellow-500">{scanResults.entropyAnalysis.suspicious_files || 0}</div>
+                      <div className="text-sm text-muted-foreground">Suspicious</div>
+                    </div>
+                  </div>
+
+                  {/* Risk Level */}
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Obfuscation Risk:</span>
+                    <Badge variant={
+                      scanResults.entropyAnalysis.summary?.overall_risk === "high" ? "destructive" :
+                      scanResults.entropyAnalysis.summary?.overall_risk === "medium" ? "secondary" : "default"
+                    }>
+                      {scanResults.entropyAnalysis.summary?.overall_risk?.toUpperCase() || "NORMAL"}
+                    </Badge>
+                  </div>
+
+                  {/* High Entropy Files */}
+                  {scanResults.entropyAnalysis.summary?.high_entropy_files?.length > 0 && (
+                    <div>
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-red-500" />
+                        High Entropy Files (Potentially Obfuscated):
+                      </h4>
+                      <div className="space-y-2">
+                        {scanResults.entropyAnalysis.summary.high_entropy_files.map((file, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950 rounded-lg">
+                            <div className="font-medium">{file.file}</div>
+                            <div className="flex items-center gap-4">
+                              <div className="text-sm">
+                                <span className="text-muted-foreground">Entropy: </span>
+                                <span className="font-bold text-red-500">{file.entropy?.toFixed(2)}</span>
+                              </div>
+                              <div className="text-sm">
+                                <span className="text-muted-foreground">Patterns: </span>
+                                <span className="font-bold">{file.patterns}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Detected Patterns */}
+                  {Object.keys(scanResults.entropyAnalysis.summary?.pattern_summary || {}).length > 0 && (
+                    <div>
+                      <h4 className="font-medium mb-2">Detected Obfuscation Patterns:</h4>
+                      <div className="space-y-2">
+                        {Object.entries(scanResults.entropyAnalysis.summary.pattern_summary).map(([name, info], idx) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                            <div>
+                              <div className="font-medium">{info.description || name}</div>
+                              <div className="text-sm text-muted-foreground">{info.files_affected} file(s) affected</div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={
+                                info.risk === "high" ? "destructive" :
+                                info.risk === "medium" ? "secondary" : "outline"
+                              }>
+                                {info.risk?.toUpperCase()}
+                              </Badge>
+                              <span className="text-sm font-bold">{info.total_occurrences}x</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recommendation */}
+                  <div className="p-4 bg-purple-50 dark:bg-purple-950 rounded-lg">
+                    <p className="text-sm">{scanResults.entropyAnalysis.summary?.recommendation || "No recommendation available."}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileWarning className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Entropy analysis not available.</p>
+                </div>
+              )}
+            </CardContent>
           </Card>
         </TabsContent>
 

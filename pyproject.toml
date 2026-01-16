@@ -20,6 +20,8 @@ dependencies = [
     "semgrep>=1.139.0",
     "fastmcp>=1.0",
     "uvicorn>=0.32.0",
+    "vt-py>=0.18.0",
+    "reportlab>=4.0.0",
 ]
 
 [dependency-groups]

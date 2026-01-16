@@ -1,0 +1,21 @@
+{
+  "enabled": true,
+  "api_key_env": "VIRUSTOTAL_API_KEY",
+  "max_files_to_scan": 10,
+  "scan_manifest": true,
+  "scan_js_files": true,
+  "timeout_seconds": 30,
+  "priority_files": [
+    "background.js",
+    "content.js",
+    "service_worker.js",
+    "inject.js",
+    "main.js",
+    "popup.js"
+  ],
+  "scannable_extensions": [".js", ".html", ".json"],
+  "rate_limit": {
+    "requests_per_minute": 4,
+    "retry_on_rate_limit": true
+  }
+}

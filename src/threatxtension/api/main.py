@@ -13,9 +13,11 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+from threatxtension.core.report_generator import ReportGenerator
 
 from threatxtension.workflow.graph import build_graph
 from threatxtension.workflow.state import WorkflowState, WorkflowStatus
@@ -158,6 +160,8 @@ async def run_analysis_workflow(url: str, extension_id: str):
                 "permissions_analysis": analysis_results.get("permissions_analysis") or {},
                 "sast_results": analysis_results.get("javascript_analysis") or {},
                 "webstore_analysis": analysis_results.get("webstore_analysis") or {},
+                "virustotal_analysis": analysis_results.get("virustotal_analysis") or {},
+                "entropy_analysis": analysis_results.get("entropy_analysis") or {},
                 "summary": final_state.get("executive_summary") or {},
                 "extracted_path": final_state.get("extension_dir"),
                 "extracted_files": extracted_files,
@@ -597,6 +601,64 @@ async def get_scan_results(extension_id: str):
             return results
 
     raise HTTPException(status_code=404, detail="Scan results not found")
+
+
+@app.get("/api/scan/report/{extension_id}")
+async def generate_pdf_report(extension_id: str) -> Response:
+    """
+    Generate a PDF security report for an analyzed extension.
+
+    Args:
+        extension_id: Chrome extension ID
+
+    Returns:
+        PDF file as downloadable response
+    """
+    # Get scan results
+    results = scan_results.get(extension_id)
+
+    # Try database if not in memory
+    if not results:
+        results = db.get_scan_result(extension_id)
+        if results:
+            scan_results[extension_id] = results
+
+    # Try filesystem if not in database
+    if not results:
+        results_file = RESULTS_DIR / f"{extension_id}_results.json"
+        if results_file.exists():
+            with open(results_file, "r", encoding="utf-8") as f:
+                results = json.load(f)
+                scan_results[extension_id] = results
+
+    if not results:
+        raise HTTPException(status_code=404, detail="Scan results not found")
+
+    # Generate PDF report
+    try:
+        report_generator = ReportGenerator()
+        if not report_generator.enabled:
+            raise HTTPException(
+                status_code=503,
+                detail="PDF generation is disabled. Install weasyprint to enable."
+            )
+
+        pdf_bytes = report_generator.generate_pdf(results)
+
+        # Get extension name for filename
+        extension_name = results.get("extension_name", results.get("metadata", {}).get("title", extension_id))
+        safe_name = "".join(c for c in extension_name if c.isalnum() or c in " -_")[:50]
+        filename = f"ThreatXtension_Report_{safe_name}.pdf"
+
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate PDF: {str(e)}")
 
 
 @app.get("/api/scan/files/{extension_id}")
