@@ -149,6 +149,102 @@ def build_metadata_table(metadata: dict) -> Table:
     return table
 
 
+def build_virustotal_table(vt_results: dict) -> Table:
+    """Build a rich table with VirusTotal analysis results.
+
+    Args:
+        vt_results: VirusTotal analysis results dictionary.
+
+    Returns:
+        Formatted rich Table object.
+    """
+    table = Table(
+        title="VirusTotal Analysis",
+        show_header=True,
+        header_style="bold magenta",
+    )
+    table.add_column("Metric", style="cyan", width=25)
+    table.add_column("Value", style="white")
+
+    if not vt_results.get("enabled", False):
+        table.add_row("Status", "[yellow]Disabled (API key not configured)[/yellow]")
+        return table
+
+    table.add_row("Files Analyzed", str(vt_results.get("files_analyzed", 0)))
+    table.add_row("Files with Detections", str(vt_results.get("files_with_detections", 0)))
+
+    total_malicious = vt_results.get("total_malicious", 0)
+    total_suspicious = vt_results.get("total_suspicious", 0)
+
+    mal_color = "red" if total_malicious > 0 else "green"
+    sus_color = "yellow" if total_suspicious > 0 else "green"
+
+    table.add_row("Malicious Detections", f"[{mal_color}]{total_malicious}[/{mal_color}]")
+    table.add_row("Suspicious Detections", f"[{sus_color}]{total_suspicious}[/{sus_color}]")
+
+    summary = vt_results.get("summary", {})
+    threat_level = summary.get("threat_level", "unknown")
+    threat_color = {"clean": "green", "suspicious": "yellow", "malicious": "red"}.get(
+        threat_level, "white"
+    )
+    table.add_row("Threat Level", f"[{threat_color}]{threat_level.upper()}[/{threat_color}]")
+
+    if summary.get("detected_families"):
+        families = ", ".join(summary["detected_families"][:5])
+        table.add_row("Detected Families", families)
+
+    return table
+
+
+def build_entropy_table(entropy_results: dict) -> Table:
+    """Build a rich table with entropy analysis results.
+
+    Args:
+        entropy_results: Entropy analysis results dictionary.
+
+    Returns:
+        Formatted rich Table object.
+    """
+    table = Table(
+        title="Entropy Analysis",
+        show_header=True,
+        header_style="bold magenta",
+    )
+    table.add_column("Metric", style="cyan", width=25)
+    table.add_column("Value", style="white")
+
+    table.add_row("Files Analyzed", str(entropy_results.get("files_analyzed", 0)))
+    table.add_row("Files Skipped", str(entropy_results.get("files_skipped", 0)))
+
+    obfuscated = entropy_results.get("obfuscated_files", 0)
+    suspicious = entropy_results.get("suspicious_files", 0)
+
+    obf_color = "red" if obfuscated > 0 else "green"
+    sus_color = "yellow" if suspicious > 0 else "green"
+
+    table.add_row("Obfuscated Files", f"[{obf_color}]{obfuscated}[/{obf_color}]")
+    table.add_row("Suspicious Files", f"[{sus_color}]{suspicious}[/{sus_color}]")
+
+    summary = entropy_results.get("summary", {})
+    overall_risk = summary.get("overall_risk", "unknown")
+    risk_color = {"normal": "green", "low": "green", "medium": "yellow", "high": "red"}.get(
+        overall_risk, "white"
+    )
+    table.add_row("Overall Risk", f"[{risk_color}]{overall_risk.upper()}[/{risk_color}]")
+
+    obf_detected = summary.get("obfuscation_detected", False)
+    obf_status = "[red]Yes[/red]" if obf_detected else "[green]No[/green]"
+    table.add_row("Obfuscation Detected", obf_status)
+
+    # Show high entropy files if any
+    high_entropy_files = summary.get("high_entropy_files", [])
+    if high_entropy_files:
+        files_str = ", ".join([f["file"] for f in high_entropy_files[:3]])
+        table.add_row("High Entropy Files", files_str)
+
+    return table
+
+
 def print_results(result: dict):
     """Print workflow results to console.
 
@@ -176,6 +272,31 @@ def print_results(result: dict):
         console.print("\n")
         metadata_table = build_metadata_table(result["extension_metadata"])
         console.print(metadata_table)
+
+    # Analysis results section
+    analysis_results = result.get("analysis_results", {})
+
+    # VirusTotal results
+    if analysis_results.get("virustotal_analysis"):
+        console.print("\n")
+        vt_table = build_virustotal_table(analysis_results["virustotal_analysis"])
+        console.print(vt_table)
+
+        # Print recommendation if available
+        vt_summary = analysis_results["virustotal_analysis"].get("summary", {})
+        if vt_summary.get("recommendation"):
+            console.print(f"\n[dim]{vt_summary['recommendation']}[/dim]")
+
+    # Entropy results
+    if analysis_results.get("entropy_analysis"):
+        console.print("\n")
+        entropy_table = build_entropy_table(analysis_results["entropy_analysis"])
+        console.print(entropy_table)
+
+        # Print recommendation if available
+        entropy_summary = analysis_results["entropy_analysis"].get("summary", {})
+        if entropy_summary.get("recommendation"):
+            console.print(f"\n[dim]{entropy_summary['recommendation']}[/dim]")
 
     # Executive summary
     if result.get("executive_summary"):
