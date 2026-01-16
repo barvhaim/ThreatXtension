@@ -1,7 +1,7 @@
 # ThreatXtension
 
 <p align="center">
-  <img src="images/logo.png" alt="ThreatXtension Logo" width="800"/>
+  <img src="images/ui.png" alt="ThreatXtension UI" width="800"/>
 </p>
 
 <p align="center">
@@ -330,6 +330,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <p align="center">
   Built for browser security research and extension threat intelligence
+</p>
+
+<p align="center">
+  <img src="images/logo.png" alt="ThreatXtension Logo" width="800"/>
 </p>
 
 <p align="center">
