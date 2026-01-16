@@ -68,6 +68,29 @@ const ScanHistoryPage = () => {
     scan.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleExport = () => {
+    const dataToExport = filteredScans.map(scan => ({
+      id: scan.id,
+      name: scan.name,
+      version: scan.version,
+      timestamp: scan.timestamp,
+      securityScore: scan.securityScore,
+      riskLevel: scan.riskLevel,
+      totalFindings: scan.totalFindings,
+      filesAnalyzed: scan.filesAnalyzed
+    }));
+
+    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `threatxtension-history-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -90,7 +113,7 @@ const ScanHistoryPage = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full md:w-64 bg-background/50"
             />
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleExport}>
               <Download className="mr-2 h-4 w-4" />
               Export
             </Button>
@@ -162,10 +185,6 @@ const ScanHistoryPage = () => {
                     >
                       <Eye className="mr-2 h-4 w-4" />
                       View
-                    </Button>
-                    <Button variant="outline" size="sm" className="flex-1 lg:flex-none">
-                      <Download className="mr-2 h-4 w-4" />
-                      Report
                     </Button>
                   </div>
                 </div>

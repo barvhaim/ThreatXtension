@@ -26,7 +26,7 @@ function App() {
               </div>
               <div className="flex flex-col">
                 <span className="logo-text">ThreatXtension</span>
-                <span className="text-[10px] text-muted-foreground font-medium tracking-wider uppercase">Security Suite</span>
+                <span className="text-[10px] text-muted-foreground font-medium tracking-wider uppercase">Extension Security</span>
               </div>
               <div className="logo-badge">BETA</div>
             </NavLink>

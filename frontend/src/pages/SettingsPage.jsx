@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Settings, Shield, Bell, Save, RotateCcw } from "lucide-react";
+import { Settings, Shield, Save, RotateCcw } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 
@@ -89,27 +89,6 @@ const SettingsPage = () => {
               </div>
             </div>
           </div>
-
-          {/* Notifications */}
-          <div className="p-6 rounded-lg bg-surface/50 border border-border/50">
-            <div className="flex items-center gap-4">
-              <Bell className="w-6 h-6 text-warning" />
-              <div className="flex-1">
-                <div className="font-semibold text-lg">Notifications</div>
-                <p className="text-sm text-foreground-muted">Enable browser notifications when a scan completes or a high risk is found.</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.notifications}
-                  onChange={(e) => handleChange('notifications', e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-              </label>
-            </div>
-          </div>
-
 
         </div>
       </div>
