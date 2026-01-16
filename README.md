@@ -5,10 +5,14 @@
 </p>
 
 <p align="center">
+  <strong>AI-Powered Chrome Extension Security Analysis</strong>
+</p>
+
+<p align="center">
   <a href="#features">Features</a> •
+  <a href="#quick-start-docker">Quick Start</a> •
   <a href="#installation">Installation</a> •
-  <a href="#quick-start">Quick Start</a> •
-  <a href="#configuration-files">Configuration</a> •
+  <a href="#configuration">Configuration</a> •
   <a href="#license">License</a>
 </p>
 
@@ -16,255 +20,194 @@
 
 ## Overview
 
-**ThreatXtension** is a comprehensive Python-based security analysis tool designed for Chrome extension threat intelligence. It combines static analysis with AI-powered insights to help security researchers, malware analysts, and browser security teams identify malicious behavior in browser extensions.
+**ThreatXtension** is a comprehensive security analysis tool for Chrome browser extensions. It combines static analysis (SAST), threat intelligence (VirusTotal), and AI-powered assessment to help security researchers, malware analysts, and browser security teams identify malicious behavior in browser extensions.
 
 ## Features
 
-### 🔍 Comprehensive Analysis
-- **Automated Extension Download**: Fetch extensions directly from Chrome Web Store using extension ID or URL
-- **Multi-Analyzer Architecture**: Permissions, SAST (JavaScript), and Web Store reputation analysis
-- **Custom Security Rules**: 10+ Semgrep rules targeting banking fraud, credential theft, and data exfiltration
-- **Sensitive Domain Detection**: Identifies extensions accessing banking, government, healthcare, and corporate domains
+### Multi-Layer Analysis
+- **Permissions Analysis**: Risk assessment of manifest permissions and host access
+- **SAST Scanning**: Custom Semgrep rules targeting banking fraud, credential theft, data exfiltration
+- **VirusTotal Integration**: File hash reputation checks against 70+ antivirus engines
+- **Entropy Analysis**: Detect obfuscated/packed code using Shannon entropy and pattern matching
+- **WebStore Reputation**: User ratings, developer info, and trust signals
 
-### 🤖 AI-Powered Threat Assessment
-- **LLM-Powered Analysis**: Natural language summaries of security findings
-- **Multi-LLM Support**: Compatible with WatsonX, RITS, OpenAI, Ollama
-- **Executive Summary Generation**: Unified risk assessment with actionable recommendations
-- **Context-Aware Analysis**: Each permission and finding analyzed with full extension context
+### AI-Powered Threat Assessment
+- **Executive Summaries**: Natural language risk assessment with actionable recommendations
+- **Multi-LLM Support**: OpenAI, WatsonX, Ollama, RITS
+- **Context-Aware Analysis**: Each finding analyzed with full extension context
 
-### 🖥️ Multiple Interfaces
-- **CLI**: Fast command-line analysis with rich console output (Click framework)
-- **Web UI**: React frontend with FastAPI backend for interactive analysis
-- **MCP Server**: FastMCP integration for Claude Desktop direct integration
+### Multiple Interfaces
+- **Web UI**: React frontend with real-time analysis dashboard
+- **CLI**: Fast command-line analysis with rich console output
+- **REST API**: FastAPI backend with OpenAPI documentation
+- **MCP Server**: Claude Desktop integration via Model Context Protocol
 
-## Installation
+---
+
+## Quick Start (Docker)
+
+The fastest way to run ThreatXtension is with Docker.
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/barvhaim/ThreatXtension.git
+cd ThreatXtension
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env and add your OPENAI_API_KEY (required)
+# Optionally add VIRUSTOTAL_API_KEY for threat intelligence
+
+# 3. Build and run
+docker compose up --build
+
+# 4. Access the application
+# Web UI: http://localhost:8007
+# API Docs: http://localhost:8007/docs
+```
+
+### Docker Commands
+
+```bash
+make docker-build    # Build container
+make docker-up       # Start container (foreground)
+make docker-down     # Stop container
+make docker-logs     # View logs
+```
+
+### Scan an Extension
+
+Via Web UI: Navigate to http://localhost:8007 and paste a Chrome Web Store URL.
+
+Via API:
+```bash
+# Trigger scan
+curl -X POST http://localhost:8007/api/scan/trigger \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://chromewebstore.google.com/detail/extension-name/extension-id"}'
+
+# Get results
+curl http://localhost:8007/api/scan/results/{extension_id}
+```
+
+---
+
+## Installation (Local Development)
 
 ### Prerequisites
 
 - **Python 3.11+**
-- **uv** package manager [Installation](https://docs.astral.sh/uv/getting-started/installation/)
-- **Semgrep** (included in dependencies)
+- **Node.js 20+** (for frontend)
+- **uv** package manager ([Installation](https://docs.astral.sh/uv/getting-started/installation/))
 
-### Install with uv
+### Setup
 
 ```bash
 # Clone the repository
 git clone https://github.com/barvhaim/ThreatXtension.git
 cd ThreatXtension
 
-# Install dependencies
+# Install Python dependencies
 uv sync
-```
 
-### Configuration
+# Install frontend dependencies
+cd frontend && npm install && cd ..
 
-For AI-powered analysis features, create a `.env` file:
-
-```bash
+# Configure environment
 cp .env.example .env
-# Edit .env with your LLM credentials
+# Edit .env with your API keys
 ```
 
-See [LLM Configuration](#llm-configuration) for details.
-
-## Quick Start
-
-ThreatXtension provides **multiple ways to analyze Chrome extensions**:
-
-### 1. Command Line Interface (CLI)
-
-The CLI provides the fastest way to analyze extensions with rich console output.
+### Run Locally
 
 ```bash
-# Analyze extension
-make analyze URL=<chrome_web_store_url>
+# Option 1: CLI
+make analyze URL=https://chromewebstore.google.com/detail/example/abcdef
+
+# Option 2: Web UI (run both in separate terminals)
+make api        # Start FastAPI backend (port 8007)
+make frontend   # Start React frontend (port 5173)
 ```
 
 <p align="center">
   <img src="images/cli.png" alt="ThreatXtension CLI" width="800"/>
 </p>
 
-### 2. Web UI (React + FastAPI)
+---
 
-Full-featured web application with real-time analysis and interactive results.
+## Configuration
 
-**Start the API server**:
-```bash
-make api
-# or
-uv run threatxtension serve
+### Environment Variables
 
-# Access API at http://localhost:8007
-# API docs at http://localhost:8007/docs
-```
-
-**Start the React frontend** (in a separate terminal):
-```bash
-make frontend
-# or
-cd frontend && npm run dev
-
-# Access at http://localhost:5173
-```
-
-<p align="center">
-  <img src="images/ui.png" alt="ThreatXtension UI" width="800"/>
-</p>
-
-**API Endpoints**:
-- `POST /api/scan/trigger` - Trigger a new extension scan
-- `GET /api/scan/status/{extension_id}` - Check scan status
-- `GET /api/scan/results/{extension_id}` - Get complete scan results
-- `GET /api/scan/files/{extension_id}` - List extracted files
-- `GET /api/scan/file/{extension_id}/{file_path}` - Get file content
-
-### 3. Claude Desktop Integration (MCP)
-
-Analyze extensions directly from Claude Desktop conversations. See [MCP Server for Claude Desktop](#mcp-server-for-claude-desktop) for setup instructions.
-
-<p align="center">
-  <img src="images/claude.png" alt="ThreatXtension Claude" width="800"/>
-</p>
-
-### 4. Example Workflow Script
-
-Run the example script to see the complete workflow in action:
+Create a `.env` file from the template:
 
 ```bash
-uv run example_workflow.py
-
-# The script analyzes a sample extension and displays:
-# - Extension metadata (name, version, users)
-# - Permissions analysis
-# - SAST findings
-# - Web Store reputation
-# - Executive summary with risk assessment
+cp .env.example .env
 ```
 
-## LLM Configuration
-
-Create a `.env` file for AI-powered features:
-
+**Required:**
 ```bash
-# LLM Provider (watsonx, rits, openai, ollama)
-LLM_PROVIDER=watsonx
-LLM_MODEL=meta-llama/llama-3-3-70b-instruct
-
-# WatsonX credentials
-WATSONX_URL=https://us-south.ml.cloud.ibm.com/
-WATSONX_APIKEY=your_api_key
-WATSONX_PROJECT_ID=your_project_id
-
-# RITS credentials (IBM Research internal)
-RITS_API_KEY=your_rits_key
-RITS_API_BASE_URL=your_rits_url
-
-# OpenAI credentials (if using openai provider)
-OPENAI_API_KEY=your_openai_key
-
-# Extension processing
-CHROME_VERSION=118.0
-EXTENSION_STORAGE_PATH=./extensions_storage
-
-# Optional: LangSmith tracing
-LANGSMITH_TRACING=true
-LANGSMITH_API_KEY=your_langsmith_key
-LANGSMITH_PROJECT=threatxtension
+LLM_PROVIDER=openai
+LLM_MODEL=gpt-4o
+OPENAI_API_KEY=sk-...
 ```
 
-#### Supported LLM providers:
-- watsonx.ai by IBM ("watsonx") [Get API Key](docs/getting_watsonx_api_key.md)
-- OpenAI ("openai") - Experimental
-- RITS internal IBM ("rits")
-- Ollama ("ollama") - Experimental
+**Optional:**
+```bash
+VIRUSTOTAL_API_KEY=...    # For threat intelligence
+LANGSMITH_API_KEY=...     # For LLM tracing/debugging
+```
 
-#### Supported LLM Providers
+### Supported LLM Providers
 
 | Provider | LLM_PROVIDER | Recommended Models |
 |----------|--------------|-------------------|
+| OpenAI | `openai` | `gpt-4o`, `gpt-4-turbo` |
 | WatsonX (IBM) | `watsonx` | `meta-llama/llama-3-3-70b-instruct` |
-| RITS (IBM Research) | `rits` | `meta-llama/llama-3-3-70b-instruct` |
-| OpenAI | `openai` | `gpt-4-turbo`, `gpt-4o` |
 | Ollama (Local) | `ollama` | `llama3`, `mistral` |
+| RITS (IBM Research) | `rits` | `meta-llama/llama-3-3-70b-instruct` |
 
-## Configuration Files
-
-### SAST Configuration (`src/threatxtension/config/sast_config.json`)
-
-```json
-{
-  "semgrep_config": "custom",
-  "semgrep_config_options": {
-    "custom": "config/custom_semgrep_rules.yaml",
-    "javascript": "p/javascript",
-    "security-audit": "p/security-audit"
-  },
-  "exclusion_patterns": {
-    "path_segments": ["lib/", "node_modules/", "vendor/"],
-    "file_patterns": ["*.min.js", "*.bundle.js"],
-    "library_names": ["jquery", "react", "vue"]
-  },
-  "max_file_size_kb": 500,
-  "scanning": {
-    "batch_enabled": true,
-    "parallel_enabled": true,
-    "max_parallel_workers": 4
-  }
-}
-```
-
-#### Custom Semgrep Rules
+### Custom Semgrep Rules
 
 Located in `src/threatxtension/config/custom_semgrep_rules.yaml`:
 
 | Rule ID | Category | Description |
 |---------|----------|-------------|
-| `banking.form_hijack.submit_intercept` | Form hijacking | Form submit with preventDefault + fetch/XHR |
-| `banking.cred_sniff.password_input_hooks` | Credential theft | Password field event listeners + network |
-| `banking.ext.webrequest.redirect` | Network hijacking | chrome.webRequest redirect abuse |
-| `banking.net_sniff.override_fetch_xhr` | Network sniffing | XHR/fetch prototype override |
-| `banking.auto_transfer.silent_payment` | Transaction abuse | Unauthorized payment/transfer requests |
-| `banking.exfil.generic_channels` | Data exfiltration | sendBeacon/Image.src/fetch exfiltration |
-| `banking.csp.disable_or_weaken` | Security bypass | CSP weakening/disabling |
-| `banking.obfuscation.eval_newfunc` | Code injection | eval()/Function() dynamic execution |
+| `banking.form_hijack.submit_intercept` | Form hijacking | Form submit interception |
+| `banking.cred_sniff.password_input_hooks` | Credential theft | Password field listeners |
+| `banking.ext.webrequest.redirect` | Network hijacking | WebRequest redirect abuse |
+| `banking.exfil.generic_channels` | Data exfiltration | sendBeacon/Image.src abuse |
+| `banking.obfuscation.eval_newfunc` | Code injection | eval()/Function() execution |
 
 All rules include MITRE ATT&CK mappings and CWE references.
 
-### Sensitive Domains (`src/threatxtension/config/sensitive_domains.json`)
+---
 
-```json
-{
-  "banking_financial": {
-    "enabled": true,
-    "domains": ["chase.com", "bankofamerica.com", "paypal.com", "stripe.com"]
-  },
-  "government_tax": {
-    "enabled": false,
-    "domains": ["irs.gov", "healthcare.gov"]
-  }
-}
-```
+## API Reference
 
-## Integration
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/scan/trigger` | POST | Trigger extension scan |
+| `/api/scan/status/{id}` | GET | Check scan status |
+| `/api/scan/results/{id}` | GET | Get complete results |
+| `/api/scan/files/{id}` | GET | List extracted files |
+| `/api/scan/file/{id}/{path}` | GET | Get file content |
+| `/api/scan/report/{id}` | GET | Generate PDF report |
+| `/api/statistics` | GET | Aggregated statistics |
+| `/api/history` | GET | Scan history |
+| `/health` | GET | Health check |
 
-### MCP Server for Claude Desktop
+Full API documentation available at http://localhost:8007/docs
 
-ThreatXtension can be integrated directly into Claude Desktop as an MCP (Model Context Protocol) tool, allowing you to analyze Chrome extensions directly from your conversations with Claude.
+---
 
-**Prerequisites**:
-- Claude Desktop installed ([Download](https://claude.ai/download))
-- `uv` package manager
-- Python 3.11+
-- ThreatXtension cloned and dependencies installed (`uv sync`)
+## Claude Desktop Integration (MCP)
 
-**Setup**:
+ThreatXtension integrates with Claude Desktop via MCP (Model Context Protocol).
 
-1. **Find your Claude Desktop config file**:
-   - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-   - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-   - **Linux**: `~/.config/Claude/claude_desktop_config.json`
+**Setup:**
 
-2. **Edit the config file** and add ThreatXtension to the `mcpServers` section:
+1. Edit Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 
 ```json
 {
@@ -273,7 +216,7 @@ ThreatXtension can be integrated directly into Claude Desktop as an MCP (Model C
       "command": "uv",
       "args": [
         "--directory",
-        "/PATH/TO/ThreatXtension",
+        "/absolute/path/to/ThreatXtension",
         "run",
         "python",
         "-m",
@@ -284,37 +227,51 @@ ThreatXtension can be integrated directly into Claude Desktop as an MCP (Model C
 }
 ```
 
-**Important**: Replace `/PATH/TO/ThreatXtension` with the absolute path to your ThreatXtension installation.
+2. Restart Claude Desktop
 
-3. **Restart Claude Desktop**
-
-4. **Verify Installation**: You should see a small hammer icon 🔨 in Claude Desktop indicating the ThreatXtension MCP server is available.
+3. Ask Claude: *"Analyze this Chrome extension: https://chromewebstore.google.com/detail/..."*
 
 <p align="center">
-  <img src="images/mcp_tool.png" alt="ThreatXtension MCP Tool" width="800"/>
+  <img src="images/claude.png" alt="ThreatXtension Claude" width="800"/>
 </p>
 
-**Usage in Claude Desktop**:
+---
 
-Once configured, you can ask Claude to analyze Chrome extensions:
+## Architecture
 
 ```
-Analyze this Chrome extension:
-https://chromewebstore.google.com/detail/auto-clicker/nodhhggdoefnnopmipedkaogkggmmhjk
+┌─────────────────────────────────────────────────────────────┐
+│                    ThreatXtension                           │
+├─────────────────────────────────────────────────────────────┤
+│  Interfaces                                                 │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐       │
+│  │   CLI   │  │ Web UI  │  │   API   │  │   MCP   │       │
+│  └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘       │
+│       └────────────┴────────────┴────────────┘             │
+│                         │                                   │
+│  ┌──────────────────────▼──────────────────────┐           │
+│  │           LangGraph Workflow                 │           │
+│  │  Download → Parse → Analyze → Summarize     │           │
+│  └──────────────────────┬──────────────────────┘           │
+│                         │                                   │
+│  ┌──────────────────────▼──────────────────────┐           │
+│  │              Analyzers                       │           │
+│  │  ┌────────────┐ ┌────────────┐ ┌──────────┐ │           │
+│  │  │Permissions │ │   SAST     │ │ WebStore │ │           │
+│  │  └────────────┘ └────────────┘ └──────────┘ │           │
+│  │  ┌────────────┐ ┌────────────┐              │           │
+│  │  │VirusTotal  │ │  Entropy   │              │           │
+│  │  └────────────┘ └────────────┘              │           │
+│  └─────────────────────────────────────────────┘           │
+│                         │                                   │
+│  ┌──────────────────────▼──────────────────────┐           │
+│  │         LLM Summary Generation              │           │
+│  │      (OpenAI / WatsonX / Ollama)            │           │
+│  └─────────────────────────────────────────────┘           │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-Claude will automatically use the `analyze_chrome_extension()` tool to perform a complete security analysis and provide you with:
-- Extension metadata
-- Risk level assessment
-- Key security findings
-- Recommendations
-
-<p align="center">
-  <img src="images/claude2.png" alt="ThreatXtension Claude (2)" width="800"/>
-</p>
-
-**Available MCP Tools**:
-- `analyze_chrome_extension(chrome_extension_url)` - Performs complete security analysis on a Chrome Web Store extension
+---
 
 ## License
 
@@ -322,9 +279,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgments
 
-- **Semgrep**: For JavaScript security scanning capabilities
-- **LangChain/LangGraph**: For workflow orchestration
-- **Chrome Web Store**: For extension metadata and distribution
+- **Semgrep** - Static analysis engine
+- **LangGraph** - Workflow orchestration
+- **VirusTotal** - Threat intelligence
+- **React + Vite** - Frontend framework
 
 ---
 
@@ -333,5 +291,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 </p>
 
 <p align="center">
-  <sub>⚠️ This tool is intended for legitimate security research, malware analysis, and educational purposes only. Users are responsible for ensuring compliance with applicable laws and regulations when analyzing browser extensions.</sub>
+  <sub>This tool is intended for legitimate security research, malware analysis, and educational purposes only.</sub>
 </p>

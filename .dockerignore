@@ -1,0 +1,60 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.env
+.venv
+env/
+venv/
+ENV/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+frontend/node_modules/
+npm-debug.log*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Project specific
+extensions_storage/
+data/
+*.db
+.bob/
+
+# Documentation and misc (keep README.md for pyproject.toml)
+docs/
+images/
+AGENTS.md
+CLAUDE.md
+*.png
+*.jpg
+*.gif
+
+# Test files
+tests/
+*.test.js
+*.spec.js
+
+# Build artifacts
+frontend/dist/
+
+# Temporary files
+*.tmp
+*.temp
+*.log

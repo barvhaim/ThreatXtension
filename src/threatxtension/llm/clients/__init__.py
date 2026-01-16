@@ -63,6 +63,14 @@ def _get_base_llm_settings(model_name: str, model_parameters: Optional[Dict]) ->
             "extra_body": parameters,
         }
 
+    if LLM_PROVIDER == LLMProviderType.OPENAI:
+        return {
+            "model": model_name,
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "max_tokens": model_parameters.get("max_tokens", 4096),
+            "temperature": model_parameters.get("temperature", 0.7),
+        }
+
     raise ValueError(f"Incorrect LLM provider: {LLM_PROVIDER}")
 
 
@@ -101,6 +109,13 @@ def get_chat_llm_client(
         from langchain_ibm import ChatWatsonx  # pylint: disable=import-outside-toplevel
 
         return ChatWatsonx(
+            **_get_base_llm_settings(model_name=model_name, model_parameters=model_parameters)
+        )
+
+    if LLM_PROVIDER == LLMProviderType.OPENAI:
+        from langchain_openai import ChatOpenAI  # pylint: disable=import-outside-toplevel
+
+        return ChatOpenAI(
             **_get_base_llm_settings(model_name=model_name, model_parameters=model_parameters)
         )
 

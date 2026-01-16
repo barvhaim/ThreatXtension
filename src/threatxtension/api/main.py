@@ -15,6 +15,8 @@ from datetime import datetime
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from threatxtension.core.report_generator import ReportGenerator
@@ -63,11 +65,18 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Vite default port
+    allow_origins=[
+        "http://localhost:5173",  # Vite dev server
+        "http://localhost:3000",  # Alternative dev port
+        "http://localhost:8007",  # Same-origin in container
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Static files directory for React frontend (in container)
+STATIC_DIR = Path(__file__).parent.parent.parent.parent / "static"
 
 # Storage for scan results (in-memory cache + database persistence)
 scan_results: Dict[str, Dict[str, Any]] = {}
@@ -480,7 +489,12 @@ def calculate_total_risk_score(state: WorkflowState) -> int:
 
 @app.get("/")
 async def root():
-    """Root endpoint."""
+    """Root endpoint - serves frontend or API info."""
+    # Serve frontend if available
+    index_file = STATIC_DIR / "index.html"
+    if STATIC_DIR.exists() and index_file.exists():
+        return FileResponse(index_file)
+    # Otherwise return API info (development mode)
     return {"name": "ThreatXtension API", "version": "1.0.0", "status": "running"}
 
 
@@ -815,6 +829,42 @@ async def clear_all_scans():
         return {"message": "All scans cleared successfully"}
 
     raise HTTPException(status_code=500, detail="Failed to clear scans")
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for container orchestration."""
+    return {"status": "healthy", "service": "threatxtension", "version": "1.0.0"}
+
+
+# Mount static files for React frontend assets (if static directory exists)
+if STATIC_DIR.exists() and (STATIC_DIR / "assets").exists():
+    app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
+
+
+# Catch-all route for SPA - must be defined last
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    """
+    Serve React SPA for all non-API routes.
+    This enables client-side routing in the React app.
+    """
+    # Don't intercept API routes
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="API endpoint not found")
+
+    # Serve index.html for all other routes (SPA routing)
+    index_file = STATIC_DIR / "index.html"
+    if STATIC_DIR.exists() and index_file.exists():
+        return FileResponse(index_file)
+
+    # If no static files, return API info (development mode)
+    return {
+        "name": "ThreatXtension API",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "note": "Frontend not built. Run 'npm run build' in frontend/ directory.",
+    }
 
 
 if __name__ == "__main__":

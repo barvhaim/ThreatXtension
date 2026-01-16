@@ -1,9 +1,15 @@
-.PHONY: help format lint test api frontend clean install analyze
+.PHONY: help format lint test api frontend clean install analyze docker-build docker-up docker-down docker-logs
 
 # Default target - show help
 help:
 	@echo "ThreatXtension - Available Make Commands"
 	@echo "======================================="
+	@echo ""
+	@echo "Docker (Recommended):"
+	@echo "  make docker-build    - Build Docker container"
+	@echo "  make docker-up       - Start container (foreground)"
+	@echo "  make docker-down     - Stop container"
+	@echo "  make docker-logs     - View container logs"
 	@echo ""
 	@echo "Code Quality:"
 	@echo "  make format          - Format Python code with Black"
@@ -11,7 +17,7 @@ help:
 	@echo "  make test            - Run pytest test suite"
 	@echo "  make precommit       - Run pre-commit hooks on all files"
 	@echo ""
-	@echo "Run Applications:"
+	@echo "Run Applications (Local Development):"
 	@echo "  make api             - Start FastAPI server for frontend (port 8007)"
 	@echo "  make frontend        - Start React frontend dev server (port 5173)"
 	@echo "  make analyze URL=... - Analyze extension via CLI (requires URL parameter)"
@@ -86,3 +92,35 @@ clean:
 	rm -rf **/__pycache__/
 	rm -rf **/*.pyc
 	@echo "✓ Cleanup complete"
+
+# =============================================================================
+# Docker Commands
+# =============================================================================
+
+# Build Docker container
+docker-build:
+	@echo "Building ThreatXtension Docker container..."
+	docker compose build
+	@echo "✓ Docker build complete"
+
+# Start container in foreground
+docker-up:
+	@echo "Starting ThreatXtension container..."
+	@echo "Access at: http://localhost:8007"
+	docker compose up
+
+# Start container in background
+docker-up-d:
+	@echo "Starting ThreatXtension container in background..."
+	docker compose up -d
+	@echo "✓ Container started. Access at: http://localhost:8007"
+
+# Stop container
+docker-down:
+	@echo "Stopping ThreatXtension container..."
+	docker compose down
+	@echo "✓ Container stopped"
+
+# View container logs
+docker-logs:
+	docker compose logs -f

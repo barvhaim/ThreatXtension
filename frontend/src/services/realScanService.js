@@ -1,6 +1,8 @@
 class RealScanService {
   constructor() {
-    this.baseURL = "http://localhost:8007";
+    // Use environment variable for API URL, default to empty string for same-origin (production)
+    // For local development, set VITE_API_URL=http://localhost:8007 in .env.local
+    this.baseURL = import.meta.env.VITE_API_URL || "";
   }
 
   // Extract extension ID from Chrome Web Store URL

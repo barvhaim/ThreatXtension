@@ -4,6 +4,7 @@ SQLite Database Module for ThreatXtension
 Handles persistent storage of scan results, statistics, and history.
 """
 
+import os
 import sqlite3
 import json
 from datetime import datetime
@@ -15,9 +16,18 @@ from contextlib import contextmanager
 class Database:
     """SQLite database manager for ThreatXtension."""
 
-    def __init__(self, db_path: str = "threatxtension.db"):
-        """Initialize database connection."""
+    def __init__(self, db_path: str = None):
+        """Initialize database connection.
+
+        Args:
+            db_path: Path to SQLite database file. If None, uses DATABASE_PATH
+                     environment variable or defaults to 'threatxtension.db'.
+        """
+        if db_path is None:
+            db_path = os.environ.get("DATABASE_PATH", "threatxtension.db")
         self.db_path = Path(db_path)
+        # Ensure parent directory exists
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.init_database()
 
     @contextmanager

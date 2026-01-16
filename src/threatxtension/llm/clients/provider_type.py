@@ -9,3 +9,4 @@ class LLMProviderType(Enum):
     OLLAMA = "ollama"
     WATSONX = "watsonx"
     RITS = "rits"
+    OPENAI = "openai"
