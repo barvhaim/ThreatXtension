@@ -60,12 +60,21 @@ def calculate_file_hash(file_path: str) -> Optional[str]:
 
 
 def extract_extension_crx(file_path: str) -> Optional[str]:
-    """Extract .crx file to a directory"""
+    """Extract .crx file to a persistent directory for file viewing"""
 
-    # Create temporary directory for extraction
+    # Use persistent storage directory instead of /tmp
     try:
-        temp_dir = tempfile.mkdtemp(prefix=f"threatxtension_{os.path.basename(file_path)}_")
-        logger.info("Extracting .crx file to %s", temp_dir)
+        # Get storage path from environment or use default
+        storage_path = os.environ.get("EXTENSION_STORAGE_PATH", "extensions_storage")
+        os.makedirs(storage_path, exist_ok=True)
+        
+        # Create extraction directory with unique name
+        base_name = os.path.basename(file_path)
+        extract_dir_name = f"extracted_{base_name}_{os.getpid()}"
+        extract_dir = os.path.join(storage_path, extract_dir_name)
+        os.makedirs(extract_dir, exist_ok=True)
+        
+        logger.info("Extracting .crx file to persistent storage: %s", extract_dir)
 
         if file_path.endswith(".crx"):
             # CRX files are ZIP files with a different header
@@ -76,25 +85,25 @@ def extract_extension_crx(file_path: str) -> Optional[str]:
                 # Read the ZIP content
                 zip_data = f.read()
 
-            temp_zip = os.path.join(temp_dir, "temp.zip")
+            temp_zip = os.path.join(extract_dir, "temp.zip")
             with open(temp_zip, "wb") as f:
                 f.write(zip_data)
 
             with zipfile.ZipFile(temp_zip, "r") as zip_ref:
-                zip_ref.extractall(temp_dir)
+                zip_ref.extractall(extract_dir)
 
             os.remove(temp_zip)
 
         elif file_path.endswith(".zip"):
             # Direct ZIP extraction
             with zipfile.ZipFile(file_path, "r") as zip_ref:
-                zip_ref.extractall(temp_dir)
+                zip_ref.extractall(extract_dir)
 
         else:
             logger.error("Unsupported file format for extraction: %s", file_path)
             return None
 
-        return temp_dir
+        return extract_dir
     except Exception as exc:
         logger.error("Error extracting .crx file: %s", exc)
         return None

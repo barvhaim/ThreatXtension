@@ -1,20 +1,22 @@
-import React from "react";
+import React, { useRef } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Search } from "lucide-react";
+import { Search, Upload } from "lucide-react";
 import "./EnhancedUrlInput.scss";
 
 /**
- * Enhanced URL Input Component
+ * Enhanced URL Input Component with File Upload Support
  */
 const EnhancedUrlInput = ({
   value,
   onChange,
   onScan,
+  onFileUpload,
   isScanning = false,
   className = "",
   ...props
 }) => {
+  const fileInputRef = useRef(null);
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && value.trim() && !isScanning) {
@@ -22,7 +24,16 @@ const EnhancedUrlInput = ({
     }
   };
 
-  // Sample extensions removed per user feedback
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file && onFileUpload) {
+      onFileUpload(file);
+    }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
 
   return (
     <div className={`enhanced-url-input ${className}`}>
@@ -82,7 +93,47 @@ const EnhancedUrlInput = ({
 
         </div>
 
-        <div className="action-buttons flex gap-2">
+        {/* File Upload Section */}
+        {onFileUpload && (
+          <div className="file-upload-section mt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex-1 h-px bg-gray-600"></div>
+              <span className="text-sm text-gray-400">OR</span>
+              <div className="flex-1 h-px bg-gray-600"></div>
+            </div>
+            
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".crx,.zip"
+              onChange={handleFileChange}
+              className="hidden"
+              disabled={isScanning}
+            />
+            
+            <Button
+              onClick={handleUploadClick}
+              disabled={isScanning}
+              variant="outline"
+              className="w-full"
+              size="lg"
+              style={{
+                height: '56px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '2px solid rgba(139, 92, 246, 0.4)',
+                borderRadius: '0.75rem',
+                color: '#ffffff',
+                fontSize: '0.9375rem',
+                fontWeight: '500',
+              }}
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Upload CRX/ZIP File
+            </Button>
+          </div>
+        )}
+
+        <div className="action-buttons flex gap-2 mt-4">
           <Button
             onClick={onScan}
             disabled={isScanning || !value.trim()}
@@ -107,9 +158,11 @@ const EnhancedUrlInput = ({
 
 
 
-      <p className="input-help-text text-sm text-muted-foreground">
-        Enter a Chrome Web Store URL to automatically scan and analyze the
-        extension's security posture
+      <p className="input-help-text text-sm text-muted-foreground mt-2">
+        {onFileUpload
+          ? "Enter a Chrome Web Store URL or upload a .crx/.zip file to analyze the extension's security posture"
+          : "Enter a Chrome Web Store URL to automatically scan and analyze the extension's security posture"
+        }
       </p>
     </div>
   );

@@ -73,6 +73,42 @@ const DashboardPage = () => {
     await startScan();
   };
 
+  const handleFileUpload = async (file) => {
+    setIsScanning(true);
+    setError(null);
+    setScanResults(null);
+
+    try {
+      setError("📤 Uploading file... This may take a moment.");
+      
+      // Upload the file
+      const uploadResult = await realScanService.uploadAndScan(file);
+      
+      if (!uploadResult || !uploadResult.extension_id) {
+        throw new Error("Failed to upload file");
+      }
+
+      const extensionId = uploadResult.extension_id;
+      setError(`🔄 File uploaded successfully! Starting analysis...`);
+
+      // Wait for scan completion
+      await waitForScanCompletion(extensionId);
+
+      // Get results
+      const results = await realScanService.getRealScanResults(extensionId);
+      setScanResults(results);
+      setError("");
+      
+      // Refresh history and stats
+      await loadScanHistory();
+      await loadDashboardStats();
+    } catch (err) {
+      setError(err.message || "Failed to upload and scan file.");
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
 
 
   // const handleScanSampleExtension = () => {
@@ -211,6 +247,7 @@ const DashboardPage = () => {
             value={url}
             onChange={setUrl}
             onScan={handleScanClick}
+            onFileUpload={handleFileUpload}
             isScanning={isScanning}
           />
         </div>
