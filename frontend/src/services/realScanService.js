@@ -34,6 +34,30 @@ class RealScanService {
     }
   }
 
+  // Upload and scan a CRX/ZIP file
+  async uploadAndScan(file) {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(`${this.baseURL}/api/scan/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return result;
+      } else {
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to upload file");
+      }
+    } catch (error) {
+      console.error("Failed to upload file:", error);
+      throw error;
+    }
+  }
+
   // Get real scan results from CLI analysis
   async getRealScanResults(extensionId) {
     try {
@@ -80,6 +104,21 @@ class RealScanService {
       // Extract the main analysis results
       const sastResults = cliResults.sast_results || {};
 
+      // Flatten SAST findings from object to array
+      const sastFindings = [];
+      if (sastResults.sast_findings) {
+        for (const [filePath, findings] of Object.entries(sastResults.sast_findings)) {
+          if (Array.isArray(findings)) {
+            findings.forEach(finding => {
+              sastFindings.push({
+                ...finding,
+                file: finding.file || filePath
+              });
+            });
+          }
+        }
+      }
+
       return {
         // Map CLI fields to frontend fields
         securityScore:
@@ -93,15 +132,13 @@ class RealScanService {
         ),
         totalFiles: cliResults.extracted_files?.length || 0,
         totalFindings:
-          cliResults.total_findings || sastResults.total_findings || 0,
+          cliResults.total_findings || sastFindings.length || 0,
 
         // Files information
         files: this.formatFileResults(cliResults.extracted_files || []),
 
-        // SAST results from CLI analysis
-        sastResults: this.formatSASTResults(
-          sastResults.javascript_analysis || [],
-        ),
+        // SAST results from CLI analysis - use flattened findings
+        sastResults: this.formatSASTResults(sastFindings),
 
         // Additional CLI data
         extensionId: cliResults.extension_id,
@@ -264,17 +301,21 @@ class RealScanService {
   }
 
   // Get file content from extracted files
-  async getFileContent(extensionId, fileName) {
+  async getFileContent(extensionId, filePath) {
     try {
+      // Encode each path segment separately to preserve forward slashes
+      const encodedPath = filePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+      
       const response = await fetch(
-        `${this.baseURL}/api/scan/file/${extensionId}/${encodeURIComponent(fileName)}`,
+        `${this.baseURL}/api/scan/file/${extensionId}/${encodedPath}`,
       );
 
       if (response.ok) {
         const result = await response.json();
         return result.content || "File content not available";
       } else {
-        throw new Error("Failed to fetch file content");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Failed to fetch file content");
       }
     } catch (error) {
       console.error("Failed to get file content:", error);

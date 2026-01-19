@@ -263,7 +263,8 @@ def summary_generation_node(state: WorkflowState) -> Command:
 def cleanup_node(state: WorkflowState) -> Command:
     """
     Node that performs cleanup operations after the workflow is completed.
-    Removes temporary extraction directory and downloaded CRX files.
+    Collects file list but KEEPS extracted directory for file viewing.
+    Only removes downloaded CRX files.
 
     Args:
         state (PipelineState): The current state of the workflow.
@@ -272,7 +273,7 @@ def cleanup_node(state: WorkflowState) -> Command:
     """
     cleanup_errors = []
 
-    # Collect file list BEFORE cleanup (if not already collected)
+    # Collect file list (if not already collected)
     extension_dir = state.get("extension_dir")
     extracted_files = state.get("extracted_files", [])
 
@@ -288,18 +289,14 @@ def cleanup_node(state: WorkflowState) -> Command:
                         rel_path = os.path.relpath(file_path, extension_dir)
                         files.append(rel_path)
                 extracted_files = files
-                logger.info("Collected %d files before cleanup", len(files))
+                logger.info("Collected %d files for viewing", len(files))
         except Exception as exc:
             logger.warning("Failed to collect file list: %s", exc)
 
-    # Clean up temporary extraction directory
+    # KEEP extracted directory for file viewing - don't clean it up
+    # Users can view files through the web UI after analysis
     if extension_dir:
-        try:
-            logger.info("Cleaning up extension directory: %s", extension_dir)
-            cleanup_extension_dir(extension_dir)
-        except Exception as exc:
-            logger.warning("Failed to cleanup extension dir %s: %s", extension_dir, exc)
-            cleanup_errors.append(f"Failed to cleanup extension dir: {exc}")
+        logger.info("Keeping extension directory for file viewing: %s", extension_dir)
 
     # Clean up downloaded CRX file (only if downloaded by the tool)
     downloaded_crx_path = state.get("downloaded_crx_path")

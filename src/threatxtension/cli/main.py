@@ -359,8 +359,13 @@ def cli():
 @cli.command()
 @click.option(
     "--url",
-    required=True,
     help="Chrome Web Store URL of the extension to analyze",
+)
+@click.option(
+    "--file",
+    "-f",
+    type=click.Path(exists=True),
+    help="Local CRX or ZIP file to analyze",
 )
 @click.option(
     "--output",
@@ -374,22 +379,38 @@ def cli():
     is_flag=True,
     help="Enable verbose logging",
 )
-def analyze(url: str, output: Optional[str], verbose: bool):
+def analyze(url: Optional[str], file: Optional[str], output: Optional[str], verbose: bool):
     """Analyze a Chrome extension for security threats.
 
     Example:
         threatxtension analyze --url https://chromewebstore.google.com/detail/example/abcdef
+        threatxtension analyze --file /path/to/extension.crx
+        threatxtension analyze --file /path/to/extension.zip
     """
+    # Validate input
+    if not url and not file:
+        raise click.UsageError("Either --url or --file must be provided")
+
+    if url and file:
+        raise click.UsageError("Cannot specify both --url and --file")
+
     configure_logging(verbose)
     print_header()
 
-    console.print(f"\n[bold]Analyzing:[/bold] [blue]{url}[/blue]\n")
+    # Use file path if provided, otherwise use URL
+    chrome_extension_path = file if file else url
+    
+    # This should never happen due to validation above, but satisfy type checker
+    if not chrome_extension_path:
+        raise click.UsageError("No extension path provided")
+
+    console.print(f"\n[bold]Analyzing:[/bold] [blue]{chrome_extension_path}[/blue]\n")
 
     # Build workflow graph
     graph = build_graph()
 
     # Create initial state
-    initial_state = create_initial_state(chrome_extension_path=url)
+    initial_state = create_initial_state(chrome_extension_path=chrome_extension_path)
 
     # Execute workflow with spinner
     try:

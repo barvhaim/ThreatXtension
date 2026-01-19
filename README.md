@@ -77,14 +77,20 @@ make docker-logs     # View logs
 
 ### Scan an Extension
 
-Via Web UI: Navigate to http://localhost:8007 and paste a Chrome Web Store URL.
+**Via Web UI:** Navigate to http://localhost:8007 and either:
+- Paste a Chrome Web Store URL, or
+- Upload a local `.crx` or `.zip` file
 
-Via API:
+**Via API:**
 ```bash
-# Trigger scan
+# Option 1: Scan from Chrome Web Store URL
 curl -X POST http://localhost:8007/api/scan/trigger \
   -H "Content-Type: application/json" \
   -d '{"url": "https://chromewebstore.google.com/detail/extension-name/extension-id"}'
+
+# Option 2: Upload and scan a local file
+curl -X POST http://localhost:8007/api/scan/upload \
+  -F "file=@/path/to/extension.crx"
 
 # Get results
 curl http://localhost:8007/api/scan/results/{extension_id}
@@ -121,8 +127,12 @@ cp .env.example .env
 ### Run Locally
 
 ```bash
-# Option 1: CLI
+# Option 1: CLI - Analyze from URL
 make analyze URL=https://chromewebstore.google.com/detail/example/abcdef
+
+# Option 1b: CLI - Analyze local file
+uv run threatxtension analyze --file /path/to/extension.crx
+uv run threatxtension analyze --file /path/to/extension.zip
 
 # Option 2: Web UI (run both in separate terminals)
 make api        # Start FastAPI backend (port 8007)

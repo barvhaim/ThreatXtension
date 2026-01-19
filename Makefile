@@ -20,7 +20,8 @@ help:
 	@echo "Run Applications (Local Development):"
 	@echo "  make api             - Start FastAPI server for frontend (port 8007)"
 	@echo "  make frontend        - Start React frontend dev server (port 5173)"
-	@echo "  make analyze URL=... - Analyze extension via CLI (requires URL parameter)"
+	@echo "  make analyze URL=... - Analyze extension from Chrome Web Store URL"
+	@echo "  make analyze-file FILE=... - Analyze local CRX/ZIP file"
 	@echo ""
 	@echo "Development:"
 	@echo "  make install         - Install dependencies with uv"
@@ -64,7 +65,7 @@ frontend:
 	@echo "Access at: http://localhost:5173"
 	cd frontend && npm run dev
 
-# Analyze extension via CLI
+# Analyze extension via CLI from URL
 analyze:
 ifndef URL
 	@echo "Error: URL parameter is required"
@@ -72,11 +73,26 @@ ifndef URL
 	@echo "       make analyze URL=https://... OUTPUT=results.json"
 	@exit 1
 endif
-	@echo "Analyzing Chrome extension..."
+	@echo "Analyzing Chrome extension from URL..."
 ifdef OUTPUT
 	uv run threatxtension analyze --url $(URL) --output $(OUTPUT)
 else
 	uv run threatxtension analyze --url $(URL)
+endif
+
+# Analyze local CRX/ZIP file via CLI
+analyze-file:
+ifndef FILE
+	@echo "Error: FILE parameter is required"
+	@echo "Usage: make analyze-file FILE=/path/to/extension.crx"
+	@echo "       make analyze-file FILE=/path/to/extension.zip OUTPUT=results.json"
+	@exit 1
+endif
+	@echo "Analyzing local extension file..."
+ifdef OUTPUT
+	uv run threatxtension analyze --file $(FILE) --output $(OUTPUT)
+else
+	uv run threatxtension analyze --file $(FILE)
 endif
 
 # Install dependencies

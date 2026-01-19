@@ -115,12 +115,14 @@ class JavaScriptAnalyzer(BaseAnalyzer):
         # Background scripts
         if "background" in manifest:
             bg = manifest["background"]
-            # Manifest V3 uses service_worker
-            if "service_worker" in bg:
-                js_files.add(bg["service_worker"])
-            # Manifest V2 uses scripts array
-            if "scripts" in bg:
-                js_files.update(bg["scripts"])
+            # Check if bg is not None and is a dict
+            if bg and isinstance(bg, dict):
+                # Manifest V3 uses service_worker
+                if "service_worker" in bg:
+                    js_files.add(bg["service_worker"])
+                # Manifest V2 uses scripts array
+                if "scripts" in bg:
+                    js_files.update(bg["scripts"])
             # TODO: Handle scripts embedded in HTML if needed
 
         # Content scripts

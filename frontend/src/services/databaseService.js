@@ -1,19 +1,23 @@
 /**
  * Database Service
- * 
+ *
  * Handles communication with the backend API for persistent storage
  * using SQLite database instead of localStorage.
  */
 
-const API_BASE_URL = "http://localhost:8007/api";
-
 class DatabaseService {
+  constructor() {
+    // Use environment variable for API URL, default to empty string for same-origin (production)
+    // For local development, set VITE_API_URL=http://localhost:8007 in .env.local
+    this.baseURL = import.meta.env.VITE_API_URL || "";
+    this.API_BASE_URL = `${this.baseURL}/api`;
+  }
   /**
    * Get statistics from the database
    */
   async getStatistics() {
     try {
-      const response = await fetch(`${API_BASE_URL}/statistics`);
+      const response = await fetch(`${this.API_BASE_URL}/statistics`);
       if (!response.ok) {
         throw new Error("Failed to fetch statistics");
       }
@@ -36,7 +40,7 @@ class DatabaseService {
    */
   async getScanHistory(limit = 50) {
     try {
-      const response = await fetch(`${API_BASE_URL}/history?limit=${limit}`);
+      const response = await fetch(`${this.API_BASE_URL}/history?limit=${limit}`);
       if (!response.ok) {
         throw new Error("Failed to fetch scan history");
       }
@@ -53,7 +57,7 @@ class DatabaseService {
    */
   async getRecentScans(limit = 10) {
     try {
-      const response = await fetch(`${API_BASE_URL}/recent?limit=${limit}`);
+      const response = await fetch(`${this.API_BASE_URL}/recent?limit=${limit}`);
       if (!response.ok) {
         throw new Error("Failed to fetch recent scans");
       }
@@ -70,7 +74,7 @@ class DatabaseService {
    */
   async getScanResult(extensionId) {
     try {
-      const response = await fetch(`${API_BASE_URL}/scan/results/${extensionId}`);
+      const response = await fetch(`${this.API_BASE_URL}/scan/results/${extensionId}`);
       if (!response.ok) {
         if (response.status === 404) {
           return null;
@@ -89,7 +93,7 @@ class DatabaseService {
    */
   async deleteScanResult(extensionId) {
     try {
-      const response = await fetch(`${API_BASE_URL}/scan/${extensionId}`, {
+      const response = await fetch(`${this.API_BASE_URL}/scan/${extensionId}`, {
         method: "DELETE"
       });
       if (!response.ok) {
@@ -107,7 +111,7 @@ class DatabaseService {
    */
   async clearAllResults() {
     try {
-      const response = await fetch(`${API_BASE_URL}/clear`, {
+      const response = await fetch(`${this.API_BASE_URL}/clear`, {
         method: "POST"
       });
       if (!response.ok) {
