@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Response, UploadFile, File
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Response, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -237,37 +237,60 @@ def get_extracted_files(extracted_path: Optional[str]) -> list[str]:
 
 def calculate_security_score(state: WorkflowState) -> int:
     """
-    Calculate overall security RISK score using weighted multi-factor analysis.
+    Calculate overall security score using weighted multi-factor analysis.
 
-    Scoring Components (0-100 scale, where 100 = HIGHEST RISK):
-    - SAST Findings (40%): Critical code vulnerabilities
-    - Permissions Risk (30%): Unreasonable/excessive permissions
-    - Webstore Trust (20%): User ratings, install count, developer reputation
-    - Manifest Quality (10%): Proper metadata, CSP, update URL
+    Scoring Components (0-100 scale, where 100 = SAFEST):
+    - SAST Findings (50 points max): Critical code vulnerabilities, malicious patterns
+    - Permissions Risk (35 points max): Unreasonable/excessive permissions
+    - VirusTotal (40 points max): Malware detections, threat intelligence
+    - Entropy/Obfuscation (30 points max): Code obfuscation, high entropy files
+    - Webstore Trust (10 points max): User ratings, install count, reputation
+    - Manifest Quality (5 points max): Proper metadata, CSP, update URL
+    
+    Total Risk Points: 0-170 (capped at 100, inverted to security score)
+    
+    Malicious extensions will typically score:
+    - High SAST findings: 40-50 points
+    - Unreasonable permissions: 25-35 points
+    - VirusTotal detections: 30-40 points
+    - High obfuscation: 20-30 points
+    = 115-155 risk points → Security Score: 0-0 (Critical)
 
     Returns:
-        int: Risk score from 0 (safest) to 100 (highest risk)
+        int: Security score from 0 (highest risk/malicious) to 100 (safest)
     """
     analysis_results = state.get("analysis_results", {}) or {}
     manifest = state.get("manifest_data", {}) or {}
 
-    # Component 1: SAST Analysis (40 points max risk)
+    # Component 1: SAST Analysis (50 points max risk) - INCREASED from 40
     sast_score = 0  # Start at 0 risk
     javascript_analysis = analysis_results.get("javascript_analysis", {})
     if javascript_analysis and isinstance(javascript_analysis, dict):
         sast_findings = javascript_analysis.get("sast_findings", {})
+        high_count = 0
+        medium_count = 0
+        
         for findings_list in sast_findings.values():
             for finding in findings_list:
                 severity = finding.get("extra", {}).get("severity", "INFO").upper()
-                if severity in ("CRITICAL", "HIGH"):
-                    sast_score += 8  # Add risk points
-                elif severity in ("ERROR", "MEDIUM"):
-                    sast_score += 4
-                elif severity == "WARNING":
+                if severity in ("CRITICAL", "ERROR", "HIGH"):
+                    sast_score += 10  # INCREASED from 8 - each critical finding is serious
+                    high_count += 1
+                elif severity in ("MEDIUM", "WARNING"):
+                    sast_score += 3  # INCREASED from 4/1
+                    medium_count += 1
+                elif severity == "LOW":
                     sast_score += 1
-    sast_score = min(40, sast_score)  # Cap at 40
+        
+        # Bonus penalty for multiple critical findings (indicates systematic issues)
+        if high_count >= 10:
+            sast_score += 20  # Many critical issues = very dangerous
+        elif high_count >= 5:
+            sast_score += 10
+            
+    sast_score = min(50, sast_score)  # Cap at 50 (increased from 40)
 
-    # Component 2: Permissions Analysis (30 points max risk)
+    # Component 2: Permissions Analysis (35 points max risk) - INCREASED from 30
     permissions_score = 0  # Start at 0 risk
     permissions_analysis = analysis_results.get("permissions_analysis", {}) or {}
     permissions_details = (
@@ -291,15 +314,21 @@ def calculate_security_score(state: WorkflowState) -> int:
             unreasonable_count += 1
             if risk == "high":
                 high_risk_perms += 1
-                permissions_score += 5  # Add risk points
+                permissions_score += 8  # INCREASED from 5 - high risk permissions are serious
             elif risk == "medium":
-                permissions_score += 2
+                permissions_score += 4  # INCREASED from 2
             else:
-                permissions_score += 1
+                permissions_score += 2  # INCREASED from 1
+    
+    # Bonus penalty for many unreasonable permissions
+    if unreasonable_count >= 10:
+        permissions_score += 15  # Many unreasonable permissions = very suspicious
+    elif unreasonable_count >= 5:
+        permissions_score += 8
 
-    permissions_score = min(30, permissions_score)  # Cap at 30
+    permissions_score = min(35, permissions_score)  # Cap at 35 (increased from 30)
 
-    # Component 3: Webstore Trust Score (20 points max risk)
+    # Component 3: Webstore Trust Score (10 points max risk) - REDUCED from 20
     webstore_score = 0  # Start at 0 risk
     _ = analysis_results.get("webstore_analysis", {})  # webstore_analysis - for future use
     metadata = state.get("extension_metadata", {}) or {}
@@ -312,15 +341,15 @@ def calculate_security_score(state: WorkflowState) -> int:
             if rating_val >= 4.5:
                 webstore_score += 0  # Excellent - no risk
             elif rating_val >= 4.0:
-                webstore_score += 2  # Good - slight risk
+                webstore_score += 1  # Good - slight risk
             elif rating_val >= 3.0:
-                webstore_score += 5  # Average - moderate risk
+                webstore_score += 3  # Average - moderate risk
             else:
-                webstore_score += 10  # Poor - high risk
+                webstore_score += 5  # Poor - high risk
         except (ValueError, TypeError):
-            webstore_score += 3  # No valid rating - some risk
+            webstore_score += 2  # No valid rating - some risk
     else:
-        webstore_score += 3  # No rating data
+        webstore_score += 2  # No rating data
 
     # Check install count (low adoption = higher risk)
     users = metadata.get("users", "0")
@@ -329,39 +358,107 @@ def calculate_security_score(state: WorkflowState) -> int:
         if user_count >= 1000000:
             webstore_score += 0  # Very popular - trusted
         elif user_count >= 100000:
-            webstore_score += 2  # Popular - low risk
+            webstore_score += 1  # Popular - low risk
         elif user_count >= 10000:
-            webstore_score += 5  # Moderate - some risk
+            webstore_score += 2  # Moderate - some risk
         else:
-            webstore_score += 8  # Low adoption - higher risk
+            webstore_score += 4  # Low adoption - higher risk
     except (ValueError, TypeError):
-        webstore_score += 5  # Unknown user count
+        webstore_score += 2  # Unknown user count
 
-    webstore_score = min(20, webstore_score)  # Cap at 20
+    webstore_score = min(10, webstore_score)  # Cap at 10 (reduced from 20)
 
-    # Component 4: Manifest Quality (10 points max risk)
+    # Component 4: Manifest Quality (5 points max risk) - REDUCED from 10
     manifest_score = 0  # Start at 0 risk
 
     # Check for proper metadata (missing = risk)
     if not manifest.get("name") or manifest.get("name", "").startswith("__MSG_"):
-        manifest_score += 3  # Missing/placeholder name = risk
+        manifest_score += 2  # Missing/placeholder name = risk
     if not manifest.get("description") or manifest.get("description", "").startswith("__MSG_"):
-        manifest_score += 2  # Missing/placeholder description = risk
+        manifest_score += 1  # Missing/placeholder description = risk
 
     # Check for Content Security Policy (missing = risk)
     if not manifest.get("content_security_policy"):
-        manifest_score += 2
+        manifest_score += 1
 
     # Check for update URL (missing = risk)
     if not manifest.get("update_url"):
         manifest_score += 1
 
-    manifest_score = min(10, manifest_score)  # Cap at 10
+    manifest_score = min(5, manifest_score)  # Cap at 5 (reduced from 10)
 
-    # Calculate final weighted score
-    final_score = sast_score + permissions_score + webstore_score + manifest_score
+    # Component 5: VirusTotal Threat Intelligence (40 points max risk)
+    virustotal_score = 0
+    vt_analysis = analysis_results.get("virustotal_analysis", {})
+    if vt_analysis and vt_analysis.get("enabled", True):
+        summary = vt_analysis.get("summary", {})
+        threat_level = summary.get("threat_level", "").lower()
+        
+        # Malicious detection = instant high risk
+        if threat_level == "malicious":
+            virustotal_score += 40  # Maximum penalty
+        elif threat_level == "suspicious":
+            virustotal_score += 25  # High penalty
+        
+        # Check for detected malware families
+        detected_families = summary.get("detected_families", [])
+        if detected_families:
+            virustotal_score += min(20, len(detected_families) * 5)  # +5 per family, max 20
+        
+        # Check detection stats
+        total_malicious = vt_analysis.get("total_malicious", 0)
+        total_suspicious = vt_analysis.get("total_suspicious", 0)
+        
+        if total_malicious > 0:
+            virustotal_score += min(30, total_malicious * 3)  # +3 per malicious detection
+        elif total_suspicious > 0:
+            virustotal_score += min(15, total_suspicious * 2)  # +2 per suspicious detection
+    
+    virustotal_score = min(40, virustotal_score)  # Cap at 40
 
-    return max(0, min(100, final_score))
+    # Component 6: Entropy/Obfuscation Analysis (30 points max risk)
+    entropy_score = 0
+    entropy_analysis = analysis_results.get("entropy_analysis", {})
+    if entropy_analysis:
+        summary = entropy_analysis.get("summary", {})
+        overall_risk = summary.get("overall_risk", "").lower()
+        
+        # High obfuscation risk
+        if overall_risk == "high":
+            entropy_score += 25
+        elif overall_risk == "medium":
+            entropy_score += 15
+        
+        # Penalize high entropy files
+        high_entropy_files = summary.get("high_entropy_files", [])
+        if high_entropy_files:
+            entropy_score += min(20, len(high_entropy_files) * 5)  # +5 per obfuscated file
+        
+        # Penalize obfuscation patterns
+        obfuscated_files = entropy_analysis.get("obfuscated_files", 0)
+        if obfuscated_files > 0:
+            entropy_score += min(15, obfuscated_files * 3)  # +3 per obfuscated file
+    
+    entropy_score = min(30, entropy_score)  # Cap at 30
+
+    # Calculate final risk score (sum of all risk components)
+    # Total possible: 50 + 35 + 10 + 5 + 40 + 30 = 170 points
+    risk_score = (
+        sast_score +
+        permissions_score +
+        webstore_score +
+        manifest_score +
+        virustotal_score +
+        entropy_score
+    )
+    
+    # Invert to security score: 100 = safest, 0 = most dangerous
+    # Higher risk = lower security score
+    # Cap risk at 100 to ensure score doesn't go negative
+    risk_score = min(100, risk_score)
+    security_score = 100 - risk_score
+
+    return max(0, min(100, security_score))
 
 
 def count_total_findings(state: WorkflowState) -> int:
@@ -889,6 +986,131 @@ async def clear_all_scans():
         return {"message": "All scans cleared successfully"}
 
     raise HTTPException(status_code=500, detail="Failed to clear scans")
+
+
+@app.post("/api/analyze/file")
+async def analyze_file_with_ai(
+    file_content: str = Form(..., description="File content to analyze"),
+    file_name: str = Form(..., description="Name of the file"),
+    file_type: str = Form(..., description="Type/extension of the file"),
+    provider: str = Form(default="auto", description="LLM provider to use")
+):
+    """
+    Analyze a file using AI/LLM for security insights.
+    
+    This endpoint provides AI-powered security analysis of individual files
+    from Chrome extensions using configured LLM providers.
+    
+    Args:
+        file_content: The actual content of the file to analyze
+        file_name: Name of the file (e.g., "background.js")
+        file_type: File type/extension (e.g., "js", "json")
+        provider: LLM provider to use ("auto", "watsonx", "openai", "ollama", etc.)
+    
+    Returns:
+        AI analysis results including risk score, findings, and recommendations
+    """
+    try:
+        from threatxtension.llm.clients import get_chat_llm_client
+        from langchain_core.prompts import PromptTemplate
+        from langchain_core.output_parsers import JsonOutputParser
+        
+        # Determine which LLM provider to use
+        if provider == "auto":
+            # Try to detect best available provider
+            llm_provider = os.getenv("LLM_PROVIDER", "rits/openai/gpt-oss-120b")
+        else:
+            llm_provider = provider
+        
+        # Create analysis prompt
+        prompt_template = """You are a security expert analyzing a Chrome extension file for potential security vulnerabilities and malicious behavior.
+
+File Name: {file_name}
+File Type: {file_type}
+
+File Content:
+```
+{file_content}
+```
+
+Analyze this file for security issues including:
+1. Malicious code patterns (data exfiltration, credential theft, etc.)
+2. Suspicious API usage
+3. Obfuscation or encoding techniques
+4. Privacy violations
+5. Dangerous permissions or capabilities
+
+Provide your analysis in the following JSON format:
+{{
+    "riskScore": <number 1-10, where 10 is highest risk>,
+    "severity": "<Low|Medium|High>",
+    "confidence": "<Low|Medium|High>",
+    "analysis": "<detailed security analysis text>",
+    "findings": [
+        "<finding 1>",
+        "<finding 2>"
+    ],
+    "recommendations": [
+        "<recommendation 1>",
+        "<recommendation 2>"
+    ]
+}}
+
+Focus on actionable security insights. Be specific about any suspicious patterns found."""
+
+        prompt = PromptTemplate(
+            input_variables=["file_name", "file_type", "file_content"],
+            template=prompt_template
+        )
+        
+        # Get LLM client
+        llm = get_chat_llm_client(
+            model_name=llm_provider,
+            model_parameters={
+                "temperature": 0.1,
+                "max_tokens": 2048,
+            }
+        )
+        
+        # Create chain
+        chain = prompt | llm | JsonOutputParser()
+        
+        # Truncate file content if too large (keep first 5000 chars)
+        truncated_content = file_content[:5000]
+        if len(file_content) > 5000:
+            truncated_content += "\n\n... (content truncated for analysis)"
+        
+        # Run analysis
+        result = chain.invoke({
+            "file_name": file_name,
+            "file_type": file_type,
+            "file_content": truncated_content
+        })
+        
+        # Add metadata
+        result["metadata"] = {
+            "model": llm_provider,
+            "deployment": "Backend API",
+            "file_size": len(file_content),
+            "truncated": len(file_content) > 5000,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        return {
+            "success": True,
+            "data": result
+        }
+        
+    except ImportError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"LLM dependencies not available: {str(e)}"
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"AI analysis failed: {str(e)}"
+        ) from e
 
 
 @app.get("/health")

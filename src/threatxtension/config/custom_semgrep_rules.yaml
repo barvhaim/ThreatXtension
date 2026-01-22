@@ -67,16 +67,9 @@ rules:
       mitre: [T1056, T1555]
     pattern-either:
       - pattern: |
-          document.querySelectorAll('input[type="password"]').forEach(($N) => {
-            $N.addEventListener($EV, (...)=>
-              { ... (fetch|XMLHttpRequest|navigator.sendBeacon) ... }
-            );
-          });
+          document.querySelectorAll('input[type="password"]').forEach(($N) => { ... });
       - pattern: |
-          const $N = document.querySelector('input[type="password"]');
-          $N.addEventListener($EV, (...)=>
-            { ... (fetch|XMLHttpRequest|navigator.sendBeacon) ... }
-          );
+          document.querySelector('input[type="password"]').addEventListener($EV, ...);
 
   ##########################################################################
   # 4) Extension network hijack (chrome.webRequest)
@@ -140,11 +133,8 @@ rules:
     metadata:
       category: stealth-hooking
       mitre: [T1056, T1027]
-    patterns:
-      - pattern: |
-          new MutationObserver(($M) => { ... });
-      - pattern-inside: |
-          ($X) => { ... (appendChild|insertAdjacentHTML|fetch|navigator.sendBeacon) ... }
+    pattern: |
+      new MutationObserver(...);
 
   ##########################################################################
   # 8) Exfiltration channels (sendBeacon / Image.src / fetch GET with secrets)
@@ -199,3 +189,351 @@ rules:
           eval($X);
       - pattern: |
           new Function($X);
+
+  ##########################################################################
+  # 11) Credential Theft - localStorage/sessionStorage Access
+  ##########################################################################
+  - id: credential.theft.storage_access
+    message: Accessing localStorage/sessionStorage for credentials—potential credential theft.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: credential-theft
+      mitre: [T1555.003, T1539]
+      cwe: [CWE-522, CWE-312]
+      owasp: [A02-Cryptographic Failures, A07-Identification and Authentication]
+      description: Detects access to browser storage APIs that may contain credentials
+    pattern-either:
+      - patterns:
+          - pattern: localStorage.getItem($KEY)
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: "(token|password|pass|pwd|credential|auth|session|jwt|bearer|api[_-]?key|secret)"
+      - patterns:
+          - pattern: sessionStorage.getItem($KEY)
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: "(token|password|pass|pwd|credential|auth|session|jwt|bearer|api[_-]?key|secret)"
+      - pattern: |
+          for (let $I = 0; $I < localStorage.length; $I++) {
+            localStorage.getItem(...);
+          }
+      - pattern: |
+          Object.keys(localStorage).forEach(...)
+
+  ##########################################################################
+  # 12) Credential Theft - Password Field Value Extraction
+  ##########################################################################
+  - id: credential.theft.password_extraction
+    message: Direct extraction of password field values—credential harvesting detected.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: credential-theft
+      mitre: [T1056.001, T1555]
+      cwe: [CWE-522, CWE-359]
+      owasp: [A07-Identification and Authentication]
+      description: Detects direct access to password input field values
+    pattern-either:
+      - pattern: |
+          document.querySelector('input[type="password"]').value
+      - pattern: |
+          document.querySelectorAll('input[type="password"]')
+      - pattern: |
+          $ELEM.querySelector('input[type="password"]').value
+      - pattern: |
+          document.getElementById($ID).value
+      - patterns:
+          - pattern: $FORM.elements[$NAME].value
+          - metavariable-regex:
+              metavariable: $NAME
+              regex: "(password|passwd|pwd|pass)"
+
+  ##########################################################################
+  # 13) Credential Theft - Form Data Serialization
+  ##########################################################################
+  - id: credential.theft.form_serialization
+    message: Form data serialization with network transmission—credential exfiltration risk.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: credential-theft
+      mitre: [T1056.001, T1041]
+      cwe: [CWE-522, CWE-319]
+      description: Detects form data collection and transmission patterns
+    pattern-either:
+      - pattern: new FormData($FORM)
+      - pattern: |
+          $FORM.querySelectorAll('input')
+
+  ##########################################################################
+  # 14) Cookie Stealing - document.cookie Access
+  ##########################################################################
+  - id: cookie.theft.document_cookie_access
+    message: Accessing document.cookie—potential cookie theft for session hijacking.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: cookie-theft
+      mitre: [T1539, T1550.004]
+      cwe: [CWE-539, CWE-614]
+      owasp: [A07-Identification and Authentication, A01-Broken Access Control]
+      description: Detects access to document.cookie which may contain session tokens
+    pattern-either:
+      - pattern: document.cookie
+      - pattern: |
+          const $C = document.cookie;
+      - pattern: |
+          let $C = document.cookie;
+      - pattern: |
+          var $C = document.cookie;
+
+  ##########################################################################
+  # 15) Cookie Stealing - Cookie Exfiltration
+  ##########################################################################
+  - id: cookie.theft.cookie_exfiltration
+    message: Cookie data being sent to external server—active cookie theft detected.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: cookie-theft
+      mitre: [T1539, T1041]
+      cwe: [CWE-539, CWE-319]
+      owasp: [A07-Identification and Authentication]
+      description: Detects patterns where cookies are extracted and transmitted
+    pattern: document.cookie
+
+  ##########################################################################
+  # 16) Cookie Stealing - chrome.cookies API Abuse
+  ##########################################################################
+  - id: cookie.theft.chrome_cookies_api
+    message: Using chrome.cookies API to access cookies—potential session hijacking.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: cookie-theft
+      mitre: [T1539, T1550.004]
+      cwe: [CWE-539]
+      description: Detects Chrome extension API usage for cookie access
+    pattern-either:
+      - pattern: chrome.cookies.get(...)
+      - pattern: chrome.cookies.getAll(...)
+      - pattern: chrome.cookies.getAllCookieStores(...)
+
+  ##########################################################################
+  # 17) C2 Communication - WebSocket Connections
+  ##########################################################################
+  - id: c2.exfiltration.websocket_connection
+    message: WebSocket connection to external server—potential C2 communication channel.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: c2-communication
+      mitre: [T1071.001, T1573]
+      cwe: [CWE-940]
+      description: Detects WebSocket connections that may be used for C2 communication
+    pattern: new WebSocket($URL)
+
+  ##########################################################################
+  # 18) C2 Communication - Periodic Beaconing
+  ##########################################################################
+  - id: c2.exfiltration.periodic_beacon
+    message: Periodic network requests detected—potential C2 beaconing behavior.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: c2-communication
+      mitre: [T1071, T1041, T1102]
+      cwe: [CWE-940]
+      description: Detects periodic network communication patterns typical of C2
+    pattern-either:
+      - pattern: |
+          setInterval(function() { ... }, $INTERVAL)
+      - pattern: |
+          setInterval(() => { ... }, $INTERVAL)
+
+  ##########################################################################
+  # 19) C2 Communication - Base64 Encoded Exfiltration
+  ##########################################################################
+  - id: c2.exfiltration.base64_encoded_data
+    message: Base64 encoding with network transmission—obfuscated data exfiltration.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: c2-communication
+      mitre: [T1041, T1132.001]
+      cwe: [CWE-319, CWE-311]
+      description: Detects base64 encoding of data before network transmission
+    pattern-either:
+      - pattern: btoa($DATA)
+      - pattern: Buffer.from($DATA).toString('base64')
+      - pattern: atob($DATA)
+
+  ##########################################################################
+  # 20) C2 Communication - DNS Tunneling
+  ##########################################################################
+  - id: c2.exfiltration.dns_tunneling
+    message: Suspicious DNS-like requests with encoded data—potential DNS tunneling.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: c2-communication
+      mitre: [T1071.004, T1048.003]
+      cwe: [CWE-940]
+      description: Detects patterns consistent with DNS tunneling for data exfiltration
+    patterns:
+      - pattern: fetch($URL, ...)
+      - metavariable-regex:
+          metavariable: $URL
+          regex: "https?://[a-zA-Z0-9\\-]+\\.[a-zA-Z0-9\\-]+\\.[a-zA-Z]{2,}/(\\?|#)?[a-zA-Z0-9+/=]{20,}"
+
+  ##########################################################################
+  # 21) C2 Communication - Steganography (Image-based)
+  ##########################################################################
+  - id: c2.exfiltration.image_steganography
+    message: Canvas/Image manipulation with network send—potential steganographic exfiltration.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: c2-communication
+      mitre: [T1027.003, T1041]
+      cwe: [CWE-311]
+      description: Detects canvas manipulation that may hide data in images
+    pattern-either:
+      - pattern: |
+          $CTX.getImageData(...)
+      - pattern: |
+          $CANVAS.toDataURL(...)
+      - pattern: |
+          $CANVAS.toBlob(...)
+
+  ##########################################################################
+  # 22) Credential Theft - Clipboard Hijacking
+  ##########################################################################
+  - id: credential.theft.clipboard_hijack
+    message: Clipboard access detected—may capture copied passwords or sensitive data.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: credential-theft
+      mitre: [T1115]
+      cwe: [CWE-200]
+      description: Detects clipboard API usage that may capture sensitive data
+    pattern-either:
+      - pattern: navigator.clipboard.readText()
+      - pattern: navigator.clipboard.read()
+      - pattern: document.execCommand('paste')
+
+  ##########################################################################
+  # 23) Credential Theft - Keylogger Pattern
+  ##########################################################################
+  - id: credential.theft.keylogger
+    message: Keylogging pattern detected—capturing all keyboard input including passwords.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: credential-theft
+      mitre: [T1056.001]
+      cwe: [CWE-200, CWE-359]
+      owasp: [A07-Identification and Authentication]
+      description: Detects keylogger patterns that capture keyboard events
+    pattern-either:
+      - pattern: |
+          document.addEventListener('keydown', ...)
+      - pattern: |
+          document.addEventListener('keypress', ...)
+      - pattern: |
+          document.addEventListener('keyup', ...)
+
+  ##########################################################################
+  # 24) C2 Communication - Chrome Runtime Messaging to External
+  ##########################################################################
+  - id: c2.exfiltration.chrome_runtime_external
+    message: Chrome runtime messaging to external extensions—potential C2 channel.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: c2-communication
+      mitre: [T1071, T1102]
+      cwe: [CWE-940]
+      description: Detects external messaging that may be used for C2 communication
+    pattern-either:
+      - pattern: chrome.runtime.sendMessage($EXT_ID, $MSG, ...)
+      - pattern: chrome.runtime.connect($EXT_ID, ...)
+      - patterns:
+          - pattern: chrome.runtime.sendMessage($EXT_ID, $MSG, ...)
+          - metavariable-regex:
+              metavariable: $EXT_ID
+              regex: "[a-z]{32}"
+
+  ##########################################################################
+  # 25) Cookie Theft - IndexedDB Cookie Storage
+  ##########################################################################
+  - id: cookie.theft.indexeddb_storage
+    message: Storing cookies in IndexedDB—potential persistent cookie theft mechanism.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: cookie-theft
+      mitre: [T1539, T1005]
+      cwe: [CWE-539, CWE-312]
+      description: Detects storing of cookie data in IndexedDB for persistence
+    pattern-either:
+      - pattern: |
+          $DB.transaction(...).objectStore(...).add(...)
+      - pattern: |
+          $DB.transaction(...).objectStore(...).put(...)
+      - pattern: |
+          indexedDB.open(...)
+
+  ##########################################################################
+  # 26) C2 Communication - Fetch with Credentials Include
+  ##########################################################################
+  - id: c2.exfiltration.fetch_credentials_include
+    message: Fetch with credentials:include to external domain—session hijacking risk.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: c2-communication
+      mitre: [T1539, T1041]
+      cwe: [CWE-352, CWE-319]
+      description: Detects fetch requests that include credentials to external domains
+    pattern: fetch($URL, ...)
+
+  ##########################################################################
+  # 27) Credential Theft - Chrome Identity API Abuse
+  ##########################################################################
+  - id: credential.theft.chrome_identity_api
+    message: Chrome identity API usage—accessing OAuth tokens or user identity.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: credential-theft
+      mitre: [T1528, T1550.001]
+      cwe: [CWE-522]
+      description: Detects Chrome identity API usage for token theft
+    pattern-either:
+      - pattern: chrome.identity.getAuthToken(...)
+      - pattern: chrome.identity.getProfileUserInfo(...)
+      - pattern: chrome.identity.launchWebAuthFlow(...)
+
+  ##########################################################################
+  # 28) C2 Communication - Dynamic Script Loading from External Source
+  ##########################################################################
+  - id: c2.exfiltration.dynamic_script_loading
+    message: Dynamic script loading from external source—potential remote code execution.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: c2-communication
+      mitre: [T1059.007, T1105]
+      cwe: [CWE-494, CWE-829]
+      description: Detects dynamic loading of scripts from external sources
+    pattern-either:
+      - pattern: document.createElement('script')
+      - pattern: |
+          document.write('<script src="' + $URL + '"></script>')
+      - pattern: |
+          $ELEM.innerHTML = '<script src="' + $URL + '"></script>'
+      - pattern: eval($CODE)
+      - pattern: new Function($CODE)
