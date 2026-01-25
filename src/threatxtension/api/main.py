@@ -32,6 +32,7 @@ class ScanRequest(BaseModel):
     """Request model for triggering a scan."""
 
     url: str
+    force: bool = False  # Force re-scan even if cached
 
 
 class ScanStatusResponse(BaseModel):
@@ -102,9 +103,22 @@ RESULTS_DIR.mkdir(exist_ok=True)
 
 
 def extract_extension_id(url: str) -> Optional[str]:
-    """Extract extension ID from Chrome Web Store URL."""
+    """
+    Extract extension ID from Chrome Web Store URL or validate standalone ID.
+    
+    Args:
+        url: Chrome Web Store URL or 32-character extension ID
+        
+    Returns:
+        Extension ID if valid, None otherwise
+    """
     import re
-
+    
+    # Check if input is already an extension ID (32 lowercase letters a-p)
+    if re.match(r'^[a-p]{32}$', url.strip().lower()):
+        return url.strip().lower()
+    
+    # Try to extract from URL
     match = re.search(r"/detail/(?:[^/]+/)?([a-z]{32})", url)
     return match.group(1) if match else None
 
@@ -166,6 +180,11 @@ async def run_analysis_workflow(url: str, extension_id: str):
                 "timestamp": datetime.now().isoformat(),
                 "status": "completed",
                 "metadata": metadata,
+                "chromeStatsMetadata": (
+                    metadata.get("chrome_stats") if metadata and "chrome_stats" in metadata
+                    else metadata if metadata and "download_source" in metadata and metadata.get("download_source") == "chrome-stats.com"
+                    else None
+                ),
                 "manifest": manifest,
                 "permissions_analysis": analysis_results.get("permissions_analysis") or {},
                 "sast_results": analysis_results.get("javascript_analysis") or {},
@@ -609,10 +628,14 @@ async def trigger_scan(request: ScanRequest, background_tasks: BackgroundTasks):
         Scan trigger confirmation with extension ID
     """
     url = request.url
+    force = request.force
     extension_id = extract_extension_id(url)
 
     if not extension_id:
-        raise HTTPException(status_code=400, detail="Invalid Chrome Web Store URL")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid input. Please provide a Chrome Web Store URL or extension ID (32-character string)"
+        )
 
     # Check if already scanning
     if extension_id in scan_status and scan_status[extension_id] == "running":
@@ -622,12 +645,148 @@ async def trigger_scan(request: ScanRequest, background_tasks: BackgroundTasks):
             "status": "running",
         }
 
+    # Check if already scanned (unless force=True)
+    if not force:
+        existing_result = db.get_scan_result(extension_id)
+        if existing_result:
+            return {
+                "message": "Extension already scanned (use force=true to re-scan)",
+                "extension_id": extension_id,
+                "status": "completed",
+                "already_scanned": True,
+            }
+
+    # If force=True, clear existing cache
+    if force and extension_id in scan_status:
+        del scan_status[extension_id]
+    if force and extension_id in scan_results:
+        del scan_results[extension_id]
+
     # Start background analysis
     background_tasks.add_task(run_analysis_workflow, url, extension_id)
 
     return {
-        "message": "Scan triggered successfully",
+        "message": "Scan triggered successfully" + (" (forced re-scan)" if force else ""),
         "extension_id": extension_id,
+        "status": "running",
+        "forced": force,
+    }
+
+
+@app.post("/api/scan/upload")
+async def upload_and_scan(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...)
+):
+    """
+    Upload a CRX/ZIP file and trigger analysis.
+
+    Args:
+        file: Uploaded CRX or ZIP file
+        background_tasks: FastAPI background tasks
+
+    Returns:
+        Scan trigger confirmation with extension ID
+    """
+    # Validate file extension
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename provided")
+    
+    filename_lower = file.filename.lower()
+    if not (filename_lower.endswith('.crx') or filename_lower.endswith('.zip')):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file type. Only .crx and .zip files are supported"
+        )
+
+    # Validate file size (max 100MB)
+    max_size = 100 * 1024 * 1024  # 100MB
+    file_content = await file.read()
+    if len(file_content) > max_size:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Maximum size is {max_size / (1024*1024):.0f}MB"
+        )
+
+    # Generate unique ID for uploaded file
+    import uuid
+    extension_id = str(uuid.uuid4())
+
+    # Save uploaded file to extensions_storage
+    file_path = RESULTS_DIR / f"{extension_id}_{file.filename}"
+
+    try:
+        with open(file_path, "wb") as buffer:
+            buffer.write(file_content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+
+    # Start background analysis with local file path
+    background_tasks.add_task(run_analysis_workflow, str(file_path), extension_id)
+
+    return {
+        "message": "File uploaded and scan triggered successfully",
+        "extension_id": extension_id,
+        "filename": file.filename,
+        "status": "running",
+    }
+
+
+@app.post("/api/scan/upload")
+async def upload_and_scan(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...)
+):
+    """
+    Upload a CRX/ZIP file and trigger analysis.
+
+    Args:
+        file: Uploaded CRX or ZIP file
+        background_tasks: FastAPI background tasks
+
+    Returns:
+        Scan trigger confirmation with extension ID
+    """
+    # Validate file extension
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename provided")
+    
+    filename_lower = file.filename.lower()
+    if not (filename_lower.endswith('.crx') or filename_lower.endswith('.zip')):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file type. Only .crx and .zip files are supported"
+        )
+
+    # Validate file size (max 100MB)
+    max_size = 100 * 1024 * 1024  # 100MB
+    file_content = await file.read()
+    if len(file_content) > max_size:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Maximum size is {max_size / (1024*1024):.0f}MB"
+        )
+
+    # Generate unique ID for uploaded file
+    import uuid
+    extension_id = str(uuid.uuid4())
+
+    # Save uploaded file to extensions_storage
+    file_path = RESULTS_DIR / f"{extension_id}_{file.filename}"
+
+    try:
+        with open(file_path, "wb") as buffer:
+            buffer.write(file_content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+
+    # Start background analysis with local file path
+    background_tasks.add_task(run_analysis_workflow, str(file_path), extension_id)
+
+    return {
+        "message": "File uploaded and scan triggered successfully",
+        "extension_id": extension_id,
+        "filename": file.filename,
         "status": "running",
     }
 
@@ -735,6 +894,8 @@ async def get_scan_results(extension_id: str):
     # Try loading from database
     results = db.get_scan_result(extension_id)
     if results:
+        metadata = results.get("metadata", {})
+        
         # Ensure consistent field naming for frontend
         formatted_results = {
             "extension_id": results.get("extension_id"),
@@ -742,7 +903,12 @@ async def get_scan_results(extension_id: str):
             "url": results.get("url"),
             "timestamp": results.get("timestamp"),
             "status": results.get("status"),
-            "metadata": results.get("metadata", {}),
+            "metadata": metadata,
+            "chromeStatsMetadata": (
+                metadata.get("chrome_stats") if metadata and "chrome_stats" in metadata
+                else metadata if metadata and "download_source" in metadata and metadata.get("download_source") == "chrome-stats.com"
+                else None
+            ),
             "manifest": results.get("manifest", {}),
             "permissions_analysis": results.get("permissions_analysis", {}),
             "sast_results": results.get("sast_results", {}),

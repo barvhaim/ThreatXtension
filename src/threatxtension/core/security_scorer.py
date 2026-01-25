@@ -28,8 +28,9 @@ class SecurityScorer:
     WEIGHTS = {
         'sast': 60,           # SAST findings (increased from planned 50)
         'permissions': 30,     # Permission risks (reduced from 35)
-        'virustotal': 50,      # VirusTotal detections (NEW)
-        'entropy': 30,         # Obfuscation detection (NEW)
+        'virustotal': 50,      # VirusTotal detections
+        'entropy': 30,         # Obfuscation detection
+        'chromestats': 28,     # Behavioral threat intelligence (NEW)
         'webstore': 5,         # Webstore reputation (reduced from 10)
         'manifest': 5,         # Manifest issues
     }
@@ -91,7 +92,15 @@ class SecurityScorer:
         breakdown['entropy'] = entropy_risk
         details['entropy'] = entropy_details
 
-        # 5. Webstore Analysis (5 points max)
+        # 5. Chrome Stats Analysis (28 points max)
+        chromestats_risk, chromestats_details = self._calculate_chromestats_risk(
+            analysis_results.get('chromestats_analysis', {})
+        )
+        risk_points += chromestats_risk
+        breakdown['chromestats'] = chromestats_risk
+        details['chromestats'] = chromestats_details
+
+        # 6. Webstore Analysis (5 points max)
         webstore_risk, webstore_details = self._calculate_webstore_risk(
             analysis_results.get('webstore_analysis', {})
         )
@@ -99,7 +108,7 @@ class SecurityScorer:
         breakdown['webstore'] = webstore_risk
         details['webstore'] = webstore_details
 
-        # 6. Manifest Analysis (5 points max)
+        # 7. Manifest Analysis (5 points max)
         manifest_risk, manifest_details = self._calculate_manifest_risk(
             analysis_results.get('manifest', {})
         )
@@ -424,6 +433,46 @@ class SecurityScorer:
         }
 
         return min(5, risk), details
+
+    def _calculate_chromestats_risk(self, chromestats_data: Dict) -> tuple[int, Dict]:
+        """
+        Calculate risk from Chrome Stats behavioral analysis (max 28 points).
+
+        Args:
+            chromestats_data: Chrome Stats analysis results
+
+        Returns:
+            Tuple of (risk_points, details_dict)
+        """
+        if not chromestats_data.get('enabled'):
+            return 0, {'message': 'Chrome Stats not enabled'}
+
+        if chromestats_data.get('error'):
+            return 0, {'message': f"Chrome Stats error: {chromestats_data.get('error')}"}
+
+        # Use the total risk score calculated by the analyzer
+        total_risk_score = chromestats_data.get('total_risk_score', 0)
+        risk_indicators = chromestats_data.get('risk_indicators', [])
+        overall_risk = chromestats_data.get('overall_risk_level', 'low')
+
+        # Extract key metrics
+        install_trends = chromestats_data.get('install_trends', {})
+        rating_patterns = chromestats_data.get('rating_patterns', {})
+        developer_reputation = chromestats_data.get('developer_reputation', {})
+
+        details = {
+            'overall_risk_level': overall_risk,
+            'total_risk_score': total_risk_score,
+            'risk_indicator_count': len(risk_indicators),
+            'top_indicators': risk_indicators[:5],  # Top 5 indicators
+            'uninstall_rate': install_trends.get('uninstall_rate', 0),
+            'rating_change': rating_patterns.get('rating_change', 0),
+            'developer_trust_score': developer_reputation.get('trust_score', 100),
+            'message': f"{len(risk_indicators)} behavioral risk indicators detected"
+        }
+
+        # Cap at 28 points (max weight for chromestats)
+        return min(28, total_risk_score), details
 
     @staticmethod
     def _get_risk_level(score: int) -> str:

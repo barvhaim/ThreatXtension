@@ -193,3 +193,25 @@ def is_local_extension_crx_file(path: str) -> bool:
     if not path:
         return False
     return os.path.isfile(path) and (path.lower().endswith(".crx") or path.lower().endswith(".zip"))
+
+
+def is_chrome_extension_id(path: str) -> bool:
+    """
+    Check if the provided string is a valid Chrome extension ID.
+    
+    Chrome extension IDs are 32-character lowercase alphanumeric strings.
+    Example: gbbilodpoldeopifonmibfboicpafpjo
+    
+    Args:
+        path (str): The string to check.
+        
+    Returns:
+        bool: True if the string matches Chrome extension ID pattern, False otherwise.
+    """
+    if not path or not isinstance(path, str):
+        return False
+    
+    # Chrome extension IDs are exactly 32 characters, lowercase letters a-p only
+    # (base16 encoding using letters a-p instead of 0-9a-f)
+    pattern = r'^[a-p]{32}$'
+    return bool(re.match(pattern, path.strip().lower()))

@@ -11,6 +11,8 @@ import realScanService from "../services/realScanService";
 import databaseService from "../services/databaseService";
 import gptOssService from "../services/gptOssService";
 import FileViewerModal from "../components/FileViewerModal";
+import FindingDetailsModal from "../components/FindingDetailsModal";
+import AllFindingsModal from "../components/AllFindingsModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
 import { Loader2 } from "lucide-react";
 import "./DashboardPage.scss";
@@ -22,10 +24,18 @@ const DashboardPage = () => {
   const [error, setError] = useState(null);
   const [scanHistory, setScanHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [forceRescan, setForceRescan] = useState(false);
   // const [showSampleModal, setShowSampleModal] = useState(false);
   const [fileViewerModal, setFileViewerModal] = useState({
     isOpen: false,
     file: null,
+  });
+  const [findingDetailsModal, setFindingDetailsModal] = useState({
+    isOpen: false,
+    finding: null,
+  });
+  const [allFindingsModal, setAllFindingsModal] = useState({
+    isOpen: false,
   });
   const [aiAnalysisModal, setAiAnalysisModal] = useState({
     isOpen: false,
@@ -136,16 +146,26 @@ const DashboardPage = () => {
     setScanResults(null);
 
     try {
-      const extId = extractExtensionId(url);
-      if (!extId) {
-        throw new Error("Invalid Chrome Web Store URL format");
+      // Check if input is already an extension ID (32 lowercase letters a-p)
+      const isExtensionId = /^[a-p]{32}$/.test(url.trim().toLowerCase());
+      
+      let extId;
+      if (isExtensionId) {
+        // Input is already an extension ID
+        extId = url.trim().toLowerCase();
+      } else {
+        // Try to extract ID from URL
+        extId = extractExtensionId(url);
+        if (!extId) {
+          throw new Error("Invalid input. Please enter a Chrome Web Store URL or extension ID (32-character string)");
+        }
       }
 
       const status = await realScanService.checkScanStatus(extId);
 
-      if (!status.scanned) {
-        setError("🔄 Starting security scan... This may take a few minutes for large extensions.");
-        const scanTrigger = await realScanService.triggerScan(url);
+      if (!status.scanned || forceRescan) {
+        setError(forceRescan ? "🔄 Force re-scanning extension..." : "🔄 Starting security scan... This may take a few minutes for large extensions.");
+        const scanTrigger = await realScanService.triggerScan(url, forceRescan);
 
         // Check for success based on running status available in the response
         if (scanTrigger.status !== "running") {
@@ -281,12 +301,16 @@ const DashboardPage = () => {
   };
 
   const handleViewFindingDetails = (finding) => {
-    const details = `🚨 Security Finding Details\n\nFile: ${finding.file}\nLine: ${finding.line}\nSeverity: ${finding.severity}\nTitle: ${finding.title}\nDescription: ${finding.description}`;
-    alert(details);
+    setFindingDetailsModal({
+      isOpen: true,
+      finding: finding,
+    });
   };
 
   const handleViewAllFindings = () => {
-    alert(`Viewing all ${scanResults.totalFindings} findings.`);
+    setAllFindingsModal({
+      isOpen: true,
+    });
   };
 
   return (
@@ -313,6 +337,30 @@ const DashboardPage = () => {
             onFileUpload={handleFileUpload}
             isScanning={isScanning}
           />
+          
+          {/* Force Re-scan Checkbox */}
+          <div style={{
+            marginTop: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '14px',
+            color: '#64748b'
+          }}>
+            <input
+              type="checkbox"
+              id="force-rescan"
+              checked={forceRescan}
+              onChange={(e) => setForceRescan(e.target.checked)}
+              style={{ cursor: 'pointer' }}
+            />
+            <label
+              htmlFor="force-rescan"
+              style={{ cursor: 'pointer', userSelect: 'none' }}
+            >
+              Force re-scan (ignore cached results)
+            </label>
+          </div>
         </div>
       </section>
 
@@ -471,6 +519,21 @@ const DashboardPage = () => {
         file={fileViewerModal.file}
         extensionId={scanResults?.extensionId}
         onGetFileContent={getFileContent}
+      />
+
+      <FindingDetailsModal
+        isOpen={findingDetailsModal.isOpen}
+        onClose={() => setFindingDetailsModal({ isOpen: false, finding: null })}
+        finding={findingDetailsModal.finding}
+        extensionId={scanResults?.extensionId}
+        onGetFileContent={getFileContent}
+      />
+
+      <AllFindingsModal
+        isOpen={allFindingsModal.isOpen}
+        onClose={() => setAllFindingsModal({ isOpen: false })}
+        findings={scanResults?.sastResults || []}
+        onViewFindingDetails={handleViewFindingDetails}
       />
 
       {/* AI Analysis Modal */}

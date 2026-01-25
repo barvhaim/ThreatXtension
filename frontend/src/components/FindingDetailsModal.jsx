@@ -9,7 +9,7 @@ import {
 } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Loader2, Copy, AlertTriangle } from "lucide-react";
+import { Loader2, Copy, AlertTriangle, Code2 } from "lucide-react";
 
 const FindingDetailsModal = ({
   isOpen,
@@ -22,6 +22,7 @@ const FindingDetailsModal = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [isPrettified, setIsPrettified] = useState(false);
 
   useEffect(() => {
     if (isOpen && finding && extensionId) {
@@ -47,9 +48,71 @@ const FindingDetailsModal = ({
     }
   };
 
+  // Prettify JavaScript code
+  const prettifyCode = (code) => {
+    try {
+      // Simple JavaScript beautifier
+      let formatted = code;
+      let indent = 0;
+      const indentStr = '  ';
+      const lines = [];
+      let currentLine = '';
+      
+      for (let i = 0; i < code.length; i++) {
+        const char = code[i];
+        const nextChar = code[i + 1];
+        
+        currentLine += char;
+        
+        // Handle opening braces
+        if (char === '{' || char === '[') {
+          indent++;
+          if (nextChar && nextChar !== '}' && nextChar !== ']') {
+            lines.push(currentLine.trim());
+            currentLine = indentStr.repeat(indent);
+          }
+        }
+        // Handle closing braces
+        else if (char === '}' || char === ']') {
+          indent = Math.max(0, indent - 1);
+          if (currentLine.trim() !== char) {
+            lines.push(currentLine.slice(0, -1).trim());
+            currentLine = indentStr.repeat(indent) + char;
+          }
+          if (nextChar && nextChar !== ';' && nextChar !== ',' && nextChar !== ')' && nextChar !== '}' && nextChar !== ']') {
+            lines.push(currentLine.trim());
+            currentLine = indentStr.repeat(indent);
+          }
+        }
+        // Handle semicolons
+        else if (char === ';') {
+          if (nextChar && nextChar !== '}' && nextChar !== ')') {
+            lines.push(currentLine.trim());
+            currentLine = indentStr.repeat(indent);
+          }
+        }
+        // Handle commas in objects/arrays
+        else if (char === ',' && (code.substring(Math.max(0, i - 20), i).includes('{') || code.substring(Math.max(0, i - 20), i).includes('['))) {
+          lines.push(currentLine.trim());
+          currentLine = indentStr.repeat(indent);
+        }
+      }
+      
+      if (currentLine.trim()) {
+        lines.push(currentLine.trim());
+      }
+      
+      return lines.join('\n');
+    } catch (err) {
+      console.error('Prettify error:', err);
+      return code;
+    }
+  };
+
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(fileContent);
+      const contentToCopy = isPrettified ? prettifyCode(fileContent) : fileContent;
+      await navigator.clipboard.writeText(contentToCopy);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -57,10 +120,15 @@ const FindingDetailsModal = ({
     }
   };
 
+  const togglePrettify = () => {
+    setIsPrettified(!isPrettified);
+  };
+
   const renderCodeWithHighlight = () => {
     if (!fileContent) return null;
 
-    const lines = fileContent.split('\n');
+    const displayContent = isPrettified ? prettifyCode(fileContent) : fileContent;
+    const lines = displayContent.split('\n');
     const targetLine = finding.line_number || finding.line || 1;
     
     // Show context: 5 lines before and after
@@ -68,45 +136,137 @@ const FindingDetailsModal = ({
     const contextEnd = Math.min(lines.length, targetLine + 5);
     const contextLines = lines.slice(contextStart, contextEnd);
 
+    // Extract the specific code snippet that triggered the finding
+    const getHighlightedSnippet = (line) => {
+      // Extract keywords from finding title to prioritize matching
+      const findingKeywords = [
+        finding.title?.toLowerCase(),
+        finding.pattern_name?.toLowerCase(),
+        finding.check_id?.toLowerCase()
+      ].filter(Boolean);
+
+      // Build pattern map with keywords for prioritization
+      const patternMap = {
+        'localstorage': /localStorage[.\[]/gi,
+        'sessionstorage': /sessionStorage[.\[]/gi,
+        'fetch': /fetch\s*\(/gi,
+        'xmlhttprequest': /XMLHttpRequest/gi,
+        'formdata': /FormData/gi,
+        'eval': /eval\s*\(/gi,
+        'function': /Function\s*\(/gi,
+        'innerhtml': /innerHTML\s*=/gi,
+        'outerhtml': /outerHTML\s*=/gi,
+        'document.write': /document\.write/gi,
+        'document.cookie': /document\.cookie/gi,
+        'chrome.storage': /chrome\.storage/gi,
+        'password': /\.password/gi,
+        'credential': /\.credential/gi,
+        'atob': /atob\s*\(/gi,
+        'btoa': /btoa\s*\(/gi,
+      };
+
+      // First, try to match patterns related to the finding keywords
+      for (const keyword of findingKeywords) {
+        for (const [key, pattern] of Object.entries(patternMap)) {
+          if (keyword && keyword.includes(key)) {
+            const match = line.match(pattern);
+            if (match) {
+              const matchIndex = line.indexOf(match[0]);
+              const start = Math.max(0, matchIndex - 30);
+              const end = Math.min(line.length, matchIndex + match[0].length + 30);
+              return {
+                before: line.substring(start, matchIndex),
+                match: match[0],
+                after: line.substring(matchIndex + match[0].length, end),
+                hasMatch: true
+              };
+            }
+          }
+        }
+      }
+
+      // Fallback: try all patterns in order
+      for (const pattern of Object.values(patternMap)) {
+        const match = line.match(pattern);
+        if (match) {
+          const matchIndex = line.indexOf(match[0]);
+          const start = Math.max(0, matchIndex - 30);
+          const end = Math.min(line.length, matchIndex + match[0].length + 30);
+          return {
+            before: line.substring(start, matchIndex),
+            match: match[0],
+            after: line.substring(matchIndex + match[0].length, end),
+            hasMatch: true
+          };
+        }
+      }
+
+      return { before: '', match: line, after: '', hasMatch: false };
+    };
+
     return (
       <div className="bg-muted rounded-lg overflow-hidden border">
         <div className="bg-background/50 px-4 py-2 border-b flex items-center justify-between">
           <span className="text-sm font-medium">Code Context</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCopy}
-          >
-            <Copy className="h-4 w-4 mr-2" />
-            {copied ? "Copied!" : "Copy All"}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={togglePrettify}
+              title={isPrettified ? "Show original" : "Prettify code"}
+            >
+              <Code2 className="h-4 w-4 mr-2" />
+              {isPrettified ? "Original" : "Prettify"}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCopy}
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              {copied ? "Copied!" : "Copy"}
+            </Button>
+          </div>
         </div>
         <div className="overflow-x-auto">
-          <pre className="p-4 text-xs font-mono">
+          <pre className="p-4 text-xs font-mono leading-relaxed">
             {contextLines.map((line, idx) => {
               const lineNumber = contextStart + idx + 1;
               const isTargetLine = lineNumber === targetLine;
+              const snippet = isTargetLine ? getHighlightedSnippet(line) : null;
               
               return (
                 <div
                   key={idx}
                   className={`flex ${
                     isTargetLine
-                      ? 'bg-red-500/20 border-l-4 border-l-red-500'
+                      ? 'bg-yellow-400/20 border-l-4 border-l-yellow-500'
                       : 'hover:bg-muted/50'
                   }`}
                 >
                   <span
-                    className={`inline-block w-12 text-right pr-4 select-none ${
+                    className={`inline-block w-12 text-right pr-4 select-none flex-shrink-0 ${
                       isTargetLine
-                        ? 'text-red-500 font-bold'
+                        ? 'text-yellow-600 font-bold'
                         : 'text-muted-foreground'
                     }`}
                   >
                     {lineNumber}
                   </span>
-                  <span className={`flex-1 ${isTargetLine ? 'font-semibold' : ''}`}>
-                    {line || ' '}
+                  <span className="flex-1 break-all">
+                    {isTargetLine && snippet && snippet.hasMatch ? (
+                      <>
+                        <span className="text-muted-foreground">{snippet.before}</span>
+                        <span className="bg-yellow-400/60 text-yellow-900 font-bold px-1 rounded">
+                          {snippet.match}
+                        </span>
+                        <span className="text-muted-foreground">{snippet.after}</span>
+                      </>
+                    ) : (
+                      <span className={isTargetLine ? 'font-semibold' : 'text-muted-foreground'}>
+                        {line || ' '}
+                      </span>
+                    )}
                   </span>
                 </div>
               );
