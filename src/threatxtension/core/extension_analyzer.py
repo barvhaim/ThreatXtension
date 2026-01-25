@@ -10,6 +10,7 @@ from threatxtension.core.analyzers.sast import JavaScriptAnalyzer
 from threatxtension.core.analyzers.webstore import WebstoreAnalyzer
 from threatxtension.core.analyzers.virustotal import VirusTotalAnalyzer
 from threatxtension.core.analyzers.entropy import EntropyAnalyzer
+from threatxtension.core.analyzers.chromestats import ChromeStatsAnalyzer
 
 
 class ExtensionAnalyzer:
@@ -29,6 +30,7 @@ class ExtensionAnalyzer:
         self.webstore_analyzer = WebstoreAnalyzer()
         self.virustotal_analyzer = VirusTotalAnalyzer()
         self.entropy_analyzer = EntropyAnalyzer()
+        self.chromestats_analyzer = ChromeStatsAnalyzer()
 
     def analyze(self) -> Optional[Dict]:
         """
@@ -56,10 +58,15 @@ class ExtensionAnalyzer:
             extension_dir=self.extension_dir, manifest=self.manifest, metadata=self.metadata
         )
 
+        chromestats_analysis = self.chromestats_analyzer.analyze(
+            extension_dir=self.extension_dir, manifest=self.manifest, metadata=self.metadata
+        )
+
         return {
             "permissions_analysis": permissions_analysis,
             "webstore_analysis": webstore_analysis,
             "javascript_analysis": javascript_analysis,
             "virustotal_analysis": virustotal_analysis,
             "entropy_analysis": entropy_analysis,
+            "chromestats_analysis": chromestats_analysis,
         }

@@ -20,7 +20,9 @@ from threatxtension.utils.extension import (
     cleanup_downloaded_crx,
     is_chrome_extension_store_url,
     is_local_extension_crx_file,
+    is_chrome_extension_id,
 )
+from threatxtension.core.chromestats_downloader import ChromeStatsDownloader
 from threatxtension.workflow.node_types import (
     EXTENSION_METADATA_NODE,
     EXTENSION_DOWNLOADER_NODE,
@@ -40,9 +42,16 @@ def extension_path_routing_node(state: WorkflowState) -> Command:
     if not chrome_extension_path:
         raise ValueError("No Chrome extension path provided in the workflow state.")
 
+    # Check if it's an extension ID (32-character string)
+    if is_chrome_extension_id(chrome_extension_path):
+        logger.info("Detected Chrome extension ID: %s", chrome_extension_path)
+        return Command(goto="chromestats_downloader_node")
+
+    # Check if it's a Chrome Web Store URL
     if is_chrome_extension_store_url(chrome_extension_path):
         return Command(goto=EXTENSION_METADATA_NODE)
 
+    # Check if it's a local CRX/ZIP file
     if is_local_extension_crx_file(chrome_extension_path):
         return Command(goto=EXTENSION_DOWNLOADER_NODE)
 
@@ -50,7 +59,7 @@ def extension_path_routing_node(state: WorkflowState) -> Command:
         goto=END,
         update={
             "status": WorkflowStatus.FAILED.value,
-            "error": "Invalid input: not a Chrome Web Store URL or local CRX file.",
+            "error": "Invalid input: not a Chrome Web Store URL, extension ID, or local CRX file.",
         },
     )
 
@@ -75,12 +84,94 @@ def extension_metadata_node(state: WorkflowState) -> Command:
         logger.info("Extracting metadata for extension URL: %s", chrome_extension_url)
         metadata_extractor = ExtensionMetadata(extension_url=chrome_extension_url)
         metadata = metadata_extractor.fetch_metadata()
+        
+        # Also fetch chrome-stats metadata if we have an extension ID
+        if metadata and metadata.get("extension_id"):
+            try:
+                logger.info("Fetching chrome-stats metadata for extension ID: %s", metadata["extension_id"])
+                chromestats = ChromeStatsDownloader()
+                chromestats_details = chromestats._get_extension_details(metadata["extension_id"])
+                
+                if chromestats_details:
+                    # Add chrome_stats field to metadata
+                    metadata["chrome_stats"] = chromestats_details
+                    logger.info("Successfully fetched chrome-stats metadata")
+                else:
+                    logger.warning("No chrome-stats metadata available for extension ID: %s", metadata["extension_id"])
+            except Exception as chromestats_exc:
+                logger.warning("Failed to fetch chrome-stats metadata: %s", chromestats_exc)
+                # Don't fail the whole workflow if chrome-stats fetch fails
+                
     except Exception as exc:
         logger.exception("Extension metadata extraction failed: %s", str(exc))
 
     return Command(
         goto=EXTENSION_DOWNLOADER_NODE,
         update={
+            "extension_metadata": metadata,
+        },
+    )
+
+
+def chromestats_downloader_node(state: WorkflowState) -> Command:
+    """
+    Node that downloads extension from chrome-stats.com using extension ID.
+    
+    Args:
+        state (WorkflowState): The current state of the workflow.
+        
+    Returns:
+        Command: A command indicating the next step in the workflow.
+    """
+    chrome_extension_path = state.get("chrome_extension_path")
+    if not chrome_extension_path:
+        raise ValueError("No Chrome extension ID provided in the workflow state.")
+    
+    extension_id = chrome_extension_path.strip().lower()
+    downloaded_crx_path = None
+    extension_dir = None
+    
+    try:
+        logger.info("Downloading extension from chrome-stats.com: %s", extension_id)
+        downloader = ChromeStatsDownloader()
+        
+        # Download extension (as ZIP for easier extraction)
+        file_path, metadata = downloader.download_extension(
+            extension_id=extension_id,
+            file_format="ZIP"
+        )
+        
+        if not file_path or not metadata:
+            raise RuntimeError("Failed to download extension from chrome-stats.com")
+        
+        logger.info("Successfully downloaded extension: %s", file_path)
+        downloaded_crx_path = file_path
+        
+        # Extract the downloaded file
+        extension_dir = extract_extension_crx(file_path)
+        if not extension_dir:
+            raise RuntimeError("Failed to extract downloaded extension")
+        
+        logger.info("Successfully extracted extension to: %s", extension_dir)
+        
+    except Exception as exc:
+        logger.exception("Chrome Stats download/extract failed")
+        return Command(
+            goto=CLEANUP_NODE,
+            update={
+                "extension_dir": extension_dir,
+                "downloaded_crx_path": downloaded_crx_path,
+                "extension_metadata": metadata if 'metadata' in locals() else None,
+                "status": WorkflowStatus.FAILED.value,
+                "error": str(exc),
+            },
+        )
+    
+    return Command(
+        goto=MANIFEST_PARSER_NODE,
+        update={
+            "extension_dir": extension_dir,
+            "downloaded_crx_path": downloaded_crx_path,
             "extension_metadata": metadata,
         },
     )

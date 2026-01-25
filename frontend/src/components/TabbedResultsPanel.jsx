@@ -4,6 +4,7 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Info, Filter, ChevronDown, ChevronUp, Download, Shield, AlertTriangle, FileWarning } from "lucide-react";
+import ChromeStatsTab from "./ChromeStatsTab";
 
 
 /**
@@ -151,12 +152,13 @@ const TabbedResultsPanel = ({
 
       {/* Tabbed Interface */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="threatintel">Threat Intel</TabsTrigger>
           <TabsTrigger value="obfuscation">Obfuscation</TabsTrigger>
           <TabsTrigger value="files">Files ({scanResults.files?.length || 0})</TabsTrigger>
           <TabsTrigger value="findings">SAST ({scanResults.sastResults?.length || 0})</TabsTrigger>
+          <TabsTrigger value="chromestats">Chrome Stats</TabsTrigger>
           <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
         </TabsList>
 
@@ -636,6 +638,16 @@ const TabbedResultsPanel = ({
               </div>
             )}
           </div>
+        </TabsContent>
+
+        {/* Chrome Stats Tab */}
+        <TabsContent value="chromestats" className="space-y-4">
+          <ChromeStatsTab
+            metadata={scanResults.chromeStatsMetadata || scanResults.metadata}
+            collapsedSections={collapsedSections}
+            toggleSection={toggleSection}
+            isSectionCollapsed={isSectionCollapsed}
+          />
         </TabsContent>
 
         {/* Recommendations Tab */}

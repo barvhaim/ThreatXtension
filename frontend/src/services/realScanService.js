@@ -12,14 +12,14 @@ class RealScanService {
   }
 
   // Trigger a scan for an extension URL
-  async triggerScan(url) {
+  async triggerScan(url, force = false) {
     try {
       const response = await fetch(`${this.baseURL}/api/scan/trigger`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, force }),
       });
 
       if (response.ok) {
@@ -176,6 +176,9 @@ class RealScanService {
 
         // Entropy/Obfuscation analysis
         entropyAnalysis: cliResults.entropy_analysis || null,
+
+        // Chrome Stats metadata (from chrome-stats.com API)
+        chromeStatsMetadata: cliResults.chromeStatsMetadata || null,
       };
     } catch (error) {
       console.error("Error formatting CLI results:", error);
@@ -277,18 +280,30 @@ class RealScanService {
       return [];
     }
 
-    return sastResults.map((finding) => ({
-      file: finding.file || "Unknown",
-      line: finding.line_number || finding.line || 0,
-      title: finding.pattern_name || finding.title || "Security Finding",
-      description: finding.description || "No description available",
-      severity: this.mapRiskLevelToSeverity(
-        finding.risk_level || finding.severity || "medium",
-      ),
-      riskScore: finding.risk_score || 0,
-      context: finding.context || "",
-      matchText: finding.match_text || "",
-    }));
+    return sastResults.map((finding) => {
+      // Extract data from Semgrep format
+      const extra = finding.extra || {};
+      const start = finding.start || {};
+      const metadata = extra.metadata || {};
+      
+      return {
+        file: finding.file || finding.path || "Unknown",
+        line: start.line || finding.line_number || finding.line || 0,
+        title: finding.check_id || finding.pattern_name || finding.title || "Security Finding",
+        description: extra.message || finding.description || "No description available",
+        severity: this.mapRiskLevelToSeverity(
+          extra.severity || finding.risk_level || finding.severity || "medium",
+        ),
+        riskScore: finding.risk_score || 0,
+        context: finding.context || extra.lines || "",
+        matchText: finding.match_text || "",
+        // Additional Semgrep-specific fields
+        checkId: finding.check_id,
+        category: metadata.category,
+        mitre: metadata.mitre,
+        cwe: metadata.cwe,
+      };
+    });
   }
 
   // Map CLI risk levels to frontend severity levels

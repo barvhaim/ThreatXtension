@@ -8,6 +8,7 @@ from langgraph.graph import StateGraph
 from threatxtension.workflow.nodes import (
     extension_path_routing_node,
     extension_metadata_node,
+    chromestats_downloader_node,
     extension_downloader_node,
     manifest_parser_node,
     extension_analyzer_node,
@@ -32,6 +33,7 @@ def build_graph():
 
     flow.add_node(EXTENSION_PATH_ROUTING_NODE, extension_path_routing_node)
     flow.add_node(EXTENSION_METADATA_NODE, extension_metadata_node)
+    flow.add_node("chromestats_downloader_node", chromestats_downloader_node)
     flow.add_node(EXTENSION_DOWNLOADER_NODE, extension_downloader_node)
     flow.add_node(MANIFEST_PARSER_NODE, manifest_parser_node)
     flow.add_node(EXTENSION_ANALYZER_NODE, extension_analyzer_node)

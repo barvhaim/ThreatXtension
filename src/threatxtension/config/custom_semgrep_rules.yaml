@@ -537,3 +537,153 @@ rules:
           $ELEM.innerHTML = '<script src="' + $URL + '"></script>'
       - pattern: eval($CODE)
       - pattern: new Function($CODE)
+
+  ##########################################################################
+  # 29) C2 Communication - Hardcoded C2 Server List
+  ##########################################################################
+  - id: c2.infrastructure.server_list
+    message: Hardcoded list of suspicious C2 domains detected—malware infrastructure.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: c2-communication
+      mitre: [T1071, T1583.001]
+      cwe: [CWE-506, CWE-940]
+      description: Detects arrays of suspicious domains used for C2 communication
+    patterns:
+      - pattern-either:
+          - pattern: |
+              const $VAR = [ ..., $URL1, ..., $URL2, ... ];
+          - pattern: |
+              let $VAR = [ ..., $URL1, ..., $URL2, ... ];
+          - pattern: |
+              var $VAR = [ ..., $URL1, ..., $URL2, ... ];
+      - metavariable-regex:
+          metavariable: $URL1
+          regex: "https?://[a-z0-9]{20,}\\.[a-z]{2,20}\\.[a-z]{2,10}/"
+      - metavariable-regex:
+          metavariable: $URL2
+          regex: "https?://[a-z0-9]{20,}\\.[a-z]{2,20}\\.[a-z]{2,10}/"
+
+  ##########################################################################
+  # 30) URL Hijacking - webNavigation Redirect
+  ##########################################################################
+  - id: hijacking.url_redirect.webnavigation
+    message: webNavigation listener redirecting user navigation—URL hijacking detected.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: url-hijacking
+      mitre: [T1185, T1565.002]
+      cwe: [CWE-601, CWE-346]
+      description: Detects webNavigation API abuse to redirect user browsing
+    patterns:
+      - pattern: |
+          chrome.webNavigation.onBeforeNavigate.addListener(...)
+      - pattern-inside: |
+          chrome.tabs.update($TAB, { url: $URL })
+
+  ##########################################################################
+  # 31) Tracking - Persistent User ID Generation
+  ##########################################################################
+  - id: tracking.persistent_user_id
+    message: Generating persistent tracking ID with crypto—user fingerprinting detected.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: tracking
+      mitre: [T1082, T1592.004]
+      cwe: [CWE-359, CWE-200]
+      description: Detects generation of persistent user identifiers for tracking
+    patterns:
+      - pattern: crypto.getRandomValues($ARRAY)
+      - pattern-inside: |
+          chrome.storage.local.set({$KEY: $VALUE}, ...)
+
+  ##########################################################################
+  # 32) Data Exfiltration - URL and User Data to C2
+  ##########################################################################
+  - id: c2.exfiltration.url_and_userid
+    message: Sending browsing URL and user ID to external server—active surveillance.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: c2-communication
+      mitre: [T1041, T1213]
+      cwe: [CWE-359, CWE-319]
+      description: Detects exfiltration of browsing history and user identifiers
+    patterns:
+      - pattern: |
+          fetch($URL, { ..., body: JSON.stringify({..., url: $BROWSING_URL, ...}), ... })
+      - pattern-inside: |
+          async function $FUNC(...) { ... }
+
+  ##########################################################################
+  # 33) C2 Communication - Fallback Server Loop
+  ##########################################################################
+  - id: c2.infrastructure.fallback_loop
+    message: Looping through server list with fallback—resilient C2 infrastructure.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: c2-communication
+      mitre: [T1071, T1008]
+      cwe: [CWE-940]
+      description: Detects C2 resilience pattern with multiple fallback servers
+    patterns:
+      - pattern: |
+          for (const $SERVER of $SERVER_LIST) {
+            ...
+            try {
+              ...
+              const $RESPONSE = await fetch($URL, ...);
+              ...
+              break;
+            } catch ($ERROR) {
+              ...
+            }
+          }
+
+  ##########################################################################
+  # 34) URL Hijacking - Dynamic Domain Mapping
+  ##########################################################################
+  - id: hijacking.dynamic_domain_mapping
+    message: Dynamic domain mapping for URL redirection—sophisticated hijacking.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: url-hijacking
+      mitre: [T1185, T1071.001]
+      cwe: [CWE-601]
+      description: Detects dynamic mapping of domains for targeted URL hijacking
+    patterns:
+      - pattern: |
+          const $PARSED = new URL($URL);
+      - pattern-inside: |
+          const $TARGET = $DOMAINS[$PARSED.hostname];
+      - pattern-inside: |
+          chrome.tabs.update($TAB, { url: ... })
+
+  ##########################################################################
+  # 35) Suspicious - Random String Domain Pattern
+  ##########################################################################
+  - id: suspicious.random_domain_pattern
+    message: Suspicious random-string domain detected—likely malicious infrastructure.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: suspicious-infrastructure
+      mitre: [T1583.001]
+      cwe: [CWE-506]
+      description: Detects domains with random character patterns typical of malware
+    pattern-either:
+      - patterns:
+          - pattern: $URL
+          - metavariable-regex:
+              metavariable: $URL
+              regex: "https?://[a-z0-9]{25,}\\.[a-z]{5,25}\\.[a-z]{2,10}/"
+      - patterns:
+          - pattern: $URL
+          - metavariable-regex:
+              metavariable: $URL
+              regex: "https?://[a-z]{2,5}[0-9]{2,5}[a-z]{2,5}[0-9]{2,5}.*\\.[a-z]{2,10}/"

@@ -41,7 +41,7 @@ const EnhancedUrlInput = ({
         <div className="url-field-container">
           <div className="space-y-2">
             <label htmlFor="extension-url" className="text-sm font-medium url-label">
-              Chrome Web Store URL
+              Chrome Web Store URL or Extension ID
             </label>
             <div className="url-input-wrapper">
               <style>
@@ -70,7 +70,7 @@ const EnhancedUrlInput = ({
               </style>
               <Input
                 id="extension-url"
-                placeholder="https://chromewebstore.google.com/detail/extension-name/extension-id"
+                placeholder="URL: https://chromewebstore.google.com/... or ID: gbbilodpoldeopifonmibfboicpafpjo"
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 onKeyPress={handleKeyPress}
@@ -160,8 +160,8 @@ const EnhancedUrlInput = ({
 
       <p className="input-help-text text-sm text-muted-foreground mt-2">
         {onFileUpload
-          ? "Enter a Chrome Web Store URL or upload a .crx/.zip file to analyze the extension's security posture"
-          : "Enter a Chrome Web Store URL to automatically scan and analyze the extension's security posture"
+          ? "Enter a Chrome Web Store URL, extension ID (32-character string), or upload a .crx/.zip file to analyze the extension's security posture"
+          : "Enter a Chrome Web Store URL or extension ID (32-character string) to automatically scan and analyze the extension's security posture"
         }
       </p>
     </div>

@@ -32,6 +32,9 @@ const AnalysisPage = () => {
     isOpen: false,
     finding: null,
   });
+  const [allFindingsModal, setAllFindingsModal] = useState({
+    isOpen: false,
+  });
 
   useEffect(() => {
     const loadData = async () => {
@@ -137,7 +140,9 @@ const AnalysisPage = () => {
   };
 
   const handleViewAllFindings = () => {
-    alert(`Viewing all ${scanResults.totalFindings} findings.`);
+    setAllFindingsModal({
+      isOpen: true,
+    });
   };
 
   if (loading) {
@@ -204,6 +209,13 @@ const AnalysisPage = () => {
         finding={findingDetailsModal.finding}
         extensionId={scanResults?.extensionId}
         onGetFileContent={getFileContent}
+      />
+
+      <AllFindingsModal
+        isOpen={allFindingsModal.isOpen}
+        onClose={() => setAllFindingsModal({ isOpen: false })}
+        findings={scanResults?.sastResults || []}
+        onViewFindingDetails={handleViewFindingDetails}
       />
 
       {/* AI Analysis Modal */}
