@@ -1,0 +1,44 @@
+{
+  "enabled": true,
+  "api_timeout_seconds": 30,
+  "cache_ttl_hours": 24,
+  "risk_thresholds": {
+    "uninstall_rate": {
+      "normal": 0.10,
+      "high": 0.30
+    },
+    "growth_rate": {
+      "suspicious": 5.0
+    },
+    "rating_drop": {
+      "significant": 1.0
+    },
+    "developer_age_days": {
+      "new": 90
+    },
+    "high_risk_regions": ["RU", "CN", "Unknown"],
+    "fake_review_threshold": 0.5
+  },
+  "analysis_categories": {
+    "install_trends": {
+      "enabled": true,
+      "max_risk_points": 5
+    },
+    "rating_patterns": {
+      "enabled": true,
+      "max_risk_points": 5
+    },
+    "developer_reputation": {
+      "enabled": true,
+      "max_risk_points": 10
+    },
+    "geographic_distribution": {
+      "enabled": true,
+      "max_risk_points": 3
+    },
+    "similar_extensions": {
+      "enabled": true,
+      "max_risk_points": 5
+    }
+  }
+}

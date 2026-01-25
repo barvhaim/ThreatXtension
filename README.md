@@ -78,7 +78,8 @@ make docker-logs     # View logs
 ### Scan an Extension
 
 **Via Web UI:** Navigate to http://localhost:8007 and either:
-- Paste a Chrome Web Store URL, or
+- Paste a Chrome Web Store URL
+- Enter an extension ID (32-character string, e.g., `gbbilodpoldeopifonmibfboicpafpjo`)
 - Upload a local `.crx` or `.zip` file
 
 **Via API:**
@@ -88,7 +89,12 @@ curl -X POST http://localhost:8007/api/scan/trigger \
   -H "Content-Type: application/json" \
   -d '{"url": "https://chromewebstore.google.com/detail/extension-name/extension-id"}'
 
-# Option 2: Upload and scan a local file
+# Option 2: Scan using extension ID (downloads from chrome-stats.com)
+curl -X POST http://localhost:8007/api/scan/trigger \
+  -H "Content-Type: application/json" \
+  -d '{"url": "gbbilodpoldeopifonmibfboicpafpjo"}'
+
+# Option 3: Upload and scan a local file
 curl -X POST http://localhost:8007/api/scan/upload \
   -F "file=@/path/to/extension.crx"
 
@@ -127,10 +133,13 @@ cp .env.example .env
 ### Run Locally
 
 ```bash
-# Option 1: CLI - Analyze from URL
+# Option 1: CLI - Analyze from Chrome Web Store URL
 make analyze URL=https://chromewebstore.google.com/detail/example/abcdef
 
-# Option 1b: CLI - Analyze local file
+# Option 1b: CLI - Analyze using extension ID
+uv run threatxtension analyze --id gbbilodpoldeopifonmibfboicpafpjo
+
+# Option 1c: CLI - Analyze local file
 uv run threatxtension analyze --file /path/to/extension.crx
 uv run threatxtension analyze --file /path/to/extension.zip
 
@@ -164,8 +173,9 @@ OPENAI_API_KEY=sk-...
 
 **Optional:**
 ```bash
-VIRUSTOTAL_API_KEY=...    # For threat intelligence
-LANGSMITH_API_KEY=...     # For LLM tracing/debugging
+VIRUSTOTAL_API_KEY=...      # For threat intelligence
+CHROMESTATS_API_KEY=...     # For extension ID downloads via chrome-stats.com
+LANGSMITH_API_KEY=...       # For LLM tracing/debugging
 ```
 
 ### Supported LLM Providers

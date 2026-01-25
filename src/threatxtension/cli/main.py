@@ -362,6 +362,11 @@ def cli():
     help="Chrome Web Store URL of the extension to analyze",
 )
 @click.option(
+    "--id",
+    "extension_id",
+    help="Chrome extension ID (32-character string, e.g., gbbilodpoldeopifonmibfboicpafpjo)",
+)
+@click.option(
     "--file",
     "-f",
     type=click.Path(exists=True),
@@ -379,32 +384,43 @@ def cli():
     is_flag=True,
     help="Enable verbose logging",
 )
-def analyze(url: Optional[str], file: Optional[str], output: Optional[str], verbose: bool):
+def analyze(url: Optional[str], extension_id: Optional[str], file: Optional[str], output: Optional[str], verbose: bool):
     """Analyze a Chrome extension for security threats.
 
     Example:
         threatxtension analyze --url https://chromewebstore.google.com/detail/example/abcdef
+        threatxtension analyze --id gbbilodpoldeopifonmibfboicpafpjo
         threatxtension analyze --file /path/to/extension.crx
         threatxtension analyze --file /path/to/extension.zip
     """
     # Validate input
-    if not url and not file:
-        raise click.UsageError("Either --url or --file must be provided")
+    input_count = sum([bool(url), bool(extension_id), bool(file)])
+    if input_count == 0:
+        raise click.UsageError("One of --url, --id, or --file must be provided")
 
-    if url and file:
-        raise click.UsageError("Cannot specify both --url and --file")
+    if input_count > 1:
+        raise click.UsageError("Only one of --url, --id, or --file can be specified")
 
     configure_logging(verbose)
     print_header()
 
-    # Use file path if provided, otherwise use URL
-    chrome_extension_path = file if file else url
+    # Determine which input was provided
+    if file:
+        chrome_extension_path = file
+        input_type = "Local file"
+    elif extension_id:
+        chrome_extension_path = extension_id
+        input_type = "Extension ID"
+    else:
+        chrome_extension_path = url
+        input_type = "Chrome Web Store URL"
     
     # This should never happen due to validation above, but satisfy type checker
     if not chrome_extension_path:
         raise click.UsageError("No extension path provided")
 
-    console.print(f"\n[bold]Analyzing:[/bold] [blue]{chrome_extension_path}[/blue]\n")
+    console.print(f"\n[bold]Analyzing:[/bold] [blue]{chrome_extension_path}[/blue]")
+    console.print(f"[dim]Input type: {input_type}[/dim]\n")
 
     # Build workflow graph
     graph = build_graph()

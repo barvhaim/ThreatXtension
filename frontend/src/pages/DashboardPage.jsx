@@ -9,7 +9,12 @@ import TabbedResultsPanel from "../components/TabbedResultsPanel";
 import StatusMessage from "../components/StatusMessage";
 import realScanService from "../services/realScanService";
 import databaseService from "../services/databaseService";
+import gptOssService from "../services/gptOssService";
 import FileViewerModal from "../components/FileViewerModal";
+import FindingDetailsModal from "../components/FindingDetailsModal";
+import AllFindingsModal from "../components/AllFindingsModal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
+import { Loader2 } from "lucide-react";
 import "./DashboardPage.scss";
 
 const DashboardPage = () => {
@@ -19,10 +24,25 @@ const DashboardPage = () => {
   const [error, setError] = useState(null);
   const [scanHistory, setScanHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [forceRescan, setForceRescan] = useState(false);
   // const [showSampleModal, setShowSampleModal] = useState(false);
   const [fileViewerModal, setFileViewerModal] = useState({
     isOpen: false,
     file: null,
+  });
+  const [findingDetailsModal, setFindingDetailsModal] = useState({
+    isOpen: false,
+    finding: null,
+  });
+  const [allFindingsModal, setAllFindingsModal] = useState({
+    isOpen: false,
+  });
+  const [aiAnalysisModal, setAiAnalysisModal] = useState({
+    isOpen: false,
+    file: null,
+    isAnalyzing: false,
+    result: null,
+    error: null,
   });
 
   useEffect(() => {
@@ -126,16 +146,26 @@ const DashboardPage = () => {
     setScanResults(null);
 
     try {
-      const extId = extractExtensionId(url);
-      if (!extId) {
-        throw new Error("Invalid Chrome Web Store URL format");
+      // Check if input is already an extension ID (32 lowercase letters a-p)
+      const isExtensionId = /^[a-p]{32}$/.test(url.trim().toLowerCase());
+      
+      let extId;
+      if (isExtensionId) {
+        // Input is already an extension ID
+        extId = url.trim().toLowerCase();
+      } else {
+        // Try to extract ID from URL
+        extId = extractExtensionId(url);
+        if (!extId) {
+          throw new Error("Invalid input. Please enter a Chrome Web Store URL or extension ID (32-character string)");
+        }
       }
 
       const status = await realScanService.checkScanStatus(extId);
 
-      if (!status.scanned) {
-        setError("🔄 Starting security scan... This may take a few minutes for large extensions.");
-        const scanTrigger = await realScanService.triggerScan(url);
+      if (!status.scanned || forceRescan) {
+        setError(forceRescan ? "🔄 Force re-scanning extension..." : "🔄 Starting security scan... This may take a few minutes for large extensions.");
+        const scanTrigger = await realScanService.triggerScan(url, forceRescan);
 
         // Check for success based on running status available in the response
         if (scanTrigger.status !== "running") {
@@ -214,16 +244,73 @@ const DashboardPage = () => {
   };
 
   const handleAnalyzeWithAI = async (file) => {
-    alert(`🤖 AI Analysis for ${file.name}\n\nThis would analyze the file content using GPT-OSS for security insights.`);
+    // Open modal and start analysis
+    setAiAnalysisModal({
+      isOpen: true,
+      file: file,
+      isAnalyzing: true,
+      result: null,
+      error: null,
+    });
+
+    try {
+      // Get file content
+      const fileContent = await realScanService.getFileContent(
+        scanResults.extensionId,
+        file.path
+      );
+
+      // Determine file type
+      const fileType = file.type || file.name.split('.').pop() || 'unknown';
+
+      // Analyze with GPT-OSS
+      const analysisResult = await gptOssService.analyzeFileContent(
+        fileContent,
+        file.name,
+        fileType,
+        'auto' // Use auto provider selection
+      );
+
+      if (analysisResult.success) {
+        setAiAnalysisModal(prev => ({
+          ...prev,
+          isAnalyzing: false,
+          result: analysisResult.data,
+        }));
+      } else {
+        throw new Error(analysisResult.error || 'Analysis failed');
+      }
+    } catch (err) {
+      console.error('AI analysis error:', err);
+      setAiAnalysisModal(prev => ({
+        ...prev,
+        isAnalyzing: false,
+        error: err.message || 'Failed to analyze file with AI',
+      }));
+    }
+  };
+
+  const closeAiAnalysisModal = () => {
+    setAiAnalysisModal({
+      isOpen: false,
+      file: null,
+      isAnalyzing: false,
+      result: null,
+      error: null,
+    });
   };
 
   const handleViewFindingDetails = (finding) => {
-    const details = `🚨 Security Finding Details\n\nFile: ${finding.file}\nLine: ${finding.line}\nSeverity: ${finding.severity}\nTitle: ${finding.title}\nDescription: ${finding.description}`;
-    alert(details);
+    setFindingDetailsModal({
+      isOpen: true,
+      finding: finding,
+    });
   };
 
   const handleViewAllFindings = () => {
-    alert(`Viewing all ${scanResults.totalFindings} findings.`);
+    setAllFindingsModal({
+      isOpen: true,
+    });
   };
 
   return (
@@ -250,6 +337,30 @@ const DashboardPage = () => {
             onFileUpload={handleFileUpload}
             isScanning={isScanning}
           />
+          
+          {/* Force Re-scan Checkbox */}
+          <div style={{
+            marginTop: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '14px',
+            color: '#64748b'
+          }}>
+            <input
+              type="checkbox"
+              id="force-rescan"
+              checked={forceRescan}
+              onChange={(e) => setForceRescan(e.target.checked)}
+              style={{ cursor: 'pointer' }}
+            />
+            <label
+              htmlFor="force-rescan"
+              style={{ cursor: 'pointer', userSelect: 'none' }}
+            >
+              Force re-scan (ignore cached results)
+            </label>
+          </div>
         </div>
       </section>
 
@@ -409,6 +520,204 @@ const DashboardPage = () => {
         extensionId={scanResults?.extensionId}
         onGetFileContent={getFileContent}
       />
+
+      <FindingDetailsModal
+        isOpen={findingDetailsModal.isOpen}
+        onClose={() => setFindingDetailsModal({ isOpen: false, finding: null })}
+        finding={findingDetailsModal.finding}
+        extensionId={scanResults?.extensionId}
+        onGetFileContent={getFileContent}
+      />
+
+      <AllFindingsModal
+        isOpen={allFindingsModal.isOpen}
+        onClose={() => setAllFindingsModal({ isOpen: false })}
+        findings={scanResults?.sastResults || []}
+        onViewFindingDetails={handleViewFindingDetails}
+      />
+
+      {/* AI Analysis Modal */}
+      <Dialog open={aiAnalysisModal.isOpen} onOpenChange={closeAiAnalysisModal}>
+        <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              🤖 AI Security Analysis
+              {aiAnalysisModal.file && ` - ${aiAnalysisModal.file.name}`}
+            </DialogTitle>
+            <DialogDescription>
+              Advanced AI-powered security analysis using GPT-OSS
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {aiAnalysisModal.isAnalyzing && (
+              <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <div className="text-center">
+                  <p className="font-medium">Analyzing file with AI...</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    This may take a few moments depending on file size
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {aiAnalysisModal.error && (
+              <div className="p-4 bg-destructive/10 border border-destructive rounded-lg">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">❌</span>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-destructive mb-1">Analysis Failed</h4>
+                    <p className="text-sm">{aiAnalysisModal.error}</p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Make sure the backend API is running and LLM providers are configured.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {aiAnalysisModal.result && !aiAnalysisModal.isAnalyzing && (
+              <div className="space-y-4">
+                {/* Analysis Summary */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Analysis Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="text-sm text-muted-foreground">Risk Score</div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-2xl font-bold ${
+                            aiAnalysisModal.result.riskScore >= 8 ? 'text-red-500' :
+                            aiAnalysisModal.result.riskScore >= 5 ? 'text-yellow-500' :
+                            'text-green-500'
+                          }`}>
+                            {aiAnalysisModal.result.riskScore || 'N/A'}
+                          </span>
+                          <span className="text-muted-foreground">/10</span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-muted-foreground">Severity</div>
+                        <Badge variant={
+                          aiAnalysisModal.result.severity === 'High' ? 'destructive' :
+                          aiAnalysisModal.result.severity === 'Medium' ? 'secondary' :
+                          'default'
+                        } className="mt-1">
+                          {aiAnalysisModal.result.severity || 'Unknown'}
+                        </Badge>
+                      </div>
+                    </div>
+                    {aiAnalysisModal.result.confidence && (
+                      <div>
+                        <div className="text-sm text-muted-foreground">Confidence</div>
+                        <div className="font-medium">{aiAnalysisModal.result.confidence}</div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Detailed Analysis */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Detailed Analysis</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
+                      <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg">
+                        {aiAnalysisModal.result.analysis}
+                      </pre>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Findings */}
+                {aiAnalysisModal.result.findings && aiAnalysisModal.result.findings.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Key Findings</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {aiAnalysisModal.result.findings.map((finding, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span className="text-primary mt-1">•</span>
+                            <span className="text-sm">{finding}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Recommendations */}
+                {aiAnalysisModal.result.recommendations && aiAnalysisModal.result.recommendations.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Recommendations</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {aiAnalysisModal.result.recommendations.map((rec, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span className="text-green-500 mt-1">✓</span>
+                            <span className="text-sm">{rec}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Metadata */}
+                {aiAnalysisModal.result.metadata && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Analysis Metadata</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        {aiAnalysisModal.result.metadata.model && (
+                          <div>
+                            <div className="text-muted-foreground">Model</div>
+                            <div className="font-medium">{aiAnalysisModal.result.metadata.model}</div>
+                          </div>
+                        )}
+                        {aiAnalysisModal.result.metadata.deployment && (
+                          <div>
+                            <div className="text-muted-foreground">Deployment</div>
+                            <div className="font-medium">{aiAnalysisModal.result.metadata.deployment}</div>
+                          </div>
+                        )}
+                        {aiAnalysisModal.result.metadata.tokens_used && (
+                          <div>
+                            <div className="text-muted-foreground">Tokens Used</div>
+                            <div className="font-medium">{aiAnalysisModal.result.metadata.tokens_used}</div>
+                          </div>
+                        )}
+                        {aiAnalysisModal.result.metadata.analysis_duration && (
+                          <div>
+                            <div className="text-muted-foreground">Duration</div>
+                            <div className="font-medium">{aiAnalysisModal.result.metadata.analysis_duration}</div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={closeAiAnalysisModal}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

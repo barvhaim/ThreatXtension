@@ -12,6 +12,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from threatxtension.llm.prompts import get_prompts
 from threatxtension.llm.clients import get_chat_llm_client
+from threatxtension.core.security_scorer import SecurityScorer
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -89,10 +90,12 @@ class SummaryGenerator:
 
         Returns:
             Dict with executive summary including:
-                - overall_risk_level: "low" | "medium" | "high"
+                - overall_risk_level: "low" | "medium" | "high" | "critical"
                 - summary: Executive summary text
                 - key_findings: List of critical findings
                 - recommendations: List of actionable recommendations
+                - security_score: Overall security score (0-100)
+                - risk_breakdown: Detailed risk breakdown by category
         """
         if not analysis_results:
             logger.warning("No analysis results provided for summary generation")
@@ -101,6 +104,16 @@ class SummaryGenerator:
         if not manifest:
             logger.warning("No manifest data provided for summary generation")
             return None
+
+        # Calculate security score using SecurityScorer
+        scorer = SecurityScorer()
+        score_results = scorer.calculate_score(analysis_results)
+        
+        logger.info(
+            "Security score calculated: %d/100 (Risk: %s)",
+            score_results['security_score'],
+            score_results['risk_level']
+        )
 
         prompt = self._get_summary_prompt_template(
             analysis_results=analysis_results,
@@ -118,8 +131,27 @@ class SummaryGenerator:
         try:
             chain = prompt | llm | JsonOutputParser()
             summary = chain.invoke({})
-            logger.info("Executive summary generated successfully")
+            
+            # Add security score to summary
+            summary['security_score'] = score_results['security_score']
+            summary['overall_risk_level'] = score_results['risk_level']
+            summary['risk_breakdown'] = score_results['risk_breakdown']
+            summary['risk_details'] = score_results['risk_details']
+            summary['total_risk_points'] = score_results['total_risk_points']
+            
+            logger.info("Executive summary generated successfully with security score")
             return summary
         except Exception as exc:
             logger.exception("Failed to generate executive summary: %s", exc)
-            return None
+            # Return score results even if LLM summary fails
+            return {
+                'security_score': score_results['security_score'],
+                'overall_risk_level': score_results['risk_level'],
+                'risk_breakdown': score_results['risk_breakdown'],
+                'risk_details': score_results['risk_details'],
+                'total_risk_points': score_results['total_risk_points'],
+                'summary': f"Security analysis completed with score: {score_results['security_score']}/100",
+                'key_findings': [],
+                'recommendations': ['Review detailed analysis results for specific findings'],
+                'error': str(exc)
+            }
