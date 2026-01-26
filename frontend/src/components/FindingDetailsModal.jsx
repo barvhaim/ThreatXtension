@@ -138,22 +138,7 @@ const FindingDetailsModal = ({
 
     // Extract the specific code snippet that triggered the finding
     const getHighlightedSnippet = (line) => {
-      // If backend provided the matched text, use it directly
-      const matchedText = finding.matched_text || finding.extra?.metadata?.matched_text;
-      
-      if (matchedText && line.includes(matchedText)) {
-        const matchIndex = line.indexOf(matchedText);
-        const start = Math.max(0, matchIndex - 30);
-        const end = Math.min(line.length, matchIndex + matchedText.length + 30);
-        return {
-          before: line.substring(start, matchIndex),
-          match: matchedText,
-          after: line.substring(matchIndex + matchedText.length, end),
-          hasMatch: true
-        };
-      }
-
-      // Fallback: Extract keywords from finding title to prioritize matching
+      // Extract keywords from finding title to prioritize matching
       const findingKeywords = [
         finding.title?.toLowerCase(),
         finding.pattern_name?.toLowerCase(),

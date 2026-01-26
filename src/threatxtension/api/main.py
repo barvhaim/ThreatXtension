@@ -15,9 +15,6 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 from datetime import datetime
 
-# Configure logger
-logger = logging.getLogger(__name__)
-
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Response, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -465,18 +462,8 @@ def calculate_security_score(state: WorkflowState) -> int:
     
     entropy_score = min(30, entropy_score)  # Cap at 30
 
-    # Component 7: Chrome-stats Risk Analysis (28 points max risk)
-    chromestats_score = 0
-    chromestats_analysis = analysis_results.get("chromestats_analysis", {})
-    if chromestats_analysis and isinstance(chromestats_analysis, dict):
-        # Get the total risk score from chrome-stats analyzer
-        total_risk_score = chromestats_analysis.get("total_risk_score", 0)
-        chromestats_score = min(28, total_risk_score)  # Cap at 28
-    
-    chromestats_score = min(28, chromestats_score)  # Cap at 28
-
     # Calculate final risk score (sum of all risk components)
-    # Total possible: 50 + 35 + 10 + 5 + 40 + 30 + 28 = 198 points
+    # Total possible: 50 + 35 + 10 + 5 + 40 + 30 = 170 points
     risk_score = (
         sast_score +
         permissions_score +
@@ -684,6 +671,7 @@ async def trigger_scan(request: ScanRequest, background_tasks: BackgroundTasks):
     return {
         "message": "Scan triggered successfully" + (" (forced re-scan)" if force else ""),
         "extension_id": extension_id,
+        "filename": file.filename,
         "status": "running",
         "forced": force,
     }
