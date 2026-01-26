@@ -31,7 +31,13 @@ summary_generation: |
     {sast_analysis}
   </sast_analysis>
 
+  <chromestats_analysis>
+    {chromestats_analysis}
+  </chromestats_analysis>
+
   Analyze all information above and produce a **unified risk assessment**.
+  
+  **IMPORTANT**: If the chrome-stats analysis indicates the extension was "removed from store" or has high risk likelihood, this is a CRITICAL finding that MUST be prominently featured in your summary and key findings.
 
   ### Risk Level Guidelines
   - **low** → Minimal risk: permissions are reasonable, developer is reputable, no serious privacy or security concerns.

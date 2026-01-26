@@ -519,6 +519,21 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                     # Get line numbers for matches
                     for match in matches[:5]:  # Limit to first 5 occurrences per pattern
                         line_num = content[:match.start()].count('\n') + 1
+                        
+                        # Extract the matched text and surrounding context
+                        matched_text = match.group(0)
+                        
+                        # Get the full line containing the match
+                        line_start = content.rfind('\n', 0, match.start()) + 1
+                        line_end = content.find('\n', match.end())
+                        if line_end == -1:
+                            line_end = len(content)
+                        full_line = content[line_start:line_end]
+                        
+                        # Calculate column position within the line
+                        col_start = match.start() - line_start
+                        col_end = match.end() - line_start
+                        
                         findings.append({
                             'check_id': pattern_info['rule_id'],
                             'path': rel_path,
@@ -530,15 +545,19 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                             'description': f"{pattern_info['message']} (Found {len(matches)} occurrence{'s' if len(matches) != 1 else ''} in this file)",  # Add description
                             'severity': pattern_info['severity'],  # Add severity at top level
                             'risk_level': pattern_info['severity'],  # Add risk_level for frontend
-                            'start': {'line': line_num, 'col': 0},
-                            'end': {'line': line_num, 'col': 0},
+                            'start': {'line': line_num, 'col': col_start},
+                            'end': {'line': line_num, 'col': col_end},
+                            'matched_text': matched_text,  # Store the actual matched text
+                            'code_snippet': full_line.strip(),  # Store the full line for context
                             'extra': {
                                 'message': pattern_info['message'],
                                 'severity': pattern_info['severity'],
+                                'lines': full_line.strip(),  # Add the code line to extra
                                 'metadata': {
                                     'category': pattern_info['category'],
                                     'detection_method': 'pattern-based (obfuscated code fallback)',
                                     'pattern': pattern_name,
+                                    'matched_text': matched_text,  # Also in metadata
                                     'total_occurrences': len(matches)
                                 }
                             }
@@ -671,7 +690,9 @@ class JavaScriptAnalyzer(BaseAnalyzer):
     def _summarize_sast_findings(
         self, all_findings: Dict[str, List], files_scanned: int, metadata: Optional[Dict] = None
     ) -> Optional[str]:
-        """Generate LLM-based summary of SAST findings."""
+        """Generate LLM-based summary of SAST findings with timeout."""
+        import asyncio
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
         from threatxtension.llm.prompts import get_prompts
         from threatxtension.llm.clients import get_chat_llm_client
         from langchain_core.output_parsers import StrOutputParser
@@ -699,28 +720,36 @@ class JavaScriptAnalyzer(BaseAnalyzer):
 
             # Get LLM client
             model_name = os.getenv("LLM_MODEL", "meta-llama/llama-3-3-70b-instruct")
-            model_parameters = {"max_tokens": 500, "temperature": 0.1}
+            model_parameters = {"max_tokens": 500, "temperature": 0.1, "timeout": 60}
             llm = get_chat_llm_client(model_name=model_name, model_parameters=model_parameters)
 
             # Create chain
             chain = template | llm | StrOutputParser()
 
-            # Invoke LLM
-            summary = chain.invoke(
-                {
-                    "extension_name": extension_name,
-                    "files_scanned": files_scanned,
-                    "files_with_findings": stats["files_with_findings"],
-                    "critical_count": stats["by_severity"]["CRITICAL"],
-                    "error_count": stats["by_severity"]["ERROR"],
-                    "warning_count": stats["by_severity"]["WARNING"],
-                    "info_count": stats["by_severity"]["INFO"],
-                    "findings_details": findings_details,
-                }
-            )
-
-            logger.info("Generated SAST summary with LLM")
-            return summary.strip()
+            # Invoke LLM with timeout (60 seconds)
+            def _invoke_llm():
+                return chain.invoke(
+                    {
+                        "extension_name": extension_name,
+                        "files_scanned": files_scanned,
+                        "files_with_findings": stats["files_with_findings"],
+                        "critical_count": stats["by_severity"]["CRITICAL"],
+                        "error_count": stats["by_severity"]["ERROR"],
+                        "warning_count": stats["by_severity"]["WARNING"],
+                        "info_count": stats["by_severity"]["INFO"],
+                        "findings_details": findings_details,
+                    }
+                )
+            
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(_invoke_llm)
+                try:
+                    summary = future.result(timeout=60)  # 60 second timeout
+                    logger.info("Generated SAST summary with LLM")
+                    return summary.strip()
+                except FuturesTimeoutError:
+                    logger.warning("LLM summary generation timed out after 60 seconds, skipping")
+                    return f"[RISK: MEDIUM] Found {stats['total_findings']} security findings ({stats['by_severity']['CRITICAL']} critical, {stats['by_severity']['ERROR']} high, {stats['by_severity']['WARNING']} medium). LLM analysis timed out."
 
         except Exception as exc:
             logger.error("Error generating SAST summary: %s", exc)
@@ -752,7 +781,12 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                         all_js_files.append(os.path.join(root, file))
             
             logger.info("Found %d total JavaScript files in extension directory", len(all_js_files))
-            pattern_findings = self._run_fallback_pattern_scans(all_js_files, extension_dir)
+            
+            # Apply filtering to fallback files too (respect exclusion patterns and size limits)
+            filtered_fallback_files, skipped_fallback = self._filter_files(all_js_files, extension_dir)
+            logger.info("After filtering: %d files to scan, %d skipped", len(filtered_fallback_files), len(skipped_fallback))
+            
+            pattern_findings = self._run_fallback_pattern_scans(filtered_fallback_files, extension_dir)
             
             # Aggregate and return findings
             stats = self._aggregate_findings(pattern_findings)

@@ -41,6 +41,7 @@ class SummaryGenerator:
         permissions_analysis_data = analysis_results.get("permissions_analysis") or {}
         webstore_analysis_data = analysis_results.get("webstore_analysis") or {}
         javascript_analysis_data = analysis_results.get("javascript_analysis") or {}
+        chromestats_analysis_data = analysis_results.get("chromestats_analysis") or {}
 
         permissions_analysis = permissions_analysis_data.get(
             "permissions_analysis", "No analysis available."
@@ -52,6 +53,33 @@ class SummaryGenerator:
             "webstore_analysis", "No analysis available."
         )
         sast_analysis = javascript_analysis_data.get("sast_analysis", "No analysis available.")
+        
+        # Format chrome-stats analysis for LLM
+        chromestats_analysis = "No Chrome Stats analysis available."
+        if chromestats_analysis_data.get("enabled"):
+            api_risk = chromestats_analysis_data.get("api_risk_analysis", {})
+            risk_indicators = chromestats_analysis_data.get("risk_indicators", [])
+            overall_risk = chromestats_analysis_data.get("overall_risk_level", "unknown")
+            
+            if api_risk.get("has_api_risk_data"):
+                risk_impact = api_risk.get("risk_impact", 0)
+                risk_likelihood = api_risk.get("risk_likelihood", 0)
+                chromestats_analysis = f"""Chrome Stats Behavioral Analysis:
+- Overall Risk Level: {overall_risk.upper()}
+- Risk Impact Score: {risk_impact}/3
+- Risk Likelihood Score: {risk_likelihood}/3
+
+Critical Risk Indicators:
+{chr(10).join(f"  • {indicator}" for indicator in risk_indicators[:5]) if risk_indicators else "  • None detected"}
+
+This data comes from chrome-stats.com API and includes store removal status, permission risks, and behavioral patterns."""
+            elif risk_indicators:
+                chromestats_analysis = f"""Chrome Stats Behavioral Analysis:
+- Overall Risk Level: {overall_risk.upper()}
+- Risk Indicators Detected: {len(risk_indicators)}
+
+Key Indicators:
+{chr(10).join(f"  • {indicator}" for indicator in risk_indicators[:5])}"""
 
         template = PromptTemplate(
             input_variables=[
@@ -62,6 +90,7 @@ class SummaryGenerator:
                 "host_permissions_analysis",
                 "webstore_analysis",
                 "sast_analysis",
+                "chromestats_analysis",
             ],
             template=template_str,
         ).partial(
@@ -72,6 +101,7 @@ class SummaryGenerator:
             host_permissions_analysis=host_permissions_analysis,
             webstore_analysis=webstore_analysis,
             sast_analysis=sast_analysis,
+            chromestats_analysis=chromestats_analysis,
         )
 
         return template

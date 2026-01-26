@@ -7,11 +7,16 @@ and retrieve results.
 
 import os
 import json
+import logging
+import re
 
 # import asyncio  # Unused import
 from pathlib import Path
 from typing import Optional, Dict, Any
 from datetime import datetime
+
+# Configure logger
+logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Response, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -460,15 +465,26 @@ def calculate_security_score(state: WorkflowState) -> int:
     
     entropy_score = min(30, entropy_score)  # Cap at 30
 
+    # Component 7: Chrome-stats Risk Analysis (28 points max risk)
+    chromestats_score = 0
+    chromestats_analysis = analysis_results.get("chromestats_analysis", {})
+    if chromestats_analysis and isinstance(chromestats_analysis, dict):
+        # Get the total risk score from chrome-stats analyzer
+        total_risk_score = chromestats_analysis.get("total_risk_score", 0)
+        chromestats_score = min(28, total_risk_score)  # Cap at 28
+    
+    chromestats_score = min(28, chromestats_score)  # Cap at 28
+
     # Calculate final risk score (sum of all risk components)
-    # Total possible: 50 + 35 + 10 + 5 + 40 + 30 = 170 points
+    # Total possible: 50 + 35 + 10 + 5 + 40 + 30 + 28 = 198 points
     risk_score = (
         sast_score +
         permissions_score +
         webstore_score +
         manifest_score +
         virustotal_score +
-        entropy_score
+        entropy_score +
+        chromestats_score
     )
     
     # Invert to security score: 100 = safest, 0 = most dangerous
@@ -1065,8 +1081,8 @@ async def analyze_file_with_ai(
         
         # Determine which LLM provider to use
         if provider == "auto":
-            # Try to detect best available provider
-            llm_provider = os.getenv("LLM_PROVIDER", "rits/openai/gpt-oss-120b")
+            # Use the configured model from environment
+            llm_provider = os.getenv("LLM_MODEL", "meta-llama/llama-3-3-70b-instruct")
         else:
             llm_provider = provider
         
@@ -1120,20 +1136,61 @@ Focus on actionable security insights. Be specific about any suspicious patterns
             }
         )
         
-        # Create chain
-        chain = prompt | llm | JsonOutputParser()
-        
         # Truncate file content if too large (keep first 5000 chars)
         truncated_content = file_content[:5000]
         if len(file_content) > 5000:
             truncated_content += "\n\n... (content truncated for analysis)"
         
-        # Run analysis
-        result = chain.invoke({
-            "file_name": file_name,
-            "file_type": file_type,
-            "file_content": truncated_content
-        })
+        # Run analysis with better error handling
+        try:
+            # Create chain with JSON parser
+            chain = prompt | llm | JsonOutputParser()
+            
+            result = chain.invoke({
+                "file_name": file_name,
+                "file_type": file_type,
+                "file_content": truncated_content
+            })
+        except Exception as parse_error:
+            # If JSON parsing fails, try without parser and extract JSON manually
+            logger.warning(f"JSON parsing failed, trying raw output: {parse_error}")
+            chain_raw = prompt | llm
+            
+            raw_result = chain_raw.invoke({
+                "file_name": file_name,
+                "file_type": file_type,
+                "file_content": truncated_content
+            })
+            
+            # Extract JSON from response
+            import re
+            raw_text = raw_result.content if hasattr(raw_result, 'content') else str(raw_result)
+            
+            # Try to find JSON in the response
+            json_match = re.search(r'\{[\s\S]*\}', raw_text)
+            if json_match:
+                try:
+                    result = json.loads(json_match.group(0))
+                except json.JSONDecodeError:
+                    # If still fails, return a basic analysis
+                    result = {
+                        "riskScore": 5,
+                        "severity": "Medium",
+                        "confidence": "Low",
+                        "analysis": raw_text[:500],
+                        "findings": ["Unable to parse detailed analysis"],
+                        "recommendations": ["Manual review recommended"]
+                    }
+            else:
+                # No JSON found, return basic analysis
+                result = {
+                    "riskScore": 5,
+                    "severity": "Medium",
+                    "confidence": "Low",
+                    "analysis": raw_text[:500],
+                    "findings": ["Unable to parse detailed analysis"],
+                    "recommendations": ["Manual review recommended"]
+                }
         
         # Add metadata
         result["metadata"] = {

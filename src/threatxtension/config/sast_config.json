@@ -65,7 +65,7 @@
       "vite"
     ]
   },
-  "max_file_size_kb": 500,
+  "max_file_size_kb": 1000,
   "enabled": true,
   "semgrep_config": "custom",
   "semgrep_config_options": {
