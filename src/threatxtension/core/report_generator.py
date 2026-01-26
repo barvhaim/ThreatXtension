@@ -339,10 +339,76 @@ class ReportGenerator:
         elements.append(Spacer(1, 15))
         return elements
 
+    def _create_chromestats_section(self, chromestats_analysis: Dict) -> List:
+        """Create Chrome Stats behavioral analysis section."""
+        elements = []
+        elements.append(Paragraph("5. Chrome Stats Behavioral Analysis", self.styles['SectionHeader']))
+
+        if not chromestats_analysis or not chromestats_analysis.get("enabled"):
+            elements.append(Paragraph(
+                "Chrome Stats analysis not available.",
+                self.styles['BodyTextCustom']
+            ))
+            return elements
+
+        # Overall risk
+        overall_risk = chromestats_analysis.get("overall_risk_level", "unknown")
+        total_risk_score = chromestats_analysis.get("total_risk_score", 0)
+        
+        risk_color = self._get_risk_color(overall_risk)
+        elements.append(Paragraph(
+            f"Overall Risk Level: <b><font color='{risk_color.hexval()}'>{overall_risk.upper()}</font></b> (Score: {total_risk_score})",
+            self.styles['BodyTextCustom']
+        ))
+        elements.append(Spacer(1, 10))
+
+        # API Risk Data (if available)
+        api_risk = chromestats_analysis.get("api_risk_analysis", {})
+        if api_risk.get("has_api_risk_data"):
+            elements.append(Paragraph("<b>API Risk Assessment:</b>", self.styles['BodyTextCustom']))
+            
+            risk_impact = api_risk.get("risk_impact", 0)
+            risk_likelihood = api_risk.get("risk_likelihood", 0)
+            
+            stats_data = [
+                ["Risk Impact", "Risk Likelihood", "API Risk Score"],
+                [f"{risk_impact}/3", f"{risk_likelihood}/3", str(api_risk.get("risk_score", 0))],
+            ]
+            stats_table = Table(stats_data, colWidths=[2 * inch] * 3)
+            stats_table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f3f4f6')),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e5e7eb')),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ]))
+            elements.append(stats_table)
+            elements.append(Spacer(1, 10))
+
+        # Risk Indicators
+        risk_indicators = chromestats_analysis.get("risk_indicators", [])
+        if risk_indicators:
+            elements.append(Paragraph("<b>Risk Indicators:</b>", self.styles['BodyTextCustom']))
+            for indicator in risk_indicators[:10]:  # Limit to 10 indicators
+                # Clean up indicator text for PDF
+                clean_indicator = indicator.replace("[Critical]", "🔴").replace("[High]", "🟠").replace("[Medium]", "🟡").replace("[Low]", "🟢")
+                elements.append(Paragraph(f"  • {clean_indicator}", self.styles['SmallText']))
+            
+            if len(risk_indicators) > 10:
+                elements.append(Paragraph(
+                    f"... and {len(risk_indicators) - 10} more indicators",
+                    self.styles['SmallText']
+                ))
+
+        elements.append(Spacer(1, 15))
+        return elements
+
     def _create_sast_section(self, sast_results: Dict) -> List:
         """Create SAST findings section."""
         elements = []
-        elements.append(Paragraph("5. SAST Findings", self.styles['SectionHeader']))
+        elements.append(Paragraph("6. SAST Findings", self.styles['SectionHeader']))
 
         findings = sast_results.get("javascript_analysis", [])
         if not findings:
@@ -389,7 +455,7 @@ class ReportGenerator:
     def _create_recommendations_section(self, summary: Dict) -> List:
         """Create recommendations section."""
         elements = []
-        elements.append(Paragraph("6. Recommendations", self.styles['SectionHeader']))
+        elements.append(Paragraph("7. Recommendations", self.styles['SectionHeader']))
 
         recommendations = summary.get("recommendations", [])
         if recommendations:
@@ -439,6 +505,7 @@ class ReportGenerator:
         sast_results = scan_results.get("sast_results", scan_results.get("javascript_analysis", {}))
         vt_analysis = scan_results.get("virustotal_analysis", {})
         entropy_analysis = scan_results.get("entropy_analysis", {})
+        chromestats_analysis = scan_results.get("chromestats_analysis", {})
         summary = scan_results.get("summary", {})
 
         # Create PDF buffer
@@ -460,6 +527,7 @@ class ReportGenerator:
         elements.extend(self._create_virustotal_section(vt_analysis))
         elements.extend(self._create_entropy_section(entropy_analysis))
         elements.extend(self._create_permissions_section(permissions_analysis))
+        elements.extend(self._create_chromestats_section(chromestats_analysis))
         elements.extend(self._create_sast_section(sast_results))
         elements.extend(self._create_recommendations_section(summary))
         elements.extend(self._create_footer())

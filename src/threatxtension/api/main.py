@@ -7,6 +7,8 @@ and retrieve results.
 
 import os
 import json
+import logging
+import re
 
 # import asyncio  # Unused import
 from pathlib import Path
@@ -468,7 +470,8 @@ def calculate_security_score(state: WorkflowState) -> int:
         webstore_score +
         manifest_score +
         virustotal_score +
-        entropy_score
+        entropy_score +
+        chromestats_score
     )
     
     # Invert to security score: 100 = safest, 0 = most dangerous
@@ -668,67 +671,9 @@ async def trigger_scan(request: ScanRequest, background_tasks: BackgroundTasks):
     return {
         "message": "Scan triggered successfully" + (" (forced re-scan)" if force else ""),
         "extension_id": extension_id,
-        "status": "running",
-        "forced": force,
-    }
-
-
-@app.post("/api/scan/upload")
-async def upload_and_scan(
-    background_tasks: BackgroundTasks,
-    file: UploadFile = File(...)
-):
-    """
-    Upload a CRX/ZIP file and trigger analysis.
-
-    Args:
-        file: Uploaded CRX or ZIP file
-        background_tasks: FastAPI background tasks
-
-    Returns:
-        Scan trigger confirmation with extension ID
-    """
-    # Validate file extension
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="No filename provided")
-    
-    filename_lower = file.filename.lower()
-    if not (filename_lower.endswith('.crx') or filename_lower.endswith('.zip')):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid file type. Only .crx and .zip files are supported"
-        )
-
-    # Validate file size (max 100MB)
-    max_size = 100 * 1024 * 1024  # 100MB
-    file_content = await file.read()
-    if len(file_content) > max_size:
-        raise HTTPException(
-            status_code=400,
-            detail=f"File too large. Maximum size is {max_size / (1024*1024):.0f}MB"
-        )
-
-    # Generate unique ID for uploaded file
-    import uuid
-    extension_id = str(uuid.uuid4())
-
-    # Save uploaded file to extensions_storage
-    file_path = RESULTS_DIR / f"{extension_id}_{file.filename}"
-
-    try:
-        with open(file_path, "wb") as buffer:
-            buffer.write(file_content)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
-
-    # Start background analysis with local file path
-    background_tasks.add_task(run_analysis_workflow, str(file_path), extension_id)
-
-    return {
-        "message": "File uploaded and scan triggered successfully",
-        "extension_id": extension_id,
         "filename": file.filename,
         "status": "running",
+        "forced": force,
     }
 
 
@@ -1124,8 +1069,8 @@ async def analyze_file_with_ai(
         
         # Determine which LLM provider to use
         if provider == "auto":
-            # Try to detect best available provider
-            llm_provider = os.getenv("LLM_PROVIDER", "rits/openai/gpt-oss-120b")
+            # Use the configured model from environment
+            llm_provider = os.getenv("LLM_MODEL", "meta-llama/llama-3-3-70b-instruct")
         else:
             llm_provider = provider
         
@@ -1179,20 +1124,61 @@ Focus on actionable security insights. Be specific about any suspicious patterns
             }
         )
         
-        # Create chain
-        chain = prompt | llm | JsonOutputParser()
-        
         # Truncate file content if too large (keep first 5000 chars)
         truncated_content = file_content[:5000]
         if len(file_content) > 5000:
             truncated_content += "\n\n... (content truncated for analysis)"
         
-        # Run analysis
-        result = chain.invoke({
-            "file_name": file_name,
-            "file_type": file_type,
-            "file_content": truncated_content
-        })
+        # Run analysis with better error handling
+        try:
+            # Create chain with JSON parser
+            chain = prompt | llm | JsonOutputParser()
+            
+            result = chain.invoke({
+                "file_name": file_name,
+                "file_type": file_type,
+                "file_content": truncated_content
+            })
+        except Exception as parse_error:
+            # If JSON parsing fails, try without parser and extract JSON manually
+            logger.warning(f"JSON parsing failed, trying raw output: {parse_error}")
+            chain_raw = prompt | llm
+            
+            raw_result = chain_raw.invoke({
+                "file_name": file_name,
+                "file_type": file_type,
+                "file_content": truncated_content
+            })
+            
+            # Extract JSON from response
+            import re
+            raw_text = raw_result.content if hasattr(raw_result, 'content') else str(raw_result)
+            
+            # Try to find JSON in the response
+            json_match = re.search(r'\{[\s\S]*\}', raw_text)
+            if json_match:
+                try:
+                    result = json.loads(json_match.group(0))
+                except json.JSONDecodeError:
+                    # If still fails, return a basic analysis
+                    result = {
+                        "riskScore": 5,
+                        "severity": "Medium",
+                        "confidence": "Low",
+                        "analysis": raw_text[:500],
+                        "findings": ["Unable to parse detailed analysis"],
+                        "recommendations": ["Manual review recommended"]
+                    }
+            else:
+                # No JSON found, return basic analysis
+                result = {
+                    "riskScore": 5,
+                    "severity": "Medium",
+                    "confidence": "Low",
+                    "analysis": raw_text[:500],
+                    "findings": ["Unable to parse detailed analysis"],
+                    "recommendations": ["Manual review recommended"]
+                }
         
         # Add metadata
         result["metadata"] = {

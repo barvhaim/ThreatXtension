@@ -37,9 +37,9 @@ def _get_base_llm_settings(model_name: str, model_parameters: Optional[Dict]) ->
         }
 
         return {
-            "url": os.getenv("WATSONX_API_ENDPOINT"),
-            "project_id": os.getenv("WATSONX_PROJECT_ID"),
-            "apikey": os.getenv("WATSONX_API_KEY"),
+            "url": os.getenv("WATSONX_URL") or os.getenv("WATSONX_API_ENDPOINT"),
+            "project_id": os.getenv("WATSONX_PROJECT_ID") or os.getenv("WX_PROJECT_ID"),
+            "apikey": os.getenv("WATSONX_APIKEY") or os.getenv("WATSONX_API_KEY"),
             "model_id": model_name,
             "params": parameters,
         }

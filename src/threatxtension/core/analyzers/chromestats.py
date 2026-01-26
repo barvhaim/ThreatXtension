@@ -317,6 +317,95 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
             'risk_level': 'high' if risk_score >= 5 else 'medium' if risk_score >= 3 else 'low'
         }
 
+    def _analyze_api_risk_data(self, extension_data: Dict) -> Dict[str, Any]:
+        """
+        Analyze risk data provided directly by chrome-stats.com API.
+        
+        This includes riskImpact and riskLikelihood scores with detailed reasons.
+        
+        Args:
+            extension_data: Extension data from API
+            
+        Returns:
+            Analysis of API-provided risk data
+        """
+        risk_data = extension_data.get('risk', {})
+        
+        if not risk_data:
+            return {
+                'has_api_risk_data': False,
+                'risk_score': 0,
+                'risk_indicators': [],
+                'risk_level': 'low'
+            }
+        
+        risk_impact = risk_data.get('riskImpact', 0)
+        risk_likelihood = risk_data.get('riskLikelihood', 0)
+        impact_reasons = risk_data.get('riskImpactReasons', [])
+        likelihood_reasons = risk_data.get('riskLikelihoodReasons', [])
+        
+        risk_indicators = []
+        risk_score = 0
+        
+        # Process impact reasons (what the extension CAN do)
+        for reason in impact_reasons:
+            reason_text = reason.get('reason', '')
+            severity = reason.get('severity', 'Low')
+            description = reason.get('description', '')
+            reason_risk = reason.get('risk', 0)
+            
+            # Add to indicators
+            risk_indicators.append(f"[{severity}] {description}")
+            
+            # Map severity to risk points
+            if severity == 'Critical':
+                risk_score += min(10, reason_risk // 2)  # Scale down API risk to our scoring
+            elif severity == 'High':
+                risk_score += min(5, reason_risk // 3)
+            elif severity == 'Medium':
+                risk_score += min(3, reason_risk // 5)
+        
+        # Process likelihood reasons (behavioral indicators of malicious intent)
+        for reason in likelihood_reasons:
+            reason_text = reason.get('reason', '')
+            severity = reason.get('severity', 'Low')
+            description = reason.get('description', '')
+            reason_risk = reason.get('risk', 0)
+            
+            # Likelihood reasons are MORE important for security scoring
+            risk_indicators.append(f"[{severity}] {description}")
+            
+            # Special handling for critical likelihood indicators
+            if reason_text == 'removed-from-store':
+                risk_score += 15  # CRITICAL: Extension was removed from store
+            elif severity == 'Critical':
+                risk_score += min(12, abs(reason_risk) * 2)
+            elif severity == 'High':
+                risk_score += min(8, abs(reason_risk) * 2)
+            elif severity == 'Medium':
+                risk_score += min(4, abs(reason_risk))
+        
+        # Determine risk level
+        if risk_score >= 15 or risk_likelihood >= 3:
+            risk_level = 'critical'
+        elif risk_score >= 10 or risk_likelihood >= 2:
+            risk_level = 'high'
+        elif risk_score >= 5 or risk_likelihood >= 1:
+            risk_level = 'medium'
+        else:
+            risk_level = 'low'
+        
+        return {
+            'has_api_risk_data': True,
+            'risk_impact': risk_impact,
+            'risk_likelihood': risk_likelihood,
+            'impact_reasons_count': len(impact_reasons),
+            'likelihood_reasons_count': len(likelihood_reasons),
+            'risk_indicators': risk_indicators,
+            'risk_score': min(20, risk_score),  # Cap at 20 points for API risk data
+            'risk_level': risk_level
+        }
+
     def analyze(
         self, extension_dir: str, manifest: Optional[Dict] = None, metadata: Optional[Dict] = None
     ) -> Optional[Dict]:
@@ -357,15 +446,19 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
                 'error': 'Failed to fetch Chrome Stats data',
             }
         
-        # Perform analyses using the single API response
+        # Analyze API-provided risk data (NEW - highest priority)
+        api_risk_analysis = self._analyze_api_risk_data(extension_data)
+        
+        # Perform behavioral analyses using the single API response
         install_analysis = self._analyze_install_trends(extension_data)
         rating_analysis = self._analyze_rating_patterns(extension_data)
         developer_analysis = self._analyze_developer_reputation(extension_data)
         geo_analysis = self._analyze_geographic_distribution(extension_data)
         similar_analysis = self._analyze_similar_extensions(extension_data)
         
-        # Calculate overall risk
+        # Calculate overall risk (prioritize API risk data)
         total_risk_score = (
+            api_risk_analysis['risk_score'] +  # NEW: API risk data (max 20 points)
             install_analysis['risk_score'] +
             rating_analysis['risk_score'] +
             developer_analysis['risk_score'] +
@@ -373,8 +466,9 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
             similar_analysis['risk_score']
         )
         
-        # Collect all risk indicators
+        # Collect all risk indicators (API indicators first)
         all_risk_indicators = (
+            api_risk_analysis['risk_indicators'] +  # NEW: API risk indicators
             install_analysis['risk_indicators'] +
             rating_analysis['risk_indicators'] +
             developer_analysis['risk_indicators'] +
@@ -382,12 +476,12 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
             similar_analysis['risk_indicators']
         )
         
-        # Determine overall risk level
-        if total_risk_score >= 15:
+        # Determine overall risk level (consider API risk level)
+        if total_risk_score >= 20 or api_risk_analysis['risk_level'] == 'critical':
             overall_risk = 'critical'
-        elif total_risk_score >= 10:
+        elif total_risk_score >= 15:
             overall_risk = 'high'
-        elif total_risk_score >= 5:
+        elif total_risk_score >= 8:
             overall_risk = 'medium'
         else:
             overall_risk = 'low'
@@ -398,6 +492,7 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
             'overall_risk_level': overall_risk,
             'total_risk_score': total_risk_score,
             'risk_indicators': all_risk_indicators,
+            'api_risk_analysis': api_risk_analysis,  # NEW: Include API risk data
             'install_trends': install_analysis,
             'rating_patterns': rating_analysis,
             'developer_reputation': developer_analysis,
