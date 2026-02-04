@@ -1,15 +1,27 @@
-Thanks for ThreatXtension - I read through your codebase while building something similar, but adding a compliance and governance layer on top. 
-Your security analysis foundation was exactly what I needed...
+My bad, I forgot to include my findings.
 
-I am still working on the site: I was about to give you a shout-out on my site, saying we use your engine 
-as part of our scoring model, actually today when I tested out it perfomed really well I would say better 
-against all the other competitors, it still needs work tho. I am working solo solo on this. 
-Iterations and QA is getting to me
-Its 4am in Morning here. Thx again https://extensionshield.com/. 
+First of all thanks for putting ThreatXtension together. I read through your codebase while building something similar, 
+and your security analysis foundation was exactly what I needed to get moving fast. It genuinely saved me weeks.
 
-Shalom - (you know my roommate Aviv was from Tel Aviv!)
+I’m building ExtensionShield (still very much in progress), and I’ve been layering compliance + governance on top of a security foundation.
+I have a 3 layer model (Security / Privacy / Governance)
 
+A deterministic scoring engine that normalizes signals into severity + confidence, then aggregates with a confidence-weighted formula
+to set up “Hard gates” that can override the score for high-confidence cases. 
+
+A governance ruleset/rulepack approach for auditability
+
+I was about to give you a shout-out on the site and in the repo (crediting ThreatXtension as part of the scoring foundation). 
+Also — I tested the scoring flow today and it performed really well versus other tools I tried (still needs work, but I’m encouraged). 
+I’m building this solo, and honestly the iteration + QA grind is getting to me a bit.
+
+If you’re open to it, I’d love to share the write-up and a couple concrete findings/PR-sized 
+improvements and get your thoughts — even a quick 15–20 min chat would be huge. 
+
+It’s 4am here in the US and I’m still up tweaking things 😅
+Thanks again: https://extensionshield.com/
+
+(Also — random: my roommate Aviv is from Tel Aviv, so “shalom” felt appropriate.)
 
 Best,
 Stan
-snorzang65@gmail.com
