@@ -1,8 +1,7 @@
-# ThreatXtension
-
 <p align="center">
-  <img src="images/ui.png" alt="ThreatXtension Logo" width="800"/>
+  <img width="450" height="400" alt="logo1" src="https://github.com/user-attachments/assets/1f7a1239-81f2-416a-982b-af6938b35136" />
 </p>
+
 
 <p align="center">
   <strong>AI-Powered Chrome Extension Security Analysis</strong>
@@ -21,6 +20,10 @@
 ## Overview
 
 **ThreatXtension** is a comprehensive security analysis tool for Chrome browser extensions. It combines static analysis (SAST), threat intelligence (VirusTotal), and AI-powered assessment to help security researchers, malware analysts, and browser security teams identify malicious behavior in browser extensions.
+
+<p align="center">
+  <img src="images/ui.png" alt="ThreatXtension Logo" width="800"/>
+</p>
 
 ## Features
 
