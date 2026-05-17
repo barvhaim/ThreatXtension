@@ -5,7 +5,6 @@ This module provides utilities for extracting, analyzing, and managing Chrome ex
 """
 
 import zipfile
-import tempfile
 import os
 import re
 import logging
@@ -13,6 +12,18 @@ import hashlib
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+
+def _safe_extract_zip(zip_ref: zipfile.ZipFile, extract_dir: str) -> None:
+    """Extract a zip archive while rejecting entries outside extract_dir."""
+    extract_root = os.path.abspath(extract_dir)
+
+    for member in zip_ref.infolist():
+        member_path = os.path.abspath(os.path.join(extract_dir, member.filename))
+        if os.path.commonpath([extract_root, member_path]) != extract_root:
+            raise ValueError(f"Unsafe archive member path: {member.filename}")
+
+    zip_ref.extractall(extract_dir)
 
 
 def extract_extension_id_by_url(url):
@@ -90,14 +101,14 @@ def extract_extension_crx(file_path: str) -> Optional[str]:
                 f.write(zip_data)
 
             with zipfile.ZipFile(temp_zip, "r") as zip_ref:
-                zip_ref.extractall(extract_dir)
+                _safe_extract_zip(zip_ref, extract_dir)
 
             os.remove(temp_zip)
 
         elif file_path.endswith(".zip"):
             # Direct ZIP extraction
             with zipfile.ZipFile(file_path, "r") as zip_ref:
-                zip_ref.extractall(extract_dir)
+                _safe_extract_zip(zip_ref, extract_dir)
 
         else:
             logger.error("Unsupported file format for extraction: %s", file_path)
