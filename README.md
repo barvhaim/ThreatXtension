@@ -139,10 +139,11 @@ cp .env.example .env
 # Option 1: CLI - Analyze from Chrome Web Store URL
 make analyze URL=https://chromewebstore.google.com/detail/example/abcdef
 
-# Option 1b: CLI - Analyze using extension ID
+# Option 1b: CLI - Analyze using extension ID (requires CHROMESTATS_API_KEY)
 uv run threatxtension analyze --id gbbilodpoldeopifonmibfboicpafpjo
 
 # Option 1c: CLI - Analyze local file
+make analyze-file FILE=/path/to/extension.crx
 uv run threatxtension analyze --file /path/to/extension.crx
 uv run threatxtension analyze --file /path/to/extension.zip
 
