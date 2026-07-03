@@ -29,7 +29,7 @@ def _get_base_llm_settings(model_name: str, model_parameters: Optional[Dict]) ->
         parameters = {
             "max_new_tokens": model_parameters.get("max_tokens", 100),
             "decoding_method": model_parameters.get("decoding_method", "greedy"),
-            "temperature": model_parameters.get("temperature", 0.9),
+            "temperature": model_parameters.get("temperature", 0.05),
             "repetition_penalty": model_parameters.get("repetition_penalty", 1.0),
             "top_k": model_parameters.get("top_k", 50),
             "top_p": model_parameters.get("top_p", 1.0),
@@ -49,7 +49,7 @@ def _get_base_llm_settings(model_name: str, model_parameters: Optional[Dict]) ->
 
         parameters = {
             "max_tokens": model_parameters.get("max_tokens", 100),
-            "temperature": model_parameters.get("temperature", 0.9),
+            "temperature": model_parameters.get("temperature", 0.05),
             "repetition_penalty": model_parameters.get("repetition_penalty", 1.0),
             "top_k": model_parameters.get("top_k", 50),
             "top_p": model_parameters.get("top_p", 1.0),
@@ -64,12 +64,20 @@ def _get_base_llm_settings(model_name: str, model_parameters: Optional[Dict]) ->
         }
 
     if LLM_PROVIDER == LLMProviderType.OPENAI:
-        return {
+        settings = {
             "model": model_name,
             "api_key": os.getenv("OPENAI_API_KEY"),
             "max_tokens": model_parameters.get("max_tokens", 4096),
-            "temperature": model_parameters.get("temperature", 0.7),
+            "temperature": model_parameters.get("temperature", 0.05),
         }
+
+        # Support OpenAI-compatible providers (LiteLLM, OpenCode, vLLM, etc.)
+        # by pointing at a custom base URL when configured.
+        openai_base_url = os.getenv("OPENAI_BASE_URL") or os.getenv("OPENAI_API_BASE")
+        if openai_base_url:
+            settings["base_url"] = openai_base_url
+
+        return settings
 
     raise ValueError(f"Incorrect LLM provider: {LLM_PROVIDER}")
 
