@@ -1,0 +1,86 @@
+# Network-restricted + hardened override for isolated scanning.
+#
+#   docker compose up --build
+#
+# Merges over docker-compose.yml. The app runs on an INTERNAL network (no direct
+# internet); its only egress path is the tinyproxy sidecar, which allows just the
+# hosts a scan needs (see docker/egress-proxy/allowlist.txt). The container is also
+# hardened (read-only rootfs, dropped caps, non-root) to protect the host.
+
+services:
+  threatxtension:
+    networks:
+      - internal   # no gateway -> no direct internet
+    # Deps are baked in at build time; --no-sync stops `uv run` from re-resolving
+    # against PyPI (which the egress allowlist blocks) on every start.
+    command: ["uv", "run", "--no-sync", "uvicorn", "threatxtension.api.main:app", "--host", "0.0.0.0", "--port", "8007"]
+    environment:
+      # Inside the container, localhost is the container itself; reach the host LLM
+      # via host.docker.internal. Overrides the host-oriented value in .env.
+      - OPENAI_BASE_URL=http://host.docker.internal:8989/v1
+      # All app egress (including the LLM) is forced through the allowlist proxy.
+      # The app has no direct route off the internal network, so the proxy is the
+      # only path out; it reaches the host LLM on the app's behalf.
+      - HTTP_PROXY=http://egress-proxy:8888
+      - HTTPS_PROXY=http://egress-proxy:8888
+      - http_proxy=http://egress-proxy:8888
+      - https_proxy=http://egress-proxy:8888
+      # Only in-network calls skip the proxy (health checks, the proxy itself).
+      - NO_PROXY=localhost,127.0.0.1,egress-proxy
+      - no_proxy=localhost,127.0.0.1,egress-proxy
+      # Redirect caches to writable tmpfs (rootfs is read-only). Semgrep and uv
+      # write under HOME/XDG_CACHE_HOME during a scan.
+      - HOME=/scratch
+      - XDG_CACHE_HOME=/scratch/.cache
+      - SEMGREP_SETTINGS_FILE=/scratch/.semgrep/settings.yml
+    # --- host protection (container escape containment) ---
+    # Run as the host user so writes to the mounted data/ and extensions_storage/
+    # volumes succeed. With cap_drop:ALL there is no CAP_DAC_OVERRIDE, so root
+    # could NOT bypass the file-owner bits — matching UID is the clean fix.
+    user: "501:20"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      # Writable scratch that isn't a host mount; app data still uses the named volumes.
+      # mode 1777 so the non-root container user can write (HOME/caches live here).
+      - /tmp:mode=1777
+      - /scratch:mode=1777
+    depends_on:
+      - egress-proxy
+
+  egress-proxy:
+    build:
+      context: ./docker/egress-proxy
+    container_name: threatxtension-egress
+    networks:
+      - internal   # faces the app
+      - egress      # faces the internet
+    # The proxy (not the app) reaches the host LLM, on the app's behalf.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      # LLM/provider hosts to allow, on top of the fixed base allowlist. Anchored
+      # regex, comma-separated. Adapts egress to whatever LLM_PROVIDER you use:
+      #   openai-compatible (local, default) : host.docker.internal
+      #   real OpenAI                        : ^api\.openai\.com$
+      #   WatsonX                            : (^|\.)ml\.cloud\.ibm\.com$
+      #   Ollama (host)                      : ^host\.docker\.internal$
+      #   RITS                               : <your RITS_API_BASE_URL host>
+      - EGRESS_ALLOW_EXTRA=${EGRESS_ALLOW_EXTRA:-^host\.docker\.internal$}
+    read_only: true
+    tmpfs:
+      - /tmp   # tinyproxy pidfile
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
+networks:
+  internal:
+    internal: true   # no route to the host/internet
+  egress:
+    driver: bridge   # normal outbound, used only by the proxy

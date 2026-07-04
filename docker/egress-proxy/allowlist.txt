@@ -1,0 +1,25 @@
+# Base allowlist: hosts every scan needs. Regex (FilterType ere), anchored so a
+# substring can't smuggle a lookalike domain past the filter.
+#
+# Provider/LLM hosts are NOT here — they vary by LLM_PROVIDER and are appended at
+# container start from the EGRESS_ALLOW_EXTRA env var (see entrypoint.sh).
+
+# Chrome Web Store: metadata + webstore analyzer
+^chromewebstore\.google\.com$
+
+# CRX download entrypoint (302-redirects to a Google CDN host below)
+^clients2\.google\.com$
+
+# Google CDN hosts the CRX redirect lands on (edgedl / gvt1 / googleusercontent)
+(^|\.)gvt1\.com$
+(^|\.)googleusercontent\.com$
+^edgedl\.me\.gvt1\.com$
+
+# ChromeStats (only used for --id input)
+^chrome-stats\.com$
+
+# VirusTotal (optional hash lookup via the vt SDK)
+^www\.virustotal\.com$
+
+# LangSmith tracing (optional; harmless to allow)
+^api\.smith\.langchain\.com$
