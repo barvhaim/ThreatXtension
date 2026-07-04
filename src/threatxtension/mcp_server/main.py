@@ -36,6 +36,7 @@ def analyze_chrome_extension(chrome_extension_url: str) -> str:
         "manifest_data": None,
         "analysis_results": None,
         "executive_summary": None,
+        "keep_extracted": False,
         "status": WorkflowStatus.PENDING.value,
         "start_time": datetime.now().isoformat(),
         "end_time": None,

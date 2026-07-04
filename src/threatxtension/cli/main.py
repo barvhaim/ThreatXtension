@@ -50,11 +50,14 @@ def print_header():
     )
 
 
-def create_initial_state(chrome_extension_path: str) -> dict:
+def create_initial_state(chrome_extension_path: str, keep_extracted: bool = False) -> dict:
     """Create initial workflow state.
 
     Args:
         chrome_extension_path: Chrome Web Store URL of the extension to analyze.
+        keep_extracted: Whether to retain the extracted extension directory after
+            analysis. Defaults to False for the CLI, since it has no file viewer and
+            leaving extracted samples on disk is unnecessary.
 
     Returns:
         Initial workflow state dictionary.
@@ -67,6 +70,7 @@ def create_initial_state(chrome_extension_path: str) -> dict:
         "manifest_data": None,
         "analysis_results": None,
         "executive_summary": None,
+        "keep_extracted": keep_extracted,
         "status": WorkflowStatus.PENDING.value,
         "start_time": datetime.now().isoformat(),
         "end_time": None,
@@ -384,7 +388,19 @@ def cli():
     is_flag=True,
     help="Enable verbose logging",
 )
-def analyze(url: Optional[str], extension_id: Optional[str], file: Optional[str], output: Optional[str], verbose: bool):
+@click.option(
+    "--keep-extracted/--no-keep-extracted",
+    default=False,
+    help="Keep the extracted extension directory after analysis (default: remove it)",
+)
+def analyze(
+    url: Optional[str],
+    extension_id: Optional[str],
+    file: Optional[str],
+    output: Optional[str],
+    verbose: bool,
+    keep_extracted: bool,
+):
     """Analyze a Chrome extension for security threats.
 
     Example:
@@ -426,7 +442,9 @@ def analyze(url: Optional[str], extension_id: Optional[str], file: Optional[str]
     graph = build_graph()
 
     # Create initial state
-    initial_state = create_initial_state(chrome_extension_path=chrome_extension_path)
+    initial_state = create_initial_state(
+        chrome_extension_path=chrome_extension_path, keep_extracted=keep_extracted
+    )
 
     # Execute workflow with spinner
     try:

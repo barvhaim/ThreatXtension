@@ -144,6 +144,8 @@ async def run_analysis_workflow(url: str, extension_id: str):
             "analysis_results": None,
             "executive_summary": None,
             "extracted_files": None,
+            # Web UI file viewer reads the extracted source after analysis.
+            "keep_extracted": True,
             "status": WorkflowStatus.PENDING,
             "start_time": datetime.now().isoformat(),
             "end_time": None,

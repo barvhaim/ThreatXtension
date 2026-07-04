@@ -384,10 +384,21 @@ def cleanup_node(state: WorkflowState) -> Command:
         except Exception as exc:
             logger.warning("Failed to collect file list: %s", exc)
 
-    # KEEP extracted directory for file viewing - don't clean it up
-    # Users can view files through the web UI after analysis
+    # Retain the extracted directory only when a caller opts in (e.g. the web UI
+    # file viewer); otherwise remove it. The CRX is cleaned up below regardless.
+    keep_extracted = state.get("keep_extracted", False)
     if extension_dir:
-        logger.info("Keeping extension directory for file viewing: %s", extension_dir)
+        if keep_extracted:
+            logger.info("Keeping extension directory for file viewing: %s", extension_dir)
+        else:
+            try:
+                logger.info("Cleaning up extracted extension directory: %s", extension_dir)
+                cleanup_extension_dir(extension_dir)
+            except Exception as exc:
+                logger.warning(
+                    "Failed to cleanup extension directory %s: %s", extension_dir, exc
+                )
+                cleanup_errors.append(f"Failed to cleanup extension directory: {exc}")
 
     # Clean up downloaded CRX file (only if downloaded by the tool)
     downloaded_crx_path = state.get("downloaded_crx_path")

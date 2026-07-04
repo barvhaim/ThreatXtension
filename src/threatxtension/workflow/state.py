@@ -39,6 +39,11 @@ class WorkflowState(TypedDict):
             key findings, and recommendations.
         extracted_files (Optional[list]): List of relative file paths extracted from the
             extension, collected before cleanup.
+        keep_extracted (Optional[bool]): Whether the cleanup node should retain the
+            extracted extension directory after analysis. Set True by callers that need
+            to browse the source afterward (e.g. the web UI file viewer). When absent or
+            falsy, the extracted directory is removed. Note: the downloaded CRX is always
+            removed regardless of this flag.
         status (WorkflowStatus): Current status of the workflow.
         start_time (Optional[str]): ISO 8601 formatted start time of the workflow,
             if available.
@@ -55,6 +60,7 @@ class WorkflowState(TypedDict):
     analysis_results: Optional[Dict]
     executive_summary: Optional[Dict]
     extracted_files: Optional[list]
+    keep_extracted: Optional[bool]
     status: WorkflowStatus
     start_time: Optional[str]
     end_time: Optional[str]
