@@ -510,6 +510,34 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                     'category': 'c2-communication',
                     'rule_id': 'pattern.c2.websocket'
                 },
+                'computed_property_concat': {
+                    'regex': r'\[\w+\.concat\([^\)]+\)\]\s*\(',
+                    'severity': 'ERROR',
+                    'message': 'Computed property with concat() - obfuscated method call',
+                    'category': 'obfuscation',
+                    'rule_id': 'pattern.obfuscation.computed_property_concat'
+                },
+                'nested_template_literals': {
+                    'regex': r'\$\{[^\}]*\[[^\]]+\]\}.*\$\{[^\}]*\[[^\]]+\]\}',
+                    'severity': 'ERROR',
+                    'message': 'Nested template literals with property access - code obfuscation',
+                    'category': 'obfuscation',
+                    'rule_id': 'pattern.obfuscation.nested_template_literals'
+                },
+                'async_fetch_json': {
+                    'regex': r'await\s+fetch\([^\)]+\)\[[^\]]+\]\(\(',
+                    'severity': 'CRITICAL',
+                    'message': 'Async fetch with computed property access - potential C2 command retrieval',
+                    'category': 'c2-communication',
+                    'rule_id': 'pattern.c2.async_fetch_json'
+                },
+                'string_array_obfuscation': {
+                    'regex': r'const\s+\w+\s*=\s*\[[^\]]{500,}\];',
+                    'severity': 'CRITICAL',
+                    'message': 'Large string array detected - common obfuscation technique',
+                    'category': 'obfuscation',
+                    'rule_id': 'pattern.obfuscation.large_string_array'
+                },
             }
             
             # Scan for each pattern
@@ -534,6 +562,12 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                         col_start = match.start() - line_start
                         col_end = match.end() - line_start
                         
+                        # Extract a more focused code snippet around the match (not the full line)
+                        # This helps the frontend highlight the correct part
+                        snippet_start = max(0, match.start() - 50)
+                        snippet_end = min(len(content), match.end() + 50)
+                        code_snippet = content[snippet_start:snippet_end].strip()
+                        
                         findings.append({
                             'check_id': pattern_info['rule_id'],
                             'path': rel_path,
@@ -547,8 +581,9 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                             'risk_level': pattern_info['severity'],  # Add risk_level for frontend
                             'start': {'line': line_num, 'col': col_start},
                             'end': {'line': line_num, 'col': col_end},
-                            'matched_text': matched_text,  # Store the actual matched text
-                            'code_snippet': full_line.strip(),  # Store the full line for context
+                            'matched_text': matched_text,  # Store the actual matched text for highlighting
+                            'code_snippet': code_snippet,  # Store focused snippet around the match
+                            'full_line': full_line.strip(),  # Store the full line for additional context
                             'extra': {
                                 'message': pattern_info['message'],
                                 'severity': pattern_info['severity'],
@@ -557,8 +592,10 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                                     'category': pattern_info['category'],
                                     'detection_method': 'pattern-based (obfuscated code fallback)',
                                     'pattern': pattern_name,
-                                    'matched_text': matched_text,  # Also in metadata
-                                    'total_occurrences': len(matches)
+                                    'matched_text': matched_text,  # Also in metadata for frontend fallback
+                                    'total_occurrences': len(matches),
+                                    'col_start': col_start,  # Add column info for precise highlighting
+                                    'col_end': col_end
                                 }
                             }
                         })

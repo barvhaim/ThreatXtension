@@ -6,6 +6,8 @@ import gptOssService from "../services/gptOssService";
 import TabbedResultsPanel from "../components/TabbedResultsPanel";
 import FileViewerModal from "../components/FileViewerModal";
 import FindingDetailsModal from "../components/FindingDetailsModal";
+import AllFindingsModal from "../components/AllFindingsModal";
+import SASTSignatureModal from "../components/SASTSignatureModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
@@ -34,6 +36,10 @@ const AnalysisPage = () => {
   });
   const [allFindingsModal, setAllFindingsModal] = useState({
     isOpen: false,
+  });
+  const [sastSignatureModal, setSastSignatureModal] = useState({
+    isOpen: false,
+    file: null,
   });
 
   useEffect(() => {
@@ -145,6 +151,31 @@ const AnalysisPage = () => {
     });
   };
 
+  const handleGenerateSASTSignature = (file) => {
+    setSastSignatureModal({
+      isOpen: true,
+      file: file,
+    });
+  };
+
+  const handleGenerateSignature = async (fileContent, fileName) => {
+    try {
+      // Call GPT-OSS service to generate SAST signature
+      const result = await gptOssService.generateSASTSignature(
+        fileContent,
+        fileName,
+        'auto' // Use auto provider selection
+      );
+      return result;
+    } catch (err) {
+      console.error('SAST signature generation error:', err);
+      return {
+        success: false,
+        error: err.message || 'Failed to generate SAST signature'
+      };
+    }
+  };
+
   if (loading) {
     return (
       <div className="page-container flex items-center justify-center min-h-[50vh]">
@@ -190,6 +221,7 @@ const AnalysisPage = () => {
           onAnalyzeWithAI={handleAnalyzeWithAI}
           onViewFindingDetails={handleViewFindingDetails}
           onViewAllFindings={handleViewAllFindings}
+          onGenerateSASTSignature={handleGenerateSASTSignature}
         />
       </div>
 
@@ -216,6 +248,16 @@ const AnalysisPage = () => {
         onClose={() => setAllFindingsModal({ isOpen: false })}
         findings={scanResults?.sastResults || []}
         onViewFindingDetails={handleViewFindingDetails}
+      />
+
+      {/* SAST Signature Generation Modal */}
+      <SASTSignatureModal
+        isOpen={sastSignatureModal.isOpen}
+        onClose={() => setSastSignatureModal({ isOpen: false, file: null })}
+        file={sastSignatureModal.file}
+        extensionId={scanResults?.extensionId}
+        onGetFileContent={getFileContent}
+        onGenerateSignature={handleGenerateSignature}
       />
 
       {/* AI Analysis Modal */}

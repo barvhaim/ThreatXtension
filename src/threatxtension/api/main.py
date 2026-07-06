@@ -73,7 +73,8 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",  # Vite dev server
+        "http://localhost:5173",  # Vite dev server (default)
+        "http://localhost:5174",  # Vite dev server (alternative port)
         "http://localhost:3000",  # Alternative dev port
         "http://localhost:8007",  # Same-origin in container
     ],
@@ -925,19 +926,38 @@ async def get_file_content(extension_id: str, file_path: str) -> FileContentResp
     Get content of a specific file from the extracted extension.
 
     Args:
-        extension_id: Chrome extension ID
+        extension_id: Chrome extension ID or scan UUID
         file_path: Relative path to the file
 
     Returns:
         File content
     """
+    # Try in-memory cache first
     results = scan_results.get(extension_id)
+    
+    # If not in memory, try database
     if not results:
-        raise HTTPException(status_code=404, detail="Extension not found")
+        db_result = db.get_scan_result(extension_id)
+        if db_result:
+            results = db_result
+            # Cache it for future requests
+            scan_results[extension_id] = results
+        else:
+            raise HTTPException(status_code=404, detail="Extension not found")
 
     extracted_path = results.get("extracted_path")
     if not extracted_path:
-        raise HTTPException(status_code=404, detail="Extracted files not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Extracted files path not available. Files may have been cleaned up after analysis."
+        )
+
+    # Check if extracted directory still exists
+    if not os.path.exists(extracted_path):
+        raise HTTPException(
+            status_code=410,  # 410 Gone - resource existed but is no longer available
+            detail="Extracted files have been cleaned up. Please re-scan the extension to access files."
+        )
 
     # Construct full file path
     full_path = os.path.join(extracted_path, file_path)
@@ -947,7 +967,7 @@ async def get_file_content(extension_id: str, file_path: str) -> FileContentResp
         raise HTTPException(status_code=403, detail="Access denied")
 
     if not os.path.exists(full_path):
-        raise HTTPException(status_code=404, detail="File not found")
+        raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
 
     try:
         with open(full_path, "r", encoding="utf-8") as f:
@@ -1216,6 +1236,518 @@ Focus on actionable security insights. Be specific about any suspicious patterns
             status_code=500,
             detail=f"AI analysis failed: {str(e)}"
         ) from e
+
+
+@app.post("/api/analyze/generate-sast-signature")
+async def generate_sast_signature(
+    file_content: str = Form(...),
+    file_name: str = Form(...),
+    provider: str = Form("auto")
+):
+    """
+    Generate SAST signatures (Semgrep rules) from file content using AI.
+    
+    This endpoint analyzes the file and creates multiple custom Semgrep rule patterns
+    based on the actual code patterns found in the file.
+    """
+    try:
+        # Import LLM client
+        from threatxtension.llm.clients import get_chat_llm_client
+        
+        # Get LLM client
+        llm_client = get_chat_llm_client()
+        
+        # Limit file content to avoid token limits
+        content_preview = file_content[:3000] if len(file_content) > 3000 else file_content
+        
+        # Create prompt for SAST signature generation
+        prompt = f"""You are a security expert analyzing JavaScript code to create Semgrep SAST rules.
+
+Analyze this {file_name} file and generate 3-5 Semgrep rules based on ACTUAL security patterns found in the code.
+
+File Content:
+```javascript
+{content_preview}
+```
+
+For each security pattern you find in the code, create a Semgrep rule. Focus on:
+1. Actual dangerous function calls present in the code (eval, innerHTML, document.write, etc.)
+2. Network requests (fetch, XMLHttpRequest, WebSocket)
+3. Data storage operations (localStorage, sessionStorage, cookies)
+4. DOM manipulation patterns
+5. Authentication/authorization code
+
+Return a JSON array of rules in this format:
+[
+  {{
+    "rule_id": "descriptive-name-based-on-pattern",
+    "pattern": "actual semgrep pattern matching code in file",
+    "message": "Clear description of security issue",
+    "severity": "ERROR|WARNING|INFO",
+    "languages": ["javascript"],
+    "metadata": {{
+      "category": "security",
+      "cwe": "CWE-XXX",
+      "confidence": "HIGH|MEDIUM|LOW"
+    }}
+  }}
+]
+
+IMPORTANT: Only create rules for patterns that ACTUALLY EXIST in the provided code.
+Return ONLY the JSON array, no additional text."""
+
+        # Generate signature using LLM
+        response = llm_client.invoke(prompt)
+        
+        # Extract content from response
+        if hasattr(response, 'content'):
+            response_text = response.content
+        else:
+            response_text = str(response)
+        
+        # Parse JSON response
+        try:
+            # Try to extract JSON from response
+            response_text = response_text.strip()
+            if "```json" in response_text:
+                response_text = response_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in response_text:
+                response_text = response_text.split("```")[1].split("```")[0].strip()
+            
+            signatures = json.loads(response_text)
+            
+            # Ensure it's a list
+            if not isinstance(signatures, list):
+                signatures = [signatures]
+                
+        except json.JSONDecodeError:
+            # Fallback: analyze file content and create basic signatures
+            signatures = _generate_fallback_signatures(file_content, file_name)
+        
+        # Add metadata to each signature
+        for sig in signatures:
+            sig["provider"] = provider
+            sig["generated_at"] = datetime.now().isoformat()
+            sig["source_file"] = file_name
+        
+        return {
+            "success": True,
+            "data": signatures[0] if len(signatures) == 1 else signatures,
+            "total_signatures": len(signatures)
+        }
+        
+    except ImportError as e:
+        # Fallback to pattern-based generation
+        logger.warning(f"LLM not available, using fallback: {e}")
+        signatures = _generate_fallback_signatures(file_content, file_name)
+        return {
+            "success": True,
+            "data": signatures[0] if len(signatures) == 1 else signatures,
+            "total_signatures": len(signatures),
+            "provider": "fallback"
+        }
+    except Exception as e:
+        logger.error(f"SAST signature generation failed: {e}")
+        # Return fallback instead of error
+        signatures = _generate_fallback_signatures(file_content, file_name)
+        return {
+            "success": True,
+            "data": signatures[0] if len(signatures) == 1 else signatures,
+            "total_signatures": len(signatures),
+            "provider": "fallback",
+            "note": f"Used fallback due to error: {str(e)}"
+        }
+
+
+def _generate_fallback_signatures(file_content: str, file_name: str) -> list:
+    """Generate SAST signatures based on actual patterns found in file content."""
+    import re
+    
+    signatures = []
+    
+    # Pattern detection rules with regex for more accurate matching
+    patterns_to_check = [
+        {
+            "regex": r'\beval\s*\(',
+            "rule_id": f"custom-eval-usage-{file_name.replace('.', '-')}",
+            "pattern": "eval(...)",
+            "message": f"Dangerous eval() usage detected in {file_name}",
+            "severity": "ERROR",
+            "cwe": "CWE-95",
+            "example": "eval(userInput)"
+        },
+        {
+            "regex": r'\.innerHTML\s*=',
+            "rule_id": f"custom-innerhtml-{file_name.replace('.', '-')}",
+            "pattern": "$X.innerHTML = $Y",
+            "message": f"Potential XSS via innerHTML in {file_name}",
+            "severity": "WARNING",
+            "cwe": "CWE-79",
+            "example": "element.innerHTML = data"
+        },
+        {
+            "regex": r'\bdocument\.write\s*\(',
+            "rule_id": f"custom-document-write-{file_name.replace('.', '-')}",
+            "pattern": "document.write(...)",
+            "message": f"Dangerous document.write() usage in {file_name}",
+            "severity": "WARNING",
+            "cwe": "CWE-79",
+            "example": "document.write(content)"
+        },
+        {
+            "regex": r'\bfetch\s*\(',
+            "rule_id": f"custom-fetch-usage-{file_name.replace('.', '-')}",
+            "pattern": "fetch($URL, ...)",
+            "message": f"Network request detected in {file_name}",
+            "severity": "INFO",
+            "cwe": "CWE-200",
+            "example": "fetch('https://api.example.com')"
+        },
+        {
+            "regex": r'\bnew\s+XMLHttpRequest\s*\(',
+            "rule_id": f"custom-xhr-{file_name.replace('.', '-')}",
+            "pattern": "new XMLHttpRequest()",
+            "message": f"XMLHttpRequest usage in {file_name}",
+            "severity": "INFO",
+            "cwe": "CWE-200",
+            "example": "new XMLHttpRequest()"
+        },
+        {
+            "regex": r'\blocalStorage\s*[\.\[]',
+            "rule_id": f"custom-localstorage-{file_name.replace('.', '-')}",
+            "pattern": "localStorage.$METHOD(...)",
+            "message": f"localStorage usage in {file_name} - potential data exposure",
+            "severity": "INFO",
+            "cwe": "CWE-922",
+            "example": "localStorage.setItem('key', value)"
+        },
+        {
+            "regex": r'\bsessionStorage\s*[\.\[]',
+            "rule_id": f"custom-sessionstorage-{file_name.replace('.', '-')}",
+            "pattern": "sessionStorage.$METHOD(...)",
+            "message": f"sessionStorage usage in {file_name}",
+            "severity": "INFO",
+            "cwe": "CWE-922",
+            "example": "sessionStorage.getItem('key')"
+        },
+        {
+            "regex": r'\batob\s*\(',
+            "rule_id": f"custom-base64-decode-{file_name.replace('.', '-')}",
+            "pattern": "atob(...)",
+            "message": f"Base64 decoding in {file_name} - check for obfuscation",
+            "severity": "INFO",
+            "cwe": "CWE-506",
+            "example": "atob(encodedData)"
+        },
+        {
+            "regex": r'\bbtoa\s*\(',
+            "rule_id": f"custom-base64-encode-{file_name.replace('.', '-')}",
+            "pattern": "btoa(...)",
+            "message": f"Base64 encoding in {file_name} - check for data exfiltration",
+            "severity": "INFO",
+            "cwe": "CWE-506",
+            "example": "btoa(sensitiveData)"
+        },
+        {
+            "regex": r'\.outerHTML\s*=',
+            "rule_id": f"custom-outerhtml-{file_name.replace('.', '-')}",
+            "pattern": "$X.outerHTML = $Y",
+            "message": f"Potential XSS via outerHTML in {file_name}",
+            "severity": "WARNING",
+            "cwe": "CWE-79",
+            "example": "element.outerHTML = data"
+        },
+        {
+            "regex": r'\bsetTimeout\s*\(\s*["\']',
+            "rule_id": f"custom-settimeout-string-{file_name.replace('.', '-')}",
+            "pattern": "setTimeout($STR, ...)",
+            "message": f"setTimeout with string argument in {file_name} - acts like eval",
+            "severity": "WARNING",
+            "cwe": "CWE-95",
+            "example": "setTimeout('code', 1000)"
+        },
+        {
+            "regex": r'\bsetInterval\s*\(\s*["\']',
+            "rule_id": f"custom-setinterval-string-{file_name.replace('.', '-')}",
+            "pattern": "setInterval($STR, ...)",
+            "message": f"setInterval with string argument in {file_name} - acts like eval",
+            "severity": "WARNING",
+            "cwe": "CWE-95",
+            "example": "setInterval('code', 1000)"
+        },
+        {
+            "regex": r'\bnew\s+Function\s*\(',
+            "rule_id": f"custom-function-constructor-{file_name.replace('.', '-')}",
+            "pattern": "new Function(...)",
+            "message": f"Function constructor usage in {file_name} - acts like eval",
+            "severity": "ERROR",
+            "cwe": "CWE-95",
+            "example": "new Function('return x + y')"
+        },
+        {
+            "regex": r'\bchrome\.runtime\.sendMessage\s*\(',
+            "rule_id": f"custom-chrome-messaging-{file_name.replace('.', '-')}",
+            "pattern": "chrome.runtime.sendMessage(...)",
+            "message": f"Chrome extension messaging in {file_name}",
+            "severity": "INFO",
+            "cwe": "CWE-200",
+            "example": "chrome.runtime.sendMessage({data: value})"
+        },
+        {
+            "regex": r'\bchrome\.storage\.',
+            "rule_id": f"custom-chrome-storage-{file_name.replace('.', '-')}",
+            "pattern": "chrome.storage.$API.$METHOD(...)",
+            "message": f"Chrome storage API usage in {file_name}",
+            "severity": "INFO",
+            "cwe": "CWE-922",
+            "example": "chrome.storage.local.set({key: value})"
+        }
+    ]
+    
+    # Check which patterns exist in the file using regex
+    for pattern_def in patterns_to_check:
+        if re.search(pattern_def["regex"], file_content, re.IGNORECASE):
+            # Find actual match for better context
+            match = re.search(pattern_def["regex"], file_content, re.IGNORECASE)
+            matched_text = match.group(0) if match else pattern_def["example"]
+            
+            signatures.append({
+                "rule_id": pattern_def["rule_id"],
+                "pattern": pattern_def["pattern"],
+                "message": pattern_def["message"],
+                "severity": pattern_def["severity"],
+                "languages": ["javascript"],
+                "metadata": {
+                    "category": "security",
+                    "cwe": pattern_def["cwe"],
+                    "confidence": "HIGH",
+                    "matched_example": matched_text[:100]  # First 100 chars of match
+                }
+            })
+    
+    # If no patterns found, return empty list (don't create generic signature)
+    if not signatures:
+        logger.info(f"No security patterns found in {file_name}")
+        # Return a message signature
+        signatures.append({
+            "rule_id": f"custom-no-patterns-{file_name.replace('.', '-')}",
+            "pattern": "// No suspicious patterns detected",
+            "message": f"No common security patterns found in {file_name}. File appears clean or uses uncommon patterns.",
+            "severity": "INFO",
+            "languages": ["javascript"],
+            "metadata": {
+                "category": "informational",
+                "cwe": "CWE-710",
+                "confidence": "LOW"
+            }
+        })
+    
+    return signatures
+
+
+# ============================================================================
+# Batch Processing Endpoints
+# ============================================================================
+
+# In-memory storage for batch jobs
+batch_jobs: Dict[str, Dict[str, Any]] = {}
+
+
+class BatchAnalyzeRequest(BaseModel):
+    """Request model for batch analysis."""
+
+    extensions: list[str]  # List of URLs, IDs, or file paths
+    parallel: bool = True
+    max_workers: int = 4
+
+
+class BatchStatusResponse(BaseModel):
+    """Response model for batch status."""
+
+    batch_id: str
+    status: str
+    total_extensions: int
+    completed: int
+    failed: int
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+
+
+@app.post("/api/batch/analyze")
+async def batch_analyze(request: BatchAnalyzeRequest, background_tasks: BackgroundTasks):
+    """
+    Trigger batch analysis of multiple extensions.
+
+    Args:
+        request: BatchAnalyzeRequest containing list of extensions and options
+        background_tasks: FastAPI background tasks
+
+    Returns:
+        Dict with batch_id and initial status
+    """
+    from threatxtension.core.batch_processor import BatchProcessor
+
+    if not request.extensions:
+        raise HTTPException(status_code=400, detail="Extension list cannot be empty")
+
+    if len(request.extensions) > 100:
+        raise HTTPException(
+            status_code=400, detail="Maximum 100 extensions allowed per batch"
+        )
+
+    # Initialize batch processor
+    processor = BatchProcessor(output_dir="./batch_results")
+
+    # Generate batch ID
+    import uuid
+
+    batch_id = f"batch_{uuid.uuid4().hex[:8]}"
+
+    # Initialize batch job status
+    batch_jobs[batch_id] = {
+        "batch_id": batch_id,
+        "status": "pending",
+        "total_extensions": len(request.extensions),
+        "completed": 0,
+        "failed": 0,
+        "start_time": datetime.utcnow().isoformat(),
+        "end_time": None,
+    }
+
+    # Run batch processing in background
+    async def run_batch():
+        try:
+            batch_jobs[batch_id]["status"] = "running"
+            result = processor.process_batch(
+                extension_list=request.extensions,
+                batch_id=batch_id,
+                parallel=request.parallel,
+                max_workers=request.max_workers,
+            )
+            # Update batch job with results
+            batch_jobs[batch_id].update(
+                {
+                    "status": result.get("status", "completed"),
+                    "completed": result.get("completed", 0),
+                    "failed": result.get("failed", 0),
+                    "end_time": result.get("end_time"),
+                    "results": result.get("results", []),
+                    "report_path": result.get("report_path"),
+                }
+            )
+        except Exception as e:
+            logger.error(f"Batch processing failed: {e}", exc_info=True)
+            batch_jobs[batch_id].update(
+                {
+                    "status": "failed",
+                    "error": str(e),
+                    "end_time": datetime.utcnow().isoformat(),
+                }
+            )
+
+    background_tasks.add_task(run_batch)
+
+    return {
+        "batch_id": batch_id,
+        "status": "pending",
+        "message": f"Batch analysis started for {len(request.extensions)} extensions",
+    }
+
+
+@app.get("/api/batch/status/{batch_id}")
+async def get_batch_status(batch_id: str):
+    """
+    Get the status of a batch analysis job.
+
+    Args:
+        batch_id: Batch identifier
+
+    Returns:
+        BatchStatusResponse with current batch status
+    """
+    if batch_id not in batch_jobs:
+        raise HTTPException(status_code=404, detail=f"Batch {batch_id} not found")
+
+    job = batch_jobs[batch_id]
+
+    return BatchStatusResponse(
+        batch_id=job["batch_id"],
+        status=job["status"],
+        total_extensions=job["total_extensions"],
+        completed=job.get("completed", 0),
+        failed=job.get("failed", 0),
+        start_time=job.get("start_time"),
+        end_time=job.get("end_time"),
+    )
+
+
+@app.get("/api/batch/results/{batch_id}")
+async def get_batch_results(batch_id: str):
+    """
+    Get the full results of a completed batch analysis.
+
+    Args:
+        batch_id: Batch identifier
+
+    Returns:
+        Dict containing complete batch results
+    """
+    if batch_id not in batch_jobs:
+        raise HTTPException(status_code=404, detail=f"Batch {batch_id} not found")
+
+    job = batch_jobs[batch_id]
+
+    if job["status"] not in ["completed", "failed"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Batch is still {job['status']}. Results not yet available.",
+        )
+
+    # Try to load results from file if available
+    from threatxtension.core.batch_processor import BatchProcessor
+
+    processor = BatchProcessor(output_dir="./batch_results")
+    file_results = processor.get_batch_results(batch_id)
+
+    if file_results:
+        return file_results
+
+    # Return in-memory results if file not available
+    return {
+        "batch_id": job["batch_id"],
+        "status": job["status"],
+        "total_extensions": job["total_extensions"],
+        "completed": job.get("completed", 0),
+        "failed": job.get("failed", 0),
+        "start_time": job.get("start_time"),
+        "end_time": job.get("end_time"),
+        "results": job.get("results", []),
+        "error": job.get("error"),
+    }
+
+
+@app.get("/api/batch/list")
+async def list_batch_jobs():
+    """
+    List all batch jobs.
+
+    Returns:
+        Dict containing list of all batch jobs with their status
+    """
+    jobs_list = [
+        {
+            "batch_id": job["batch_id"],
+            "status": job["status"],
+            "total_extensions": job["total_extensions"],
+            "completed": job.get("completed", 0),
+            "failed": job.get("failed", 0),
+            "start_time": job.get("start_time"),
+            "end_time": job.get("end_time"),
+        }
+        for job in batch_jobs.values()
+    ]
+
+    return {"batches": jobs_list, "total": len(jobs_list)}
 
 
 @app.get("/health")

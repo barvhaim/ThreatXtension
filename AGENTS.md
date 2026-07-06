@@ -6,6 +6,16 @@ This file provides guidance to agents when working with code in this repository.
 
 **ThreatXtension** is a Python-based security analysis tool for Chrome browser extensions. It combines static analysis (SAST) with AI-powered threat intelligence to identify malicious behavior patterns in browser extensions.
 
+### Recent Updates
+
+**Extension ID Support (2026-01-22):**
+- Users can now analyze extensions using just the extension ID (32-character string)
+- New `ChromeStatsDownloader` module downloads extensions from chrome-stats.com API
+- Workflow routing automatically detects extension IDs and routes to chrome-stats downloader
+- CLI supports `--id` flag: `threatxtension analyze --id gbbilodpoldeopifonmibfboicpafpjo`
+- Frontend input field accepts URLs, extension IDs, or file uploads
+- Requires `CHROMESTATS_API_KEY` environment variable for this feature
+
 ### Core Technologies
 - **Python 3.11+** with `uv` package manager
 - **LangGraph** for workflow orchestration (state machine-based analysis pipeline)

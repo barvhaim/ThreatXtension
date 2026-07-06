@@ -13,6 +13,7 @@ import gptOssService from "../services/gptOssService";
 import FileViewerModal from "../components/FileViewerModal";
 import FindingDetailsModal from "../components/FindingDetailsModal";
 import AllFindingsModal from "../components/AllFindingsModal";
+import SASTSignatureModal from "../components/SASTSignatureModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
 import { Loader2 } from "lucide-react";
 import "./DashboardPage.scss";
@@ -43,6 +44,10 @@ const DashboardPage = () => {
     isAnalyzing: false,
     result: null,
     error: null,
+  });
+  const [sastSignatureModal, setSastSignatureModal] = useState({
+    isOpen: false,
+    file: null,
   });
 
   useEffect(() => {
@@ -313,6 +318,31 @@ const DashboardPage = () => {
     });
   };
 
+  const handleGenerateSASTSignature = (file) => {
+    setSastSignatureModal({
+      isOpen: true,
+      file: file,
+    });
+  };
+
+  const handleGenerateSignature = async (fileContent, fileName) => {
+    try {
+      // Call GPT-OSS service to generate SAST signature
+      const result = await gptOssService.generateSASTSignature(
+        fileContent,
+        fileName,
+        'auto' // Use auto provider selection
+      );
+      return result;
+    } catch (err) {
+      console.error('SAST signature generation error:', err);
+      return {
+        success: false,
+        error: err.message || 'Failed to generate SAST signature'
+      };
+    }
+  };
+
   return (
     <div className="dashboard-page">
       {/* Premium Hero Section */}
@@ -455,7 +485,7 @@ const DashboardPage = () => {
                     <div className="mt-2">
                       <Badge
                         variant={
-                          (scan.risk_level || scan.riskLevel || "").toUpperCase() === "HIGH" ? "destructive" :
+                          ["CRITICAL", "HIGH"].includes((scan.risk_level || scan.riskLevel || "").toUpperCase()) ? "destructive" :
                             (scan.risk_level || scan.riskLevel || "").toUpperCase() === "MEDIUM" ? "secondary" :
                               "outline"
                         }
@@ -508,6 +538,7 @@ const DashboardPage = () => {
             onAnalyzeWithAI={handleAnalyzeWithAI}
             onViewFindingDetails={handleViewFindingDetails}
             onViewAllFindings={handleViewAllFindings}
+            onGenerateSASTSignature={handleGenerateSASTSignature}
           />
         </div>
       )}
@@ -718,6 +749,16 @@ const DashboardPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* SAST Signature Modal */}
+      <SASTSignatureModal
+        isOpen={sastSignatureModal.isOpen}
+        onClose={() => setSastSignatureModal({ isOpen: false, file: null })}
+        file={sastSignatureModal.file}
+        extensionId={scanResults?.extensionId}
+        onGetFileContent={getFileContent}
+        onGenerateSignature={handleGenerateSignature}
+      />
     </div>
   );
 };

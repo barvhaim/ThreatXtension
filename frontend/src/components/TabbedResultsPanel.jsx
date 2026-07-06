@@ -16,6 +16,7 @@ const TabbedResultsPanel = ({
   onAnalyzeWithAI,
   onViewFindingDetails,
   onViewAllFindings,
+  onGenerateSASTSignature,
 }) => {
   const [severityFilter, setSeverityFilter] = useState("ALL");
   const [collapsedSections, setCollapsedSections] = useState({});
@@ -55,18 +56,18 @@ const TabbedResultsPanel = ({
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
-              <span className={`text-4xl font-bold ${scanResults.securityScore < 30 ? "text-red-500" :
-                scanResults.securityScore < 50 ? "text-orange-500" :
-                  scanResults.securityScore < 80 ? "text-yellow-500" : "text-green-500"
+              <span className={`text-4xl font-bold ${scanResults.securityScore < 40 ? "text-red-500" :
+                scanResults.securityScore < 65 ? "text-orange-500" :
+                  scanResults.securityScore < 85 ? "text-yellow-500" : "text-green-500"
                 }`}>
                 {scanResults.securityScore || 0}
               </span>
               <span className="text-muted-foreground">/100</span>
             </div>
             <p className="text-sm text-muted-foreground mt-2">
-              {scanResults.securityScore < 30 ? "Critical Issues" :
-                scanResults.securityScore < 50 ? "High Risk" :
-                  scanResults.securityScore < 80 ? "Moderate" : "Secure"}
+              {scanResults.securityScore < 40 ? "Critical Issues" :
+                scanResults.securityScore < 65 ? "High Risk" :
+                  scanResults.securityScore < 85 ? "Moderate" : "Secure"}
             </p>
           </CardContent>
         </Card>
@@ -80,14 +81,16 @@ const TabbedResultsPanel = ({
           </CardHeader>
           <CardContent>
             <Badge variant={
-              scanResults.riskLevel === "HIGH" ? "destructive" :
-                scanResults.riskLevel === "MEDIUM" ? "secondary" : "default"
+              scanResults.riskLevel === "CRITICAL" ? "destructive" :
+                scanResults.riskLevel === "HIGH" ? "destructive" :
+                  scanResults.riskLevel === "MEDIUM" ? "secondary" : "default"
             } className="text-lg px-4 py-1">
               {scanResults.riskLevel || "UNKNOWN"}
             </Badge>
             <p className="text-sm text-muted-foreground mt-2">
-              {scanResults.riskLevel === "HIGH" ? "Immediate attention" :
-                scanResults.riskLevel === "MEDIUM" ? "Review needed" : "Low risk"}
+              {scanResults.riskLevel === "CRITICAL" ? "Critical — do not install" :
+                scanResults.riskLevel === "HIGH" ? "Immediate attention" :
+                  scanResults.riskLevel === "MEDIUM" ? "Review needed" : "Low risk"}
             </p>
           </CardContent>
         </Card>
@@ -533,12 +536,20 @@ const TabbedResultsPanel = ({
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <Button variant="outline" size="sm" onClick={() => onViewFile(file)}>
                       👁️ View
                     </Button>
                     <Button size="sm" onClick={() => onAnalyzeWithAI(file)}>
                       🤖 AI
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => onGenerateSASTSignature(file)}
+                      className="gap-1"
+                    >
+                      ✨ SAST AI
                     </Button>
                   </div>
                 </CardContent>

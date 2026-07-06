@@ -138,70 +138,98 @@ const FindingDetailsModal = ({
 
     // Extract the specific code snippet that triggered the finding
     const getHighlightedSnippet = (line) => {
-      // If backend provided the matched text, use it directly
+      // Priority 1: Use backend-provided matched_text (most accurate)
       const matchedText = finding.matched_text || finding.extra?.metadata?.matched_text;
       
-      if (matchedText && line.includes(matchedText)) {
-        const matchIndex = line.indexOf(matchedText);
-        const start = Math.max(0, matchIndex - 30);
-        const end = Math.min(line.length, matchIndex + matchedText.length + 30);
-        return {
-          before: line.substring(start, matchIndex),
-          match: matchedText,
-          after: line.substring(matchIndex + matchedText.length, end),
-          hasMatch: true
-        };
+      if (matchedText) {
+        // Try exact match first
+        if (line.includes(matchedText)) {
+          const matchIndex = line.indexOf(matchedText);
+          const start = Math.max(0, matchIndex - 30);
+          const end = Math.min(line.length, matchIndex + matchedText.length + 30);
+          return {
+            before: line.substring(start, matchIndex),
+            match: matchedText,
+            after: line.substring(matchIndex + matchedText.length, end),
+            hasMatch: true
+          };
+        }
+        
+        // Try case-insensitive match
+        const lowerLine = line.toLowerCase();
+        const lowerMatched = matchedText.toLowerCase();
+        if (lowerLine.includes(lowerMatched)) {
+          const matchIndex = lowerLine.indexOf(lowerMatched);
+          const actualMatch = line.substring(matchIndex, matchIndex + matchedText.length);
+          const start = Math.max(0, matchIndex - 30);
+          const end = Math.min(line.length, matchIndex + matchedText.length + 30);
+          return {
+            before: line.substring(start, matchIndex),
+            match: actualMatch,
+            after: line.substring(matchIndex + matchedText.length, end),
+            hasMatch: true
+          };
+        }
       }
 
-      // Fallback: Extract keywords from finding title to prioritize matching
-      const findingKeywords = [
-        finding.title?.toLowerCase(),
-        finding.pattern_name?.toLowerCase(),
-        finding.check_id?.toLowerCase()
-      ].filter(Boolean);
-
-      // Build pattern map with keywords for prioritization
-      const patternMap = {
-        'localstorage': /localStorage[.\[]/gi,
-        'sessionstorage': /sessionStorage[.\[]/gi,
-        'fetch': /fetch\s*\(/gi,
-        'xmlhttprequest': /XMLHttpRequest/gi,
+      // Priority 2: Use check_id to determine the exact pattern to look for
+      const checkId = finding.check_id?.toLowerCase() || '';
+      
+      // Map check_id patterns to their regex (more specific than keyword matching)
+      const checkIdPatterns = {
+        'base64_encode': /btoa\s*\(/gi,
+        'base64_decode': /atob\s*\(/gi,
+        'fetch_usage': /fetch\s*\(/gi,
+        'xhr_usage': /XMLHttpRequest/gi,
         'formdata': /FormData/gi,
         'eval': /eval\s*\(/gi,
-        'function': /Function\s*\(/gi,
+        'function_constructor': /Function\s*\(/gi,
         'innerhtml': /innerHTML\s*=/gi,
-        'outerhtml': /outerHTML\s*=/gi,
-        'document.write': /document\.write/gi,
-        'document.cookie': /document\.cookie/gi,
-        'chrome.storage': /chrome\.storage/gi,
-        'password': /\.password/gi,
-        'credential': /\.credential/gi,
-        'atob': /atob\s*\(/gi,
-        'btoa': /btoa\s*\(/gi,
+        'cookie': /document\.cookie/gi,
+        'localstorage': /localStorage[.\[]/gi,
+        'sessionstorage': /sessionStorage[.\[]/gi,
+        'websocket': /WebSocket\s*\(/gi,
       };
 
-      // First, try to match patterns related to the finding keywords
-      for (const keyword of findingKeywords) {
-        for (const [key, pattern] of Object.entries(patternMap)) {
-          if (keyword && keyword.includes(key)) {
-            const match = line.match(pattern);
-            if (match) {
-              const matchIndex = line.indexOf(match[0]);
-              const start = Math.max(0, matchIndex - 30);
-              const end = Math.min(line.length, matchIndex + match[0].length + 30);
-              return {
-                before: line.substring(start, matchIndex),
-                match: match[0],
-                after: line.substring(matchIndex + match[0].length, end),
-                hasMatch: true
-              };
-            }
+      // Find the matching pattern based on check_id
+      for (const [key, pattern] of Object.entries(checkIdPatterns)) {
+        if (checkId.includes(key)) {
+          const match = line.match(pattern);
+          if (match) {
+            const matchIndex = line.indexOf(match[0]);
+            const start = Math.max(0, matchIndex - 30);
+            const end = Math.min(line.length, matchIndex + match[0].length + 30);
+            return {
+              before: line.substring(start, matchIndex),
+              match: match[0],
+              after: line.substring(matchIndex + match[0].length, end),
+              hasMatch: true
+            };
           }
         }
       }
 
-      // Fallback: try all patterns in order
-      for (const pattern of Object.values(patternMap)) {
+      // Priority 3: Fallback to pattern_name matching
+      const patternName = finding.pattern_name?.toLowerCase() || '';
+      for (const [key, pattern] of Object.entries(checkIdPatterns)) {
+        if (patternName.includes(key)) {
+          const match = line.match(pattern);
+          if (match) {
+            const matchIndex = line.indexOf(match[0]);
+            const start = Math.max(0, matchIndex - 30);
+            const end = Math.min(line.length, matchIndex + match[0].length + 30);
+            return {
+              before: line.substring(start, matchIndex),
+              match: match[0],
+              after: line.substring(matchIndex + match[0].length, end),
+              hasMatch: true
+            };
+          }
+        }
+      }
+
+      // Priority 4: Last resort - try all patterns
+      for (const pattern of Object.values(checkIdPatterns)) {
         const match = line.match(pattern);
         if (match) {
           const matchIndex = line.indexOf(match[0]);

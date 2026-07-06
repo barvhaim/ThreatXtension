@@ -160,6 +160,122 @@ class GPTOSSService {
   }
 
   /**
+   * Generate SAST signature from file content using AI
+   */
+  async generateSASTSignature(fileContent, fileName, provider = "auto") {
+    try {
+      console.log(
+        `Generating SAST signature for: ${fileName} using ${provider}`,
+      );
+
+      // Create form data
+      const formData = new FormData();
+      formData.append("file_content", fileContent);
+      formData.append("file_name", fileName);
+      formData.append("provider", provider);
+
+      // Make request to backend
+      const response = await fetch(`${this.baseURL}/api/analyze/generate-sast-signature`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.detail || `SAST signature generation failed: ${response.status}`,
+        );
+      }
+
+      const result = await response.json();
+      console.log("SAST signature generated:", result);
+
+      return {
+        success: true,
+        data: result.data,
+        provider: result.data.provider || "unknown",
+      };
+    } catch (error) {
+      console.error("SAST signature generation failed:", error);
+      
+      // Fallback to simulated generation for development
+      console.log("Falling back to simulated SAST signature generation...");
+      return this.simulateSASTSignatureGeneration(fileContent, fileName);
+    }
+  }
+
+  /**
+   * Simulate SAST signature generation for development
+   */
+  simulateSASTSignatureGeneration(fileContent, fileName) {
+    console.log("Simulating SAST signature generation...");
+
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const signature = this._generateMockSASTSignature(fileContent, fileName);
+        resolve({
+          success: true,
+          data: signature,
+          provider: "simulated",
+        });
+      }, 2000);
+    });
+  }
+
+  /**
+   * Generate mock SAST signature for development
+   */
+  _generateMockSASTSignature(fileContent, fileName) {
+    // Extract potential patterns from file content
+    const patterns = this._extractPatternsFromContent(fileContent);
+    const fileExt = fileName.split('.').pop();
+    const language = fileExt === 'js' ? 'javascript' : fileExt;
+
+    return {
+      rule_id: `custom-${fileName.replace(/\.[^/.]+$/, "").replace(/[^a-z0-9]/gi, '-').toLowerCase()}`,
+      pattern: patterns[0] || "$X = eval($Y)",
+      message: `Potential security issue detected in ${fileName}`,
+      languages: [language],
+      severity: "WARNING",
+      metadata: {
+        category: "security",
+        cwe: "CWE-79",
+        confidence: "MEDIUM",
+        likelihood: "MEDIUM",
+        impact: "MEDIUM",
+        description: `Auto-generated rule from ${fileName} analysis`,
+      },
+      provider: "simulated-gpt-oss",
+    };
+  }
+
+  /**
+   * Extract potential patterns from file content
+   */
+  _extractPatternsFromContent(content) {
+    const patterns = [];
+    
+    // Look for common security patterns
+    if (content.includes('eval(')) {
+      patterns.push('eval(...)');
+    }
+    if (content.includes('innerHTML')) {
+      patterns.push('$X.innerHTML = $Y');
+    }
+    if (content.includes('document.write')) {
+      patterns.push('document.write(...)');
+    }
+    if (content.includes('fetch(')) {
+      patterns.push('fetch($URL, ...)');
+    }
+    if (content.includes('XMLHttpRequest')) {
+      patterns.push('new XMLHttpRequest()');
+    }
+    
+    return patterns.length > 0 ? patterns : ['$X = $Y'];
+  }
+
+  /**
    * Get backend configuration
    */
   async getBackendConfig() {

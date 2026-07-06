@@ -105,23 +105,75 @@ class Database:
             """
             )
 
+            # Batch scans table
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS batch_scans (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    batch_id TEXT UNIQUE NOT NULL,
+                    status TEXT NOT NULL,
+                    total_extensions INTEGER DEFAULT 0,
+                    completed INTEGER DEFAULT 0,
+                    failed INTEGER DEFAULT 0,
+                    start_time TEXT NOT NULL,
+                    end_time TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """
+            )
+
+            # Add batch_id foreign key to scan_results
+            # Note: SQLite doesn't support ALTER TABLE ADD FOREIGN KEY directly
+            # We'll add batch_id as a nullable column
+            cursor.execute(
+                """
+                SELECT COUNT(*) as count FROM pragma_table_info('scan_results')
+                WHERE name='batch_id'
+            """
+            )
+            if cursor.fetchone()["count"] == 0:
+                cursor.execute(
+                    """
+                    ALTER TABLE scan_results ADD COLUMN batch_id TEXT
+                """
+                )
+
             # Create indexes for better query performance
             cursor.execute(
                 """
-                CREATE INDEX IF NOT EXISTS idx_extension_id 
+                CREATE INDEX IF NOT EXISTS idx_extension_id
                 ON scan_results(extension_id)
             """
             )
             cursor.execute(
                 """
-                CREATE INDEX IF NOT EXISTS idx_timestamp 
+                CREATE INDEX IF NOT EXISTS idx_timestamp
                 ON scan_results(timestamp DESC)
             """
             )
             cursor.execute(
                 """
-                CREATE INDEX IF NOT EXISTS idx_risk_level 
+                CREATE INDEX IF NOT EXISTS idx_risk_level
                 ON scan_results(risk_level)
+            """
+            )
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_batch_id
+                ON scan_results(batch_id)
+            """
+            )
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_batch_scans_batch_id
+                ON batch_scans(batch_id)
+            """
+            )
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_batch_scans_status
+                ON batch_scans(status)
             """
             )
 

@@ -125,11 +125,15 @@ class RealScanService {
           cliResults.overall_security_score ||
           sastResults.overall_security_score ||
           0,
-        riskLevel: this.determineRiskLevel(
-          cliResults.overall_security_score ||
-          sastResults.overall_security_score ||
-          0,
-        ),
+        riskLevel: (
+          cliResults.summary?.overall_risk_level ||
+          cliResults.overall_risk ||
+          this.determineRiskLevel(
+            cliResults.overall_security_score ||
+            sastResults.overall_security_score ||
+            0,
+          )
+        ).toUpperCase(),
         totalFiles: cliResults.extracted_files?.length || 0,
         totalFindings:
           cliResults.total_findings || sastFindings.length || 0,
@@ -213,10 +217,13 @@ class RealScanService {
     return Math.max(0, Math.round(score));
   }
 
-  // Determine risk level from CLI results
+  // Determine risk level from score (fallback only — prefer backend-computed value)
+  // Thresholds match SecurityScorer._get_risk_level() in security_scorer.py:
+  //   0-39 = critical, 40-64 = high, 65-84 = medium, 85-100 = low
   determineRiskLevel(score) {
-    if (score < 30) return "HIGH";
-    if (score < 70) return "MEDIUM";
+    if (score < 40) return "CRITICAL";
+    if (score < 65) return "HIGH";
+    if (score < 85) return "MEDIUM";
     return "LOW";
   }
 
@@ -284,24 +291,38 @@ class RealScanService {
       // Extract data from Semgrep format
       const extra = finding.extra || {};
       const start = finding.start || {};
+      const end = finding.end || {};
       const metadata = extra.metadata || {};
+      
+      // Get line number from multiple possible sources
+      const lineNumber = start.line || finding.line_number || finding.line || 0;
       
       return {
         file: finding.file || finding.path || "Unknown",
-        line: start.line || finding.line_number || finding.line || 0,
+        line: lineNumber,
+        line_number: lineNumber, // Add explicit line_number field for modal
         title: finding.check_id || finding.pattern_name || finding.title || "Security Finding",
         description: extra.message || finding.description || "No description available",
+        message: extra.message || finding.message || finding.description,
         severity: this.mapRiskLevelToSeverity(
           extra.severity || finding.risk_level || finding.severity || "medium",
         ),
         riskScore: finding.risk_score || 0,
         context: finding.context || extra.lines || "",
-        matchText: finding.match_text || "",
+        matched_text: finding.matched_text || finding.match_text || extra.lines || "",
         // Additional Semgrep-specific fields
+        check_id: finding.check_id,
+        pattern_name: finding.pattern_name || finding.check_id,
         checkId: finding.check_id,
         category: metadata.category,
         mitre: metadata.mitre,
         cwe: metadata.cwe,
+        owasp: metadata.owasp,
+        // Include extra metadata for modal
+        extra: {
+          ...extra,
+          metadata: metadata
+        }
       };
     });
   }

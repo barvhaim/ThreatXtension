@@ -2,8 +2,8 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, NavLink } from "react-router-dom";
 import DashboardPage from "./pages/DashboardPage";
 import ScanHistoryPage from "./pages/ScanHistoryPage";
-
 import AnalysisPage from "./pages/AnalysisPage";
+import SASTSignaturesPage from "./pages/SASTSignaturesPage";
 import SettingsPage from "./pages/SettingsPage";
 import "./App.scss";
 
@@ -55,6 +55,13 @@ function App() {
                 <span className="nav-icon">🔬</span>
                 <span className="nav-text">Analysis</span>
               </NavLink>
+              <NavLink
+                to="/sast-signatures"
+                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              >
+                <span className="nav-icon">✨</span>
+                <span className="nav-text">SAST Signatures</span>
+              </NavLink>
             </nav>
 
             <div className="header-actions">
@@ -71,8 +78,8 @@ function App() {
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/scan-history" element={<ScanHistoryPage />} />
-
             <Route path="/analysis" element={<AnalysisPage />} />
+            <Route path="/sast-signatures" element={<SASTSignaturesPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </main>

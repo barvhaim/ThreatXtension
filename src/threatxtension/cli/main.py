@@ -495,6 +495,109 @@ def serve(host: str, port: int, reload: bool):
 
 
 @cli.command()
+@click.option(
+    "--input",
+    "-i",
+    type=click.Path(exists=True),
+    required=True,
+    help="Input file containing extension URLs/IDs/paths (one per line)",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    default="./batch_results",
+    help="Output directory for batch results (default: ./batch_results)",
+)
+@click.option(
+    "--parallel/--sequential",
+    default=True,
+    help="Process extensions in parallel or sequentially (default: parallel)",
+)
+@click.option(
+    "--workers",
+    "-w",
+    type=int,
+    default=4,
+    help="Maximum number of parallel workers (default: 4)",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    help="Enable verbose logging",
+)
+def batch(input: str, output: str, parallel: bool, workers: int, verbose: bool):
+    """Process multiple extensions in batch mode.
+
+    Example:
+        threatxtension batch --input urls.txt --output results/
+        threatxtension batch -i extensions.txt --parallel --workers 8
+        threatxtension batch -i list.txt --sequential
+    """
+    from threatxtension.core.batch_processor import BatchProcessor
+
+    configure_logging(verbose)
+    print_header()
+
+    console.print(f"\n[bold]Batch Processing[/bold]")
+    console.print(f"[dim]Input file: {input}[/dim]")
+    console.print(f"[dim]Output directory: {output}[/dim]")
+    console.print(f"[dim]Mode: {'Parallel' if parallel else 'Sequential'}[/dim]")
+    if parallel:
+        console.print(f"[dim]Workers: {workers}[/dim]")
+    console.print()
+
+    # Initialize batch processor
+    processor = BatchProcessor(output_dir=output)
+
+    # Process batch
+    try:
+        with console.status("[bold green]Processing batch...", spinner="dots"):
+            result = processor.process_from_file(
+                input_file=input, parallel=parallel, max_workers=workers
+            )
+    except Exception as e:
+        console.print(f"\n[red]Batch processing failed: {e}[/red]\n")
+        logger.exception("Batch processing failed")
+        raise click.Abort()
+
+    # Display results summary
+    console.print("\n")
+    console.print(Panel.fit("[bold cyan]Batch Processing Complete[/bold cyan]", border_style="cyan"))
+
+    summary_table = Table(show_header=True, header_style="bold magenta")
+    summary_table.add_column("Metric", style="cyan", width=30)
+    summary_table.add_column("Value", style="white")
+
+    summary_table.add_row("Batch ID", result["batch_id"])
+    summary_table.add_row("Total Extensions", str(result["total_extensions"]))
+    summary_table.add_row("Completed", f"[green]{result['completed']}[/green]")
+    summary_table.add_row("Failed", f"[red]{result['failed']}[/red]")
+
+    success_rate = (
+        result["completed"] / result["total_extensions"] * 100
+        if result["total_extensions"] > 0
+        else 0
+    )
+    summary_table.add_row("Success Rate", f"{success_rate:.1f}%")
+
+    # Calculate duration
+    if result.get("start_time") and result.get("end_time"):
+        duration = calculate_duration(result["start_time"], result["end_time"])
+        summary_table.add_row("Duration", f"{duration:.2f} seconds")
+
+    console.print("\n")
+    console.print(summary_table)
+
+    # Display report path
+    if result.get("report_path"):
+        console.print(f"\n[green]Batch report saved to:[/green] {result['report_path']}")
+
+    console.print("\n[bold green]✓[/bold green] Batch processing completed\n")
+
+
+@cli.command()
 def version():
     """Show version information."""
     console.print("[cyan]ThreatXtension[/cyan] version [green]0.1.0[/green]")
