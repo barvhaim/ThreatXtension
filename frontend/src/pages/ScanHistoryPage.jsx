@@ -94,7 +94,7 @@ const ScanHistoryPage = () => {
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1 className="page-title">📋 Scan History</h1>
+        <h1 className="page-title">Scan Log</h1>
         <p className="page-subtitle">
           View and manage your extension security scan history
         </p>
@@ -103,7 +103,7 @@ const ScanHistoryPage = () => {
       <div className="glass-card mb-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
           <h2 className="text-xl font-bold flex items-center gap-2">
-            <span className="text-primary">🔍</span> Recent Scans
+            <FileText className="text-primary" size={18} strokeWidth={2.25} /> Recent Scans
             <Badge variant="outline" className="ml-2">{scans.length}</Badge>
           </h2>
           <div className="flex gap-2 w-full md:w-auto">
@@ -149,11 +149,12 @@ const ScanHistoryPage = () => {
 
                   <div className="flex-1 grid grid-cols-2 lg:grid-cols-4 gap-4 w-full lg:w-auto">
                     <div>
-                      <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Score</div>
-                      <div className={`text-xl font-bold ${scan.securityScore < 30 ? "text-destructive" :
-                        scan.securityScore < 60 ? "text-warning" : "text-success"
+                      <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1" title="Higher is safer (100 = clean)">Safety ↑</div>
+                      <div className={`text-xl font-bold ${scan.securityScore < 40 ? "text-destructive" :
+                        scan.securityScore < 65 ? "text-orange-500" :
+                          scan.securityScore < 85 ? "text-yellow-500" : "text-success"
                         }`}>
-                        {scan.securityScore}/100
+                        {scan.securityScore}<span className="text-xs font-medium text-muted-foreground">/100</span>
                       </div>
                     </div>
 
@@ -217,8 +218,8 @@ const ScanHistoryPage = () => {
 
             <div className="space-y-6">
               <div className="flex items-center gap-4 p-4 rounded-lg bg-surface-elevated/50 border border-border">
-                <div className="w-16 h-16 rounded-xl bg-primary/20 flex items-center justify-center text-primary text-2xl">
-                  🛡️
+                <div className="w-16 h-16 rounded-lg bg-primary/15 border border-primary/40 flex items-center justify-center text-primary">
+                  <Shield size={26} strokeWidth={2} />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold">{selectedScan.name}</h3>
@@ -228,12 +229,14 @@ const ScanHistoryPage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-lg bg-surface/50 border border-border/50">
-                  <div className="text-sm text-muted-foreground mb-1">Security Score</div>
-                  <div className={`text-2xl font-bold ${selectedScan.securityScore < 30 ? "text-destructive" :
-                    selectedScan.securityScore < 60 ? "text-warning" : "text-success"
+                  <div className="text-sm text-muted-foreground mb-1">Safety Score</div>
+                  <div className={`text-2xl font-bold ${selectedScan.securityScore < 40 ? "text-destructive" :
+                    selectedScan.securityScore < 65 ? "text-orange-500" :
+                      selectedScan.securityScore < 85 ? "text-yellow-500" : "text-success"
                     }`}>
-                    {selectedScan.securityScore}/100
+                    {selectedScan.securityScore}<span className="text-sm font-medium text-muted-foreground">/100</span>
                   </div>
+                  <div className="text-xs text-muted-foreground mt-1">higher is safer · 100 = clean</div>
                 </div>
                 <div className="p-4 rounded-lg bg-surface/50 border border-border/50">
                   <div className="text-sm text-muted-foreground mb-1">Download Size</div>

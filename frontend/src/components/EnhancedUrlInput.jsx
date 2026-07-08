@@ -1,11 +1,10 @@
 import React, { useRef } from "react";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Search, Upload } from "lucide-react";
+import { Search, Upload, ChevronRight } from "lucide-react";
 import "./EnhancedUrlInput.scss";
 
 /**
- * Enhanced URL Input Component with File Upload Support
+ * Terminal-style target acquisition input with file upload support.
  */
 const EnhancedUrlInput = ({
   value,
@@ -36,134 +35,75 @@ const EnhancedUrlInput = ({
   };
 
   return (
-    <div className={`enhanced-url-input ${className}`}>
-      <div className="input-container">
-        <div className="url-field-container">
-          <div className="space-y-2">
-            <label htmlFor="extension-url" className="text-sm font-medium url-label">
-              Chrome Web Store URL or Extension ID
-            </label>
-            <div className="url-input-wrapper">
-              <style>
-                {`
-                  #extension-url::placeholder {
-                    color: #6b7280 !important;
-                    opacity: 1 !important;
-                    font-weight: 300 !important;
-                  }
-                  #extension-url::-webkit-input-placeholder {
-                    color: #6b7280 !important;
-                    opacity: 1 !important;
-                    font-weight: 300 !important;
-                  }
-                  #extension-url::-moz-placeholder {
-                    color: #6b7280 !important;
-                    opacity: 1 !important;
-                    font-weight: 300 !important;
-                  }
-                  #extension-url:-ms-input-placeholder {
-                    color: #6b7280 !important;
-                    opacity: 1 !important;
-                    font-weight: 300 !important;
-                  }
-                `}
-              </style>
-              <Input
-                id="extension-url"
-                placeholder="URL: https://chromewebstore.google.com/... or ID: gbbilodpoldeopifonmibfboicpafpjo"
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="url-input-field"
-                style={{
-                  height: '56px',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '2px solid rgba(59, 130, 246, 0.4)',
-                  borderRadius: '0.75rem',
-                  color: '#ffffff',
-                  fontSize: '0.9375rem',
-                  fontWeight: '500',
-                  padding: '0 3.5rem 0 1.25rem',
-                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3), 0 0 20px rgba(59, 130, 246, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-                }}
-              />
-            </div>
-          </div>
+    <div className={`enhanced-url-input ${className}`} {...props}>
+      <label htmlFor="extension-url" className="url-label">
+        <span className="url-label__key">target</span>
+        <span className="url-label__eq">=</span>
+        <span className="url-label__hint">store URL · extension ID · .crx / .zip</span>
+      </label>
 
-
+      <div className="url-input-row">
+        <div className="url-input-wrapper">
+          <ChevronRight className="url-prompt" size={16} strokeWidth={2.5} />
+          <input
+            id="extension-url"
+            className="url-input-field"
+            placeholder="paste a Chrome Web Store URL or 32-char extension ID…"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyPress={handleKeyPress}
+            autoComplete="off"
+            spellCheck="false"
+          />
         </div>
 
-        {/* File Upload Section */}
-        {onFileUpload && (
-          <div className="file-upload-section mt-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex-1 h-px bg-gray-600"></div>
-              <span className="text-sm text-gray-400">OR</span>
-              <div className="flex-1 h-px bg-gray-600"></div>
-            </div>
-            
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".crx,.zip"
-              onChange={handleFileChange}
-              className="hidden"
-              disabled={isScanning}
-            />
-            
-            <Button
-              onClick={handleUploadClick}
-              disabled={isScanning}
-              variant="outline"
-              className="w-full"
-              size="lg"
-              style={{
-                height: '56px',
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '2px solid rgba(139, 92, 246, 0.4)',
-                borderRadius: '0.75rem',
-                color: '#ffffff',
-                fontSize: '0.9375rem',
-                fontWeight: '500',
-              }}
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              Upload CRX/ZIP File
-            </Button>
-          </div>
-        )}
-
-        <div className="action-buttons flex gap-2 mt-4">
-          <Button
-            onClick={onScan}
-            disabled={isScanning || !value.trim()}
-            className="scan-button"
-            size="lg"
-          >
-            {isScanning ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Scanning...
-              </>
-            ) : (
-              <>
-                <Search className="mr-2 h-4 w-4" />
-                Scan & Analyze
-              </>
-            )}
-          </Button>
-
-        </div>
+        <Button
+          onClick={onScan}
+          disabled={isScanning || !value.trim()}
+          className="scan-button"
+        >
+          {isScanning ? (
+            <>
+              <span className="scan-button__spinner" />
+              Scanning
+            </>
+          ) : (
+            <>
+              <Search size={16} strokeWidth={2.25} />
+              Run scan
+            </>
+          )}
+        </Button>
       </div>
 
+      {onFileUpload && (
+        <div className="file-upload-section">
+          <div className="upload-divider">
+            <span className="upload-divider__line" />
+            <span className="upload-divider__text">or load a local package</span>
+            <span className="upload-divider__line" />
+          </div>
 
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".crx,.zip"
+            onChange={handleFileChange}
+            className="hidden"
+            disabled={isScanning}
+          />
 
-      <p className="input-help-text text-sm text-muted-foreground mt-2">
-        {onFileUpload
-          ? "Enter a Chrome Web Store URL, extension ID (32-character string), or upload a .crx/.zip file to analyze the extension's security posture"
-          : "Enter a Chrome Web Store URL or extension ID (32-character string) to automatically scan and analyze the extension's security posture"
-        }
-      </p>
+          <button
+            type="button"
+            onClick={handleUploadClick}
+            disabled={isScanning}
+            className="upload-button"
+          >
+            <Upload size={16} strokeWidth={2.25} />
+            Upload .crx / .zip
+          </button>
+        </div>
+      )}
     </div>
   );
 };

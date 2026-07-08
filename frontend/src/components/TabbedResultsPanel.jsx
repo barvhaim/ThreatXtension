@@ -10,8 +10,13 @@ import {
   ChevronUp,
   Download,
   Shield,
+  ShieldCheck,
+  ShieldAlert,
   AlertTriangle,
+  AlertOctagon,
   FileWarning,
+  Files,
+  Bug,
 } from "lucide-react";
 import ChromeStatsTab from "./ChromeStatsTab";
 
@@ -49,9 +54,25 @@ const TabbedResultsPanel = ({
           (finding) => finding.severity === severityFilter,
         );
 
+  // Security score is "how safe" — higher is better (100 = safe, 0 = critical).
+  // Derive a single verdict so the icon, color, and label can't disagree.
+  const score = Number(scanResults.securityScore) || 0;
+  const scoreVerdict =
+    score < 40
+      ? { label: "Critical", tone: "text-destructive", Icon: ShieldAlert }
+      : score < 65
+        ? { label: "High risk", tone: "text-orange-500", Icon: ShieldAlert }
+        : score < 85
+          ? { label: "Moderate", tone: "text-yellow-500", Icon: Shield }
+          : { label: "Secure", tone: "text-primary", Icon: ShieldCheck };
+  const ScoreIcon = scoreVerdict.Icon;
+
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold">🔒 Security Analysis Results</h2>
+      <h2 className="text-3xl font-bold flex items-center gap-2">
+        <Shield className="text-primary" size={26} strokeWidth={2.25} />
+        Security Analysis Results
+      </h2>
 
       {/* Key Metrics Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -59,36 +80,23 @@ const TabbedResultsPanel = ({
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium">
-                Security Score
+                Safety Score
               </CardTitle>
-              <span className="text-2xl">🛡️</span>
+              <ScoreIcon className={scoreVerdict.tone} size={22} strokeWidth={2.25} />
             </div>
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
-              <span
-                className={`text-4xl font-bold ${
-                  scanResults.securityScore < 40
-                    ? "text-red-500"
-                    : scanResults.securityScore < 65
-                      ? "text-orange-500"
-                      : scanResults.securityScore < 85
-                        ? "text-yellow-500"
-                        : "text-green-500"
-                }`}
-              >
-                {scanResults.securityScore || 0}
+              <span className={`text-4xl font-bold ${scoreVerdict.tone}`}>
+                {score}
               </span>
               <span className="text-muted-foreground">/100</span>
             </div>
-            <p className="text-sm text-muted-foreground mt-2">
-              {scanResults.securityScore < 40
-                ? "Critical Issues"
-                : scanResults.securityScore < 65
-                  ? "High Risk"
-                  : scanResults.securityScore < 85
-                    ? "Moderate"
-                    : "Secure"}
+            <p className={`text-sm font-semibold mt-2 ${scoreVerdict.tone}`}>
+              {scoreVerdict.label}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              higher is safer · 100 = clean
             </p>
           </CardContent>
         </Card>
@@ -97,7 +105,15 @@ const TabbedResultsPanel = ({
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium">Risk Level</CardTitle>
-              <span className="text-2xl">⚠️</span>
+              {scanResults.riskLevel === "CRITICAL" ? (
+                <AlertOctagon className="text-destructive" size={22} strokeWidth={2.25} />
+              ) : scanResults.riskLevel === "HIGH" ? (
+                <AlertTriangle className="text-orange-500" size={22} strokeWidth={2.25} />
+              ) : scanResults.riskLevel === "MEDIUM" ? (
+                <AlertTriangle className="text-yellow-500" size={22} strokeWidth={2.25} />
+              ) : (
+                <ShieldCheck className="text-primary" size={22} strokeWidth={2.25} />
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -133,7 +149,7 @@ const TabbedResultsPanel = ({
               <CardTitle className="text-sm font-medium">
                 Files Analyzed
               </CardTitle>
-              <span className="text-2xl">📁</span>
+              <Files className="text-muted-foreground" size={22} strokeWidth={2} />
             </div>
           </CardHeader>
           <CardContent>
@@ -159,7 +175,15 @@ const TabbedResultsPanel = ({
               <CardTitle className="text-sm font-medium">
                 Security Findings
               </CardTitle>
-              <span className="text-2xl">🚨</span>
+              <Bug
+                className={
+                  (scanResults.totalFindings || 0) > 10
+                    ? "text-destructive"
+                    : "text-muted-foreground"
+                }
+                size={22}
+                strokeWidth={2}
+              />
             </div>
           </CardHeader>
           <CardContent>

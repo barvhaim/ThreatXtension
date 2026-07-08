@@ -1,17 +1,5 @@
 rules:
   ##########################################################################
-  # TEST RULE - Detect importScripts usage
-  ##########################################################################
-  - id: test.import_scripts
-    message: "[TEST] importScripts() detected - used to load additional JS files"
-    severity: INFO
-    languages: [javascript, typescript]
-    metadata:
-      category: test
-      description: Detects importScripts() calls to verify custom rules work
-    pattern: importScripts(...)
-
-  ##########################################################################
   # 1) Fake UI overlay / fake login button
   ##########################################################################
   - id: banking.fake_overlay.zindex
