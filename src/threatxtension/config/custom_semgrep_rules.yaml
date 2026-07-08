@@ -687,3 +687,1052 @@ rules:
           - metavariable-regex:
               metavariable: $URL
               regex: "https?://[a-z]{2,5}[0-9]{2,5}[a-z]{2,5}[0-9]{2,5}.*\\.[a-z]{2,10}/"
+
+  ##########################################################################
+  # 36) Obfuscation - Large String Array Pattern
+  ##########################################################################
+  - id: obfuscation.large_string_array
+    message: Large string array detected—common obfuscation technique used by malware.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: obfuscation
+      mitre: [T1027.010]
+      cwe: [CWE-506]
+      description: Detects large arrays of strings used for code obfuscation
+    patterns:
+      - pattern-either:
+          - pattern: const $VAR = ["...", "...", "...", "...", "...", ...];
+          - pattern: var $VAR = ["...", "...", "...", "...", "...", ...];
+          - pattern: let $VAR = ["...", "...", "...", "...", "...", ...];
+
+  ##########################################################################
+  # 37) Obfuscation - Computed Property Access with Concat
+  ##########################################################################
+  - id: obfuscation.computed_property_concat
+    message: Computed property access with string concatenation—obfuscated method call.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: obfuscation
+      mitre: [T1027]
+      cwe: [CWE-506]
+      description: Detects obfuscated method calls using computed properties and concat
+    pattern-either:
+      - pattern: $OBJ[$PROP.concat(...)](...)
+      - pattern: $OBJ["...".concat(...)](...)
+      - pattern: $OBJ[`$...`.concat(...)](...)
+
+  ##########################################################################
+  # 38) Obfuscation - Nested Template Literal Obfuscation
+  ##########################################################################
+  - id: obfuscation.nested_template_literals
+    message: Deeply nested template literals with property access—code obfuscation detected.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: obfuscation
+      mitre: [T1027]
+      cwe: [CWE-506]
+      description: Detects obfuscated strings using nested template literals
+    pattern-either:
+      - pattern: |
+          `${$OBJ1[$PROP1]}${$OBJ2[$PROP2]}${$OBJ3[$PROP3]}`
+      - pattern: |
+          `${$OBJ[$PROP1]}${"..."}${$OBJ[$PROP2]}`
+
+  ##########################################################################
+  # 39) Obfuscation - Conditional Property Access
+  ##########################################################################
+  - id: obfuscation.conditional_property_access
+    message: Conditional property access with complex ternary—obfuscation technique.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: obfuscation
+      mitre: [T1027]
+      cwe: [CWE-506]
+      description: Detects obfuscated property access using complex conditionals
+    pattern-either:
+      - pattern: "$OBJ[!$COND ? $VAL1 : $VAL2]"
+      - pattern: "$OBJ[$COND ? $VAL1 : $VAL2][$PROP]"
+
+  ##########################################################################
+  # 40) C2 Communication - Async Fetch with JSON Response
+  ##########################################################################
+  - id: c2.exfiltration.async_fetch_json
+    message: Async fetch with JSON parsing—potential C2 command retrieval.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: c2-communication
+      mitre: [T1071.001, T1102]
+      cwe: [CWE-940]
+      description: Detects async fetch patterns that retrieve and parse JSON commands
+    patterns:
+      - pattern-either:
+          - pattern: (await fetch($URL, ...)).json()
+          - pattern: |
+              $RESP = await fetch($URL, ...)
+              ...
+              $DATA = await $RESP.json()
+      - pattern-inside: |
+          async function $FUNC(...) { ... }
+
+  ##########################################################################
+  # 41) Obfuscation - Dynamic Method Name Construction
+  ##########################################################################
+  - id: obfuscation.dynamic_method_construction
+    message: Dynamic method name construction—obfuscated API call.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: obfuscation
+      mitre: [T1027]
+      cwe: [CWE-506]
+      description: Detects dynamically constructed method names to hide API calls
+    pattern-either:
+      - pattern: |
+          $OBJ["...".concat($STR1, $STR2)](...)
+      - pattern: |
+          $OBJ[$VAR1 + $VAR2](...)
+      - pattern: |
+          $OBJ[`${$VAR1}${$VAR2}`](...)
+
+  ##########################################################################
+  # 42) Obfuscation - Excessive Function Wrapping
+  ##########################################################################
+  - id: obfuscation.excessive_function_wrapping
+    message: Excessive function wrapping detected—code obfuscation pattern.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: obfuscation
+      mitre: [T1027]
+      cwe: [CWE-506]
+      description: Detects unnecessary function wrapping used for obfuscation
+    patterns:
+      - pattern: |
+          function $FUNC1() {
+            return function() {
+              return $ARRAY
+            }
+          }
+
+  ##########################################################################
+  # 43) Suspicious - Nullish Coalescing with Array Access
+  ##########################################################################
+  - id: suspicious.nullish_coalescing_array
+    message: Nullish coalescing with complex array access—suspicious control flow.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: suspicious-pattern
+      mitre: [T1027]
+      cwe: [CWE-506]
+      description: Detects suspicious use of nullish coalescing with array indexing
+    pattern: $VAR[$EXPR1] ?? $VAR[$EXPR2]
+
+  ##########################################################################
+  # 44) C2 Communication - Dynamic Script Assignment
+  ##########################################################################
+  - id: c2.code_injection.dynamic_script_assignment
+    message: Dynamic script assignment to DOM—potential remote code injection.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: c2-communication
+      mitre: [T1059.007, T1105]
+      cwe: [CWE-94, CWE-829]
+      description: Detects dynamic assignment of fetched code to DOM elements
+    patterns:
+      - pattern: |
+          $OBJ[$PROP]($VAR, $RESPONSE)
+      - pattern-inside: |
+          $RESPONSE = await fetch(...)
+
+  ##########################################################################
+  # 45) Obfuscation - String Indexing with Arithmetic
+  ##########################################################################
+  - id: obfuscation.string_index_arithmetic
+    message: String/array indexing with arithmetic operations—obfuscation technique.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: obfuscation
+      mitre: [T1027]
+      cwe: [CWE-506]
+      description: Detects obfuscated array access using arithmetic expressions
+    pattern-either:
+      - pattern: $ARR[$NUM1 - $NUM2]
+      - pattern: $ARR[$NUM1 + $NUM2]
+      - pattern: $ARR[$NUM1 * $NUM2]
+      - pattern: $ARR[$NUM1 & $NUM2]
+
+  ##########################################################################
+  # 46) Cryptocurrency Mining - WebAssembly Mining Detection
+  ##########################################################################
+  - id: crypto.mining.webassembly_miner
+    message: WebAssembly instantiation detected—potential cryptocurrency mining.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: cryptocurrency-mining
+      mitre: [T1496]
+      cwe: [CWE-920]
+      owasp: [A06-Vulnerable and Outdated Components]
+      confidence: high
+      description: Detects WebAssembly usage that may indicate cryptocurrency mining
+    pattern-either:
+      - pattern: WebAssembly.instantiate(...)
+      - pattern: WebAssembly.instantiateStreaming(...)
+      - pattern: new WebAssembly.Instance(...)
+      - pattern: new WebAssembly.Module(...)
+
+  ##########################################################################
+  # 47) Cryptocurrency Mining - Worker Thread Mining
+  ##########################################################################
+  - id: crypto.mining.worker_thread_mining
+    message: Web Worker with intensive computation—potential cryptocurrency mining.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: cryptocurrency-mining
+      mitre: [T1496]
+      cwe: [CWE-920]
+      confidence: high
+      description: Detects Web Worker patterns used for cryptocurrency mining
+    patterns:
+      - pattern: new Worker($URL)
+      - pattern-inside: |
+          setInterval(..., $INTERVAL)
+
+  ##########################################################################
+  # 48) Cryptocurrency Mining - Canvas Fingerprinting for Mining Pool
+  ##########################################################################
+  - id: crypto.mining.canvas_fingerprinting
+    message: Canvas fingerprinting combined with network requests—mining pool connection.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: cryptocurrency-mining
+      mitre: [T1496, T1082]
+      cwe: [CWE-920, CWE-359]
+      confidence: medium
+      description: Detects canvas fingerprinting used to identify mining clients
+    patterns:
+      - pattern: $CANVAS.getContext('2d')
+      - pattern-inside: |
+          fetch($URL, ...)
+
+  ##########################################################################
+  # 49) Keylogging - Input Event Capture with Storage
+  ##########################################################################
+  - id: keylogging.input_capture_storage
+    message: Keyboard input captured and stored—active keylogging detected.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: keylogging
+      mitre: [T1056.001]
+      cwe: [CWE-200, CWE-359]
+      owasp: [A07-Identification and Authentication]
+      confidence: high
+      description: Detects keylogging with local storage persistence
+    patterns:
+      - pattern-either:
+          - pattern: document.addEventListener('keydown', $HANDLER)
+          - pattern: document.addEventListener('keypress', $HANDLER)
+      - pattern-inside: |
+          chrome.storage.local.set(...)
+
+  ##########################################################################
+  # 50) Keylogging - Textarea/Input Value Monitoring
+  ##########################################################################
+  - id: keylogging.input_value_monitoring
+    message: Continuous monitoring of input field values—keylogging behavior.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: keylogging
+      mitre: [T1056.001]
+      cwe: [CWE-200]
+      confidence: high
+      description: Detects continuous monitoring of input fields for keylogging
+    patterns:
+      - pattern: setInterval($FUNC, $INTERVAL)
+      - pattern-inside: |
+          document.querySelectorAll('input, textarea')
+
+  ##########################################################################
+  # 51) Screen Capture - MediaDevices Screen Capture
+  ##########################################################################
+  - id: screen.capture.getdisplaymedia
+    message: Screen capture via getDisplayMedia—recording user screen activity.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: screen-capture
+      mitre: [T1113]
+      cwe: [CWE-359]
+      confidence: high
+      description: Detects screen recording using MediaDevices API
+    pattern-either:
+      - pattern: navigator.mediaDevices.getDisplayMedia(...)
+      - pattern: navigator.getDisplayMedia(...)
+
+  ##########################################################################
+  # 52) Screen Capture - Chrome Tab Capture API
+  ##########################################################################
+  - id: screen.capture.chrome_tab_capture
+    message: Chrome tabCapture API usage—recording browser tab content.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: screen-capture
+      mitre: [T1113]
+      cwe: [CWE-359]
+      confidence: high
+      description: Detects Chrome extension tab capture for screen recording
+    pattern-either:
+      - pattern: chrome.tabCapture.capture(...)
+      - pattern: chrome.tabCapture.getCapturedTabs(...)
+
+  ##########################################################################
+  # 53) Screen Capture - Canvas Screenshot with Exfiltration
+  ##########################################################################
+  - id: screen.capture.canvas_screenshot_exfil
+    message: Canvas-based screenshot with network transmission—screen capture exfiltration.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: screen-capture
+      mitre: [T1113, T1041]
+      cwe: [CWE-359, CWE-319]
+      confidence: high
+      description: Detects canvas screenshots being sent to external servers
+    patterns:
+      - pattern: $CANVAS.toDataURL(...)
+      - pattern-inside: |
+          fetch($URL, ...)
+
+  ##########################################################################
+  # 54) Clipboard Manipulation - Clipboard Write Hijacking
+  ##########################################################################
+  - id: clipboard.manipulation.write_hijack
+    message: Clipboard write operation—may replace copied data (e.g., crypto addresses).
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: clipboard-manipulation
+      mitre: [T1115, T1565.002]
+      cwe: [CWE-345]
+      confidence: high
+      description: Detects clipboard write operations that may hijack copied data
+    pattern-either:
+      - pattern: navigator.clipboard.writeText($DATA)
+      - pattern: navigator.clipboard.write($DATA)
+      - pattern: document.execCommand('copy')
+
+  ##########################################################################
+  # 55) Clipboard Manipulation - Cryptocurrency Address Replacement
+  ##########################################################################
+  - id: clipboard.manipulation.crypto_address_replace
+    message: Clipboard monitoring with regex matching—cryptocurrency address hijacking.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: clipboard-manipulation
+      mitre: [T1115, T1565.002]
+      cwe: [CWE-345]
+      confidence: high
+      description: Detects clipboard hijacking targeting cryptocurrency addresses
+    patterns:
+      - pattern: navigator.clipboard.readText()
+      - pattern-inside: |
+          $TEXT.match($REGEX)
+      - pattern-inside: |
+          navigator.clipboard.writeText($REPLACEMENT)
+
+  ##########################################################################
+  # 56) Cookie Theft - Service Worker Cookie Access
+  ##########################################################################
+  - id: cookie.theft.service_worker_access
+    message: Service Worker accessing cookies—persistent cookie theft mechanism.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: cookie-theft
+      mitre: [T1539, T1550.004]
+      cwe: [CWE-539]
+      confidence: high
+      description: Detects Service Worker cookie access for persistent theft
+    patterns:
+      - pattern: self.addEventListener('fetch', ...)
+      - pattern-inside: |
+          $REQUEST.headers.get('Cookie')
+
+  ##########################################################################
+  # 57) Cookie Theft - Cookie Synchronization to External Server
+  ##########################################################################
+  - id: cookie.theft.cookie_sync_external
+    message: Periodic cookie synchronization to external server—active cookie theft.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: cookie-theft
+      mitre: [T1539, T1041]
+      cwe: [CWE-539, CWE-319]
+      confidence: high
+      description: Detects periodic cookie exfiltration patterns
+    patterns:
+      - pattern: setInterval($FUNC, $INTERVAL)
+      - pattern-inside: |
+          chrome.cookies.getAll(...)
+      - pattern-inside: |
+          fetch($URL, ...)
+
+  ##########################################################################
+  # 58) WebSocket Abuse - Persistent WebSocket Connection
+  ##########################################################################
+  - id: websocket.abuse.persistent_connection
+    message: Persistent WebSocket with reconnection logic—C2 communication channel.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: websocket-abuse
+      mitre: [T1071.001, T1573]
+      cwe: [CWE-940]
+      confidence: high
+      description: Detects persistent WebSocket connections with reconnection logic
+    patterns:
+      - pattern: new WebSocket($URL)
+      - pattern-inside: |
+          $WS.onclose = function() { ... }
+
+  ##########################################################################
+  # 59) WebSocket Abuse - Binary Data Transmission
+  ##########################################################################
+  - id: websocket.abuse.binary_transmission
+    message: WebSocket binary data transmission—potential encrypted C2 communication.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: websocket-abuse
+      mitre: [T1071.001, T1132]
+      cwe: [CWE-940]
+      confidence: medium
+      description: Detects binary data transmission over WebSocket
+    patterns:
+      - pattern: $WS.send($DATA)
+      - pattern-inside: |
+          $WS.binaryType = 'arraybuffer'
+
+  ##########################################################################
+  # 60) LocalStorage Exfiltration - Bulk Storage Enumeration
+  ##########################################################################
+  - id: storage.exfiltration.localstorage_bulk_enum
+    message: Bulk localStorage enumeration—exfiltrating all stored data.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: storage-exfiltration
+      mitre: [T1005, T1041]
+      cwe: [CWE-312, CWE-319]
+      confidence: high
+      description: Detects bulk enumeration of localStorage for data exfiltration
+    patterns:
+      - pattern-either:
+          - pattern: |
+              for (let $I = 0; $I < localStorage.length; $I++) { ... }
+          - pattern: |
+              Object.keys(localStorage).forEach(...)
+      - pattern-inside: |
+          fetch($URL, ...)
+
+  ##########################################################################
+  # 61) SessionStorage Exfiltration - Session Data Theft
+  ##########################################################################
+  - id: storage.exfiltration.sessionstorage_theft
+    message: SessionStorage data extraction with network transmission—session theft.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: storage-exfiltration
+      mitre: [T1539, T1041]
+      cwe: [CWE-312, CWE-319]
+      confidence: high
+      description: Detects sessionStorage data exfiltration
+    patterns:
+      - pattern: sessionStorage.getItem($KEY)
+      - pattern-inside: |
+          fetch($URL, { ..., body: $DATA, ... })
+
+  ##########################################################################
+  # 62) DOM Manipulation - Fake Banking Login Form Injection
+  ##########################################################################
+  - id: dom.manipulation.fake_login_injection
+    message: Injecting fake login form into banking pages—phishing attack.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: dom-manipulation
+      mitre: [T1185, T1056]
+      cwe: [CWE-1021]
+      owasp: [A07-Identification and Authentication]
+      confidence: high
+      description: Detects injection of fake login forms for credential phishing
+    patterns:
+      - pattern: $ELEM.innerHTML = $HTML
+      - metavariable-regex:
+          metavariable: $HTML
+          regex: "<form[^>]*(password|login|signin)"
+
+  ##########################################################################
+  # 63) DOM Manipulation - Payment Form Overlay
+  ##########################################################################
+  - id: dom.manipulation.payment_form_overlay
+    message: Creating overlay payment form—payment information phishing.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: dom-manipulation
+      mitre: [T1185, T1056]
+      cwe: [CWE-1021]
+      confidence: high
+      description: Detects creation of fake payment forms to steal financial data
+    patterns:
+      - pattern: document.createElement('div')
+      - pattern-inside: |
+          $ELEM.style.position = 'fixed'
+      - metavariable-regex:
+          metavariable: $ELEM
+          regex: "(payment|card|cvv|billing)"
+
+  ##########################################################################
+  # 64) Network Request Interception - Fetch Override with Modification
+  ##########################################################################
+  - id: network.interception.fetch_override_modify
+    message: Fetch API override with request modification—MITM attack on network requests.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: network-interception
+      mitre: [T1557, T1565.002]
+      cwe: [CWE-300]
+      confidence: high
+      description: Detects fetch API override to modify network requests
+    patterns:
+      - pattern: |
+          const $ORIG = window.fetch;
+          window.fetch = function($URL, $OPTS) { ... };
+      - pattern-inside: |
+          $OPTS.body = $MODIFIED
+
+  ##########################################################################
+  # 65) Network Request Interception - XHR Response Tampering
+  ##########################################################################
+  - id: network.interception.xhr_response_tamper
+    message: XMLHttpRequest response tampering—modifying server responses.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: network-interception
+      mitre: [T1557, T1565.002]
+      cwe: [CWE-300]
+      confidence: high
+      description: Detects XHR response interception and modification
+    patterns:
+      - pattern: XMLHttpRequest.prototype.open = function(...) { ... }
+      - pattern-inside: |
+          this.addEventListener('load', ...)
+
+  ##########################################################################
+  # 66) Extension Message Hijacking - Runtime Message Interception
+  ##########################################################################
+  - id: extension.hijacking.runtime_message_intercept
+    message: Chrome runtime message interception—hijacking extension communication.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: extension-hijacking
+      mitre: [T1557, T1071]
+      cwe: [CWE-940]
+      confidence: high
+      description: Detects interception of Chrome extension messages
+    patterns:
+      - pattern: chrome.runtime.onMessage.addListener($HANDLER)
+      - pattern-inside: |
+          chrome.runtime.sendMessage($EXT_ID, $MODIFIED_MSG)
+
+  ##########################################################################
+  # 67) Extension Message Hijacking - Port Communication Hijack
+  ##########################################################################
+  - id: extension.hijacking.port_communication_hijack
+    message: Chrome port communication hijacking—intercepting extension messages.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: extension-hijacking
+      mitre: [T1557, T1071]
+      cwe: [CWE-940]
+      confidence: high
+      description: Detects hijacking of Chrome extension port communication
+    patterns:
+      - pattern: chrome.runtime.connect($EXT_ID)
+      - pattern-inside: |
+          $PORT.onMessage.addListener(...)
+
+  ##########################################################################
+  # 68) Cryptocurrency Mining - High CPU Usage Loop
+  ##########################################################################
+  - id: crypto.mining.high_cpu_loop
+    message: Intensive computation loop—potential cryptocurrency mining activity.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: cryptocurrency-mining
+      mitre: [T1496]
+      cwe: [CWE-920]
+      confidence: medium
+      description: Detects intensive computation patterns typical of crypto mining
+    patterns:
+      - pattern: |
+          while (true) { ... }
+      - pattern-inside: |
+          Math.random()
+
+  ##########################################################################
+  # 69) Keylogging - Form Autofill Interception
+  ##########################################################################
+  - id: keylogging.autofill_interception
+    message: Intercepting form autofill events—capturing autofilled credentials.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: keylogging
+      mitre: [T1056.001, T1555]
+      cwe: [CWE-200]
+      confidence: high
+      description: Detects interception of browser autofill to capture credentials
+    pattern-either:
+      - pattern: $ELEM.addEventListener('input', ...)
+      - pattern: $ELEM.addEventListener('change', ...)
+
+  ##########################################################################
+  # 70) Screen Capture - Periodic Screenshot Capture
+  ##########################################################################
+  - id: screen.capture.periodic_screenshot
+    message: Periodic screenshot capture—continuous screen surveillance.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: screen-capture
+      mitre: [T1113]
+      cwe: [CWE-359]
+      confidence: high
+      description: Detects periodic screen capture for surveillance
+    patterns:
+      - pattern: setInterval($FUNC, $INTERVAL)
+      - pattern-inside: |
+          chrome.tabs.captureVisibleTab(...)
+
+
+  ##########################################################################
+  # 71) Cryptocurrency Mining - WebAssembly Mining Detection
+  ##########################################################################
+  - id: crypto.mining.webassembly_mining
+    message: WebAssembly instantiation with worker threads—potential cryptocurrency mining.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: cryptocurrency-mining
+      mitre: [T1496]
+      cwe: [CWE-920]
+      confidence: high
+      description: Detects WebAssembly-based cryptocurrency mining using worker threads
+    patterns:
+      - pattern-either:
+          - pattern: WebAssembly.instantiate($BUFFER, ...)
+          - pattern: WebAssembly.instantiateStreaming($SOURCE, ...)
+      - pattern-inside: |
+          new Worker(...)
+
+  ##########################################################################
+  # 72) Cryptocurrency Mining - Worker Thread Mining Pool Connection
+  ##########################################################################
+  - id: crypto.mining.worker_pool_connection
+    message: Worker thread connecting to mining pool—cryptocurrency mining detected.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: cryptocurrency-mining
+      mitre: [T1496]
+      cwe: [CWE-920]
+      confidence: high
+      description: Detects worker threads connecting to known mining pool domains
+    patterns:
+      - pattern: new Worker($SCRIPT)
+      - pattern-inside: |
+          new WebSocket($URL)
+      - metavariable-regex:
+          metavariable: $URL
+          regex: "(coinhive|cryptoloot|jsecoin|minero|webminer|pool\\.)"
+
+  ##########################################################################
+  # 73) Ad Injection - DOM Manipulation for Ad Insertion
+  ##########################################################################
+  - id: ad.injection.dom_manipulation
+    message: Suspicious DOM manipulation for ad injection—inserting iframes/scripts.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: ad-injection
+      mitre: [T1189, T1059.007]
+      cwe: [CWE-79]
+      confidence: high
+      description: Detects DOM manipulation patterns used for ad injection
+    patterns:
+      - pattern-either:
+          - pattern: document.body.appendChild($ELEM)
+          - pattern: document.body.insertBefore($ELEM, ...)
+          - pattern: $PARENT.insertAdjacentHTML('beforeend', $HTML)
+      - metavariable-regex:
+          metavariable: $HTML
+          regex: "(<iframe|<script|doubleclick|googlesyndication|adserver)"
+
+  ##########################################################################
+  # 74) Ad Injection - Script Tag Injection
+  ##########################################################################
+  - id: ad.injection.script_tag_injection
+    message: Dynamic script tag creation with ad network URLs—ad injection attack.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: ad-injection
+      mitre: [T1189, T1059.007]
+      cwe: [CWE-79]
+      confidence: high
+      description: Detects injection of script tags pointing to ad networks
+    patterns:
+      - pattern: |
+          $SCRIPT = document.createElement('script');
+          ...
+          $SCRIPT.src = $URL;
+      - metavariable-regex:
+          metavariable: $URL
+          regex: "(doubleclick|googlesyndication|adnxs|advertising|adserver|popads)"
+
+  ##########################################################################
+  # 75) Browser Hijacking - Homepage Override
+  ##########################################################################
+  - id: browser.hijacking.homepage_override
+    message: Chrome settings override to change homepage—browser hijacking.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: browser-hijacking
+      mitre: [T1176, T1547.001]
+      cwe: [CWE-912]
+      confidence: high
+      description: Detects attempts to override browser homepage settings
+    pattern-either:
+      - pattern: "chrome.settings.homepage.set({ value: $URL })"
+      - pattern: "chrome.browserSettings.homepageOverride.set({ value: $URL })"
+
+  ##########################################################################
+  # 76) Browser Hijacking - Search Engine Override
+  ##########################################################################
+  - id: browser.hijacking.search_engine_override
+    message: Search engine settings override—hijacking default search provider.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: browser-hijacking
+      mitre: [T1176, T1547.001]
+      cwe: [CWE-912]
+      confidence: high
+      description: Detects attempts to override default search engine
+    pattern-either:
+      - pattern: chrome.settings.searchProvider.set(...)
+      - pattern: chrome.search.setDefault(...)
+
+  ##########################################################################
+  # 77) Browser Hijacking - New Tab Override
+  ##########################################################################
+  - id: browser.hijacking.newtab_override
+    message: New tab page override detected—browser hijacking to control new tabs.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: browser-hijacking
+      mitre: [T1176, T1547.001]
+      cwe: [CWE-912]
+      confidence: high
+      description: Detects manifest or API calls to override new tab page
+    patterns:
+      - pattern: "chrome.tabs.create({ url: $URL })"
+      - pattern-inside: |
+          chrome.tabs.onCreated.addListener(...)
+
+  ##########################################################################
+  # 78) Advanced Keylogging - Keyboard Event Capture with Timing
+  ##########################################################################
+  - id: keylogging.advanced.keyboard_timing
+    message: Advanced keylogging with keystroke timing analysis—sophisticated credential theft.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: keylogging
+      mitre: [T1056.001]
+      cwe: [CWE-200]
+      confidence: high
+      description: Detects advanced keylogging with timing analysis for keystroke dynamics
+    patterns:
+      - pattern: document.addEventListener('keydown', $HANDLER)
+      - pattern-inside: |
+          $HANDLER = function($EVENT) {
+            ...
+            $TIMESTAMP = Date.now()
+            ...
+          }
+
+  ##########################################################################
+  # 79) Advanced Keylogging - Clipboard Access and Monitoring
+  ##########################################################################
+  - id: keylogging.advanced.clipboard_monitoring
+    message: Clipboard monitoring detected—capturing copied passwords and sensitive data.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: keylogging
+      mitre: [T1115]
+      cwe: [CWE-200]
+      confidence: high
+      description: Detects clipboard monitoring to steal copied credentials
+    pattern-either:
+      - pattern: document.addEventListener('copy', ...)
+      - pattern: document.addEventListener('cut', ...)
+      - pattern: document.addEventListener('paste', ...)
+      - pattern: navigator.clipboard.readText()
+
+  ##########################################################################
+  # 80) Obfuscation Detection - Base64 Encoded Eval
+  ##########################################################################
+  - id: obfuscation.base64_eval
+    message: Base64 encoded code with eval—obfuscated malicious code execution.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: obfuscation
+      mitre: [T1027, T1059.007]
+      cwe: [CWE-506]
+      confidence: high
+      description: Detects Base64 encoded strings being decoded and executed
+    patterns:
+      - pattern-either:
+          - pattern: eval(atob($ENCODED))
+          - pattern: eval(Buffer.from($ENCODED, 'base64').toString())
+          - pattern: Function(atob($ENCODED))()
+
+  ##########################################################################
+  # 81) Obfuscation Detection - String Concatenation Obfuscation
+  ##########################################################################
+  - id: obfuscation.string_concatenation
+    message: Excessive string concatenation—code obfuscation to evade detection.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: obfuscation
+      mitre: [T1027]
+      cwe: [CWE-506]
+      confidence: medium
+      description: Detects obfuscation through excessive string concatenation
+    patterns:
+      - pattern: $STR = $A + $B + $C + $D + $E
+      - metavariable-regex:
+          metavariable: $STR
+          regex: "(eval|Function|XMLHttpRequest|fetch|chrome\\.)"
+
+  ##########################################################################
+  # 82) Obfuscation Detection - Hex Encoded Strings
+  ##########################################################################
+  - id: obfuscation.hex_encoding
+    message: Hex encoded strings with execution—obfuscated code execution.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: obfuscation
+      mitre: [T1027]
+      cwe: [CWE-506]
+      confidence: high
+      description: Detects hex-encoded strings being decoded and executed
+    patterns:
+      - pattern: eval($HEX.replace(/\\x/g, ''))
+      - metavariable-regex:
+          metavariable: $HEX
+          regex: "\\\\x[0-9a-fA-F]{2}"
+
+  ##########################################################################
+  # 83) C2 Communication - WebSocket Command and Control
+  ##########################################################################
+  - id: c2.communication.websocket_c2
+    message: WebSocket connection to suspicious domain—potential C2 communication channel.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: command-and-control
+      mitre: [T1071.001, T1573]
+      cwe: [CWE-940]
+      confidence: high
+      description: Detects WebSocket connections used for C2 communication
+    patterns:
+      - pattern: new WebSocket($URL)
+      - pattern-inside: |
+          $WS.onmessage = function($EVENT) {
+            ...
+            eval($EVENT.data)
+            ...
+          }
+
+  ##########################################################################
+  # 84) C2 Communication - Long Polling for Commands
+  ##########################################################################
+  - id: c2.communication.long_polling
+    message: Long polling pattern detected—potential C2 command retrieval mechanism.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: command-and-control
+      mitre: [T1071.001]
+      cwe: [CWE-940]
+      confidence: medium
+      description: Detects long polling patterns used for C2 communication
+    patterns:
+      - pattern: |
+          setInterval(function() {
+            ...
+            fetch($URL)
+            ...
+          }, $INTERVAL)
+      - metavariable-regex:
+          metavariable: $INTERVAL
+          regex: "[1-9][0-9]{4,}"
+
+  ##########################################################################
+  # 85) C2 Communication - DNS Tunneling
+  ##########################################################################
+  - id: c2.communication.dns_tunneling
+    message: Suspicious DNS queries with encoded data—potential DNS tunneling for C2.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: command-and-control
+      mitre: [T1071.004]
+      cwe: [CWE-940]
+      confidence: high
+      description: Detects DNS tunneling used for covert C2 communication
+    patterns:
+      - pattern: fetch($URL)
+      - metavariable-regex:
+          metavariable: $URL
+          regex: "https?://[a-zA-Z0-9]{20,}\\."
+
+  ##########################################################################
+  # 86) Advanced Obfuscation - Code Packing Detection
+  ##########################################################################
+  - id: obfuscation.code_packing
+    message: Packed/compressed code detected—obfuscation to hide malicious functionality.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: obfuscation
+      mitre: [T1027.002]
+      cwe: [CWE-506]
+      confidence: high
+      description: Detects code packing/compression used for obfuscation
+    pattern-either:
+      - pattern: eval(function($P,$A,$C,$K,$E,$D){...})
+      - pattern: |
+          function $UNPACK($P,$A,$C,$K,$E,$D) {
+            ...
+            return $P.replace(...)
+          }
+
+  ##########################################################################
+  # 87) Browser Hijacking - Proxy Settings Override
+  ##########################################################################
+  - id: browser.hijacking.proxy_override
+    message: Proxy settings override—redirecting traffic through attacker-controlled proxy.
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata:
+      category: browser-hijacking
+      mitre: [T1090, T1557]
+      cwe: [CWE-300]
+      confidence: high
+      description: Detects attempts to override browser proxy settings
+    pattern-either:
+      - pattern: "chrome.proxy.settings.set({ value: $CONFIG })"
+      - pattern: chrome.proxy.onProxyError.addListener(...)
+
+  ##########################################################################
+  # 88) Ad Injection - Iframe Overlay Injection
+  ##########################################################################
+  - id: ad.injection.iframe_overlay
+    message: Invisible iframe overlay injection—clickjacking or ad injection attack.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: ad-injection
+      mitre: [T1189, T1056]
+      cwe: [CWE-1021]
+      confidence: high
+      description: Detects injection of invisible iframes for clickjacking or ads
+    patterns:
+      - pattern: |
+          $IFRAME = document.createElement('iframe');
+          ...
+          $IFRAME.style.opacity = '0';
+      - pattern-inside: |
+          document.body.appendChild($IFRAME)
+
+  ##########################################################################
+  # 89) Cryptocurrency Mining - CPU Throttling Evasion
+  ##########################################################################
+  - id: crypto.mining.throttle_evasion
+    message: CPU usage throttling evasion—mining while avoiding detection.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: cryptocurrency-mining
+      mitre: [T1496, T1562.001]
+      cwe: [CWE-920]
+      confidence: medium
+      description: Detects techniques to evade CPU usage monitoring while mining
+    patterns:
+      - pattern: |
+          setInterval($FUNC, $INTERVAL)
+      - pattern-inside: |
+          if (document.hidden) {
+            ...
+            clearInterval($TIMER)
+          }
+
+  ##########################################################################
+  # 90) Advanced Keylogging - Mouse Movement Tracking
+  ##########################################################################
+  - id: keylogging.advanced.mouse_tracking
+    message: Mouse movement and click tracking—behavioral biometrics collection.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: keylogging
+      mitre: [T1056.002]
+      cwe: [CWE-200]
+      confidence: medium
+      description: Detects mouse tracking for behavioral profiling
+    pattern-either:
+      - pattern: document.addEventListener('mousemove', $HANDLER)
+      - pattern: document.addEventListener('mousedown', $HANDLER)
+      - pattern: document.addEventListener('mouseup', $HANDLER)
