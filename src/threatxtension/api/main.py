@@ -1547,6 +1547,205 @@ def _generate_fallback_signatures(file_content: str, file_name: str) -> list:
     return signatures
 
 
+# In-memory registry of batch jobs (batch_id -> status/results)
+batch_jobs: Dict[str, Dict[str, Any]] = {}
+
+
+class BatchAnalyzeRequest(BaseModel):
+    """Request model for batch analysis."""
+
+    extensions: list[str]  # List of URLs, IDs, or file paths
+    parallel: bool = True
+    max_workers: int = 4
+
+
+class BatchStatusResponse(BaseModel):
+    """Response model for batch status."""
+
+    batch_id: str
+    status: str
+    total_extensions: int
+    completed: int
+    failed: int
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+
+
+@app.post("/api/batch/analyze")
+async def batch_analyze(request: BatchAnalyzeRequest, background_tasks: BackgroundTasks):
+    """
+    Trigger batch analysis of multiple extensions.
+
+    Args:
+        request: BatchAnalyzeRequest containing list of extensions and options
+        background_tasks: FastAPI background tasks
+
+    Returns:
+        Dict with batch_id and initial status
+    """
+    from threatxtension.core.batch_processor import BatchProcessor
+
+    if not request.extensions:
+        raise HTTPException(status_code=400, detail="Extension list cannot be empty")
+
+    if len(request.extensions) > 100:
+        raise HTTPException(status_code=400, detail="Maximum 100 extensions allowed per batch")
+
+    # Initialize batch processor
+    processor = BatchProcessor(output_dir="./batch_results")
+
+    # Generate batch ID
+    import uuid
+
+    batch_id = f"batch_{uuid.uuid4().hex[:8]}"
+
+    # Initialize batch job status
+    batch_jobs[batch_id] = {
+        "batch_id": batch_id,
+        "status": "pending",
+        "total_extensions": len(request.extensions),
+        "completed": 0,
+        "failed": 0,
+        "start_time": datetime.utcnow().isoformat(),
+        "end_time": None,
+    }
+
+    # Run batch processing in background
+    async def run_batch():
+        try:
+            batch_jobs[batch_id]["status"] = "running"
+            result = processor.process_batch(
+                extension_list=request.extensions,
+                batch_id=batch_id,
+                parallel=request.parallel,
+                max_workers=request.max_workers,
+            )
+            # Update batch job with results
+            batch_jobs[batch_id].update(
+                {
+                    "status": result.get("status", "completed"),
+                    "completed": result.get("completed", 0),
+                    "failed": result.get("failed", 0),
+                    "end_time": result.get("end_time"),
+                    "results": result.get("results", []),
+                    "report_path": result.get("report_path"),
+                }
+            )
+        except Exception as e:
+            logger.error(f"Batch processing failed: {e}", exc_info=True)
+            batch_jobs[batch_id].update(
+                {
+                    "status": "failed",
+                    "error": str(e),
+                    "end_time": datetime.utcnow().isoformat(),
+                }
+            )
+
+    background_tasks.add_task(run_batch)
+
+    return {
+        "batch_id": batch_id,
+        "status": "pending",
+        "message": f"Batch analysis started for {len(request.extensions)} extensions",
+    }
+
+
+@app.get("/api/batch/status/{batch_id}")
+async def get_batch_status(batch_id: str):
+    """
+    Get the status of a batch analysis job.
+
+    Args:
+        batch_id: Batch identifier
+
+    Returns:
+        BatchStatusResponse with current batch status
+    """
+    if batch_id not in batch_jobs:
+        raise HTTPException(status_code=404, detail=f"Batch {batch_id} not found")
+
+    job = batch_jobs[batch_id]
+
+    return BatchStatusResponse(
+        batch_id=job["batch_id"],
+        status=job["status"],
+        total_extensions=job["total_extensions"],
+        completed=job.get("completed", 0),
+        failed=job.get("failed", 0),
+        start_time=job.get("start_time"),
+        end_time=job.get("end_time"),
+    )
+
+
+@app.get("/api/batch/results/{batch_id}")
+async def get_batch_results(batch_id: str):
+    """
+    Get the full results of a completed batch analysis.
+
+    Args:
+        batch_id: Batch identifier
+
+    Returns:
+        Dict containing complete batch results
+    """
+    if batch_id not in batch_jobs:
+        raise HTTPException(status_code=404, detail=f"Batch {batch_id} not found")
+
+    job = batch_jobs[batch_id]
+
+    if job["status"] not in ["completed", "failed"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Batch is still {job['status']}. Results not yet available.",
+        )
+
+    # Try to load results from file if available
+    from threatxtension.core.batch_processor import BatchProcessor
+
+    processor = BatchProcessor(output_dir="./batch_results")
+    file_results = processor.get_batch_results(batch_id)
+
+    if file_results:
+        return file_results
+
+    # Return in-memory results if file not available
+    return {
+        "batch_id": job["batch_id"],
+        "status": job["status"],
+        "total_extensions": job["total_extensions"],
+        "completed": job.get("completed", 0),
+        "failed": job.get("failed", 0),
+        "start_time": job.get("start_time"),
+        "end_time": job.get("end_time"),
+        "results": job.get("results", []),
+        "error": job.get("error"),
+    }
+
+
+@app.get("/api/batch/list")
+async def list_batch_jobs():
+    """
+    List all batch jobs.
+
+    Returns:
+        Dict containing list of all batch jobs with their status
+    """
+    jobs_list = [
+        {
+            "batch_id": job["batch_id"],
+            "status": job["status"],
+            "total_extensions": job["total_extensions"],
+            "completed": job.get("completed", 0),
+            "failed": job.get("failed", 0),
+            "start_time": job.get("start_time"),
+            "end_time": job.get("end_time"),
+        }
+        for job in batch_jobs.values()
+    ]
+
+    return {"batches": jobs_list, "total": len(jobs_list)}
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint for container orchestration."""
