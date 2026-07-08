@@ -6,8 +6,20 @@ import gptOssService from "../services/gptOssService";
 import TabbedResultsPanel from "../components/TabbedResultsPanel";
 import FileViewerModal from "../components/FileViewerModal";
 import FindingDetailsModal from "../components/FindingDetailsModal";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import SASTSignatureModal from "../components/SASTSignatureModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "../components/ui/dialog";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Search, Loader2 } from "lucide-react";
 import { Button } from "../components/ui/button";
@@ -34,6 +46,10 @@ const AnalysisPage = () => {
   });
   const [allFindingsModal, setAllFindingsModal] = useState({
     isOpen: false,
+  });
+  const [sastSignatureModal, setSastSignatureModal] = useState({
+    isOpen: false,
+    file: null,
   });
 
   useEffect(() => {
@@ -89,35 +105,35 @@ const AnalysisPage = () => {
       // Get file content
       const fileContent = await realScanService.getFileContent(
         scanResults.extensionId,
-        file.path
+        file.path,
       );
 
       // Determine file type
-      const fileType = file.type || file.name.split('.').pop() || 'unknown';
+      const fileType = file.type || file.name.split(".").pop() || "unknown";
 
       // Analyze with GPT-OSS
       const analysisResult = await gptOssService.analyzeFileContent(
         fileContent,
         file.name,
         fileType,
-        'auto' // Use auto provider selection
+        "auto", // Use auto provider selection
       );
 
       if (analysisResult.success) {
-        setAiAnalysisModal(prev => ({
+        setAiAnalysisModal((prev) => ({
           ...prev,
           isAnalyzing: false,
           result: analysisResult.data,
         }));
       } else {
-        throw new Error(analysisResult.error || 'Analysis failed');
+        throw new Error(analysisResult.error || "Analysis failed");
       }
     } catch (err) {
-      console.error('AI analysis error:', err);
-      setAiAnalysisModal(prev => ({
+      console.error("AI analysis error:", err);
+      setAiAnalysisModal((prev) => ({
         ...prev,
         isAnalyzing: false,
-        error: err.message || 'Failed to analyze file with AI',
+        error: err.message || "Failed to analyze file with AI",
       }));
     }
   };
@@ -145,6 +161,23 @@ const AnalysisPage = () => {
     });
   };
 
+  const handleGenerateSASTSignature = (file) => {
+    setSastSignatureModal({
+      isOpen: true,
+      file: file,
+    });
+  };
+
+  const handleGenerateSignature = async (fileContent, fileName) => {
+    // Let errors propagate so the modal can surface a real failure instead of
+    // a fabricated signature.
+    return await gptOssService.generateSASTSignature(
+      fileContent,
+      fileName,
+      "auto",
+    );
+  };
+
   if (loading) {
     return (
       <div className="page-container flex items-center justify-center min-h-[50vh]">
@@ -158,15 +191,20 @@ const AnalysisPage = () => {
       <div className="page-container">
         <div className="page-header">
           <h1 className="page-title">🔬 Analysis Center</h1>
-          <p className="page-subtitle">Detailed security reports and code insights</p>
+          <p className="page-subtitle">
+            Detailed security reports and code insights
+          </p>
         </div>
         <div className="glass-card flex flex-col items-center justify-center py-20 text-center">
           <div className="bg-surface-elevated/50 p-6 rounded-full mb-6">
             <Search className="h-12 w-12 text-muted-foreground opacity-50" />
           </div>
-          <h2 className="text-2xl font-bold mb-2">No Analysis Data Available</h2>
+          <h2 className="text-2xl font-bold mb-2">
+            No Analysis Data Available
+          </h2>
           <p className="text-muted-foreground max-w-md mb-8">
-            Run a new scan from the Dashboard or select a previous scan from History to view detailed analysis.
+            Run a new scan from the Dashboard or select a previous scan from
+            History to view detailed analysis.
           </p>
           <Button onClick={() => navigate("/")}>Go to Dashboard</Button>
         </div>
@@ -177,7 +215,9 @@ const AnalysisPage = () => {
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1 className="page-title">🔬 Analysis Report: {scanResults.name || scanResults.extensionId}</h1>
+        <h1 className="page-title">
+          🔬 Analysis Report: {scanResults.name || scanResults.extensionId}
+        </h1>
         <p className="page-subtitle">
           Detailed security analysis and SAST findings
         </p>
@@ -190,6 +230,7 @@ const AnalysisPage = () => {
           onAnalyzeWithAI={handleAnalyzeWithAI}
           onViewFindingDetails={handleViewFindingDetails}
           onViewAllFindings={handleViewAllFindings}
+          onGenerateSASTSignature={handleGenerateSASTSignature}
         />
       </div>
 
@@ -209,6 +250,16 @@ const AnalysisPage = () => {
         finding={findingDetailsModal.finding}
         extensionId={scanResults?.extensionId}
         onGetFileContent={getFileContent}
+      />
+
+      {/* SAST Signature Generation Modal */}
+      <SASTSignatureModal
+        isOpen={sastSignatureModal.isOpen}
+        onClose={() => setSastSignatureModal({ isOpen: false, file: null })}
+        file={sastSignatureModal.file}
+        extensionId={scanResults?.extensionId}
+        onGetFileContent={getFileContent}
+        onGenerateSignature={handleGenerateSignature}
       />
 
       <AllFindingsModal
@@ -249,10 +300,13 @@ const AnalysisPage = () => {
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">❌</span>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-destructive mb-1">Analysis Failed</h4>
+                    <h4 className="font-semibold text-destructive mb-1">
+                      Analysis Failed
+                    </h4>
                     <p className="text-sm">{aiAnalysisModal.error}</p>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Make sure the backend API is running and LLM providers are configured.
+                      Make sure the backend API is running and LLM providers are
+                      configured.
                     </p>
                   </div>
                 </div>
@@ -264,38 +318,57 @@ const AnalysisPage = () => {
                 {/* Analysis Summary */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Analysis Summary</CardTitle>
+                    <CardTitle className="text-base">
+                      Analysis Summary
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <div className="text-sm text-muted-foreground">Risk Score</div>
+                        <div className="text-sm text-muted-foreground">
+                          Risk Score
+                        </div>
                         <div className="flex items-center gap-2">
-                          <span className={`text-2xl font-bold ${
-                            aiAnalysisModal.result.riskScore >= 8 ? 'text-red-500' :
-                            aiAnalysisModal.result.riskScore >= 5 ? 'text-yellow-500' :
-                            'text-green-500'
-                          }`}>
-                            {aiAnalysisModal.result.riskScore || 'N/A'}
+                          <span
+                            className={`text-2xl font-bold ${
+                              aiAnalysisModal.result.riskScore >= 8
+                                ? "text-red-500"
+                                : aiAnalysisModal.result.riskScore >= 5
+                                  ? "text-yellow-500"
+                                  : "text-green-500"
+                            }`}
+                          >
+                            {aiAnalysisModal.result.riskScore || "N/A"}
                           </span>
                           <span className="text-muted-foreground">/10</span>
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-muted-foreground">Severity</div>
-                        <Badge variant={
-                          aiAnalysisModal.result.severity === 'High' ? 'destructive' :
-                          aiAnalysisModal.result.severity === 'Medium' ? 'secondary' :
-                          'default'
-                        } className="mt-1">
-                          {aiAnalysisModal.result.severity || 'Unknown'}
+                        <div className="text-sm text-muted-foreground">
+                          Severity
+                        </div>
+                        <Badge
+                          variant={
+                            aiAnalysisModal.result.severity === "High"
+                              ? "destructive"
+                              : aiAnalysisModal.result.severity === "Medium"
+                                ? "secondary"
+                                : "default"
+                          }
+                          className="mt-1"
+                        >
+                          {aiAnalysisModal.result.severity || "Unknown"}
                         </Badge>
                       </div>
                     </div>
                     {aiAnalysisModal.result.confidence && (
                       <div>
-                        <div className="text-sm text-muted-foreground">Confidence</div>
-                        <div className="font-medium">{aiAnalysisModal.result.confidence}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Confidence
+                        </div>
+                        <div className="font-medium">
+                          {aiAnalysisModal.result.confidence}
+                        </div>
                       </div>
                     )}
                   </CardContent>
@@ -304,7 +377,9 @@ const AnalysisPage = () => {
                 {/* Detailed Analysis */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Detailed Analysis</CardTitle>
+                    <CardTitle className="text-base">
+                      Detailed Analysis
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="prose prose-sm max-w-none dark:prose-invert">
@@ -316,73 +391,102 @@ const AnalysisPage = () => {
                 </Card>
 
                 {/* Findings */}
-                {aiAnalysisModal.result.findings && aiAnalysisModal.result.findings.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Key Findings</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-2">
-                        {aiAnalysisModal.result.findings.map((finding, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span className="text-primary mt-1">•</span>
-                            <span className="text-sm">{finding}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                )}
+                {aiAnalysisModal.result.findings &&
+                  aiAnalysisModal.result.findings.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">
+                          Key Findings
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {aiAnalysisModal.result.findings.map(
+                            (finding, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <span className="text-primary mt-1">•</span>
+                                <span className="text-sm">{finding}</span>
+                              </li>
+                            ),
+                          )}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
 
                 {/* Recommendations */}
-                {aiAnalysisModal.result.recommendations && aiAnalysisModal.result.recommendations.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Recommendations</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-2">
-                        {aiAnalysisModal.result.recommendations.map((rec, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span className="text-green-500 mt-1">✓</span>
-                            <span className="text-sm">{rec}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                )}
+                {aiAnalysisModal.result.recommendations &&
+                  aiAnalysisModal.result.recommendations.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">
+                          Recommendations
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {aiAnalysisModal.result.recommendations.map(
+                            (rec, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <span className="text-green-500 mt-1">✓</span>
+                                <span className="text-sm">{rec}</span>
+                              </li>
+                            ),
+                          )}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
 
                 {/* Metadata */}
                 {aiAnalysisModal.result.metadata && (
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-base">Analysis Metadata</CardTitle>
+                      <CardTitle className="text-base">
+                        Analysis Metadata
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         {aiAnalysisModal.result.metadata.model && (
                           <div>
                             <div className="text-muted-foreground">Model</div>
-                            <div className="font-medium">{aiAnalysisModal.result.metadata.model}</div>
+                            <div className="font-medium">
+                              {aiAnalysisModal.result.metadata.model}
+                            </div>
                           </div>
                         )}
                         {aiAnalysisModal.result.metadata.deployment && (
                           <div>
-                            <div className="text-muted-foreground">Deployment</div>
-                            <div className="font-medium">{aiAnalysisModal.result.metadata.deployment}</div>
+                            <div className="text-muted-foreground">
+                              Deployment
+                            </div>
+                            <div className="font-medium">
+                              {aiAnalysisModal.result.metadata.deployment}
+                            </div>
                           </div>
                         )}
                         {aiAnalysisModal.result.metadata.tokens_used && (
                           <div>
-                            <div className="text-muted-foreground">Tokens Used</div>
-                            <div className="font-medium">{aiAnalysisModal.result.metadata.tokens_used}</div>
+                            <div className="text-muted-foreground">
+                              Tokens Used
+                            </div>
+                            <div className="font-medium">
+                              {aiAnalysisModal.result.metadata.tokens_used}
+                            </div>
                           </div>
                         )}
                         {aiAnalysisModal.result.metadata.analysis_duration && (
                           <div>
-                            <div className="text-muted-foreground">Duration</div>
-                            <div className="font-medium">{aiAnalysisModal.result.metadata.analysis_duration}</div>
+                            <div className="text-muted-foreground">
+                              Duration
+                            </div>
+                            <div className="font-medium">
+                              {
+                                aiAnalysisModal.result.metadata
+                                  .analysis_duration
+                              }
+                            </div>
                           </div>
                         )}
                       </div>

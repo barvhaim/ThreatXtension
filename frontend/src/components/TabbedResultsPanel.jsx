@@ -24,6 +24,7 @@ const TabbedResultsPanel = ({
   onAnalyzeWithAI,
   onViewFindingDetails,
   onViewAllFindings,
+  onGenerateSASTSignature,
 }) => {
   const [severityFilter, setSeverityFilter] = useState("ALL");
   const [collapsedSections, setCollapsedSections] = useState({});
@@ -772,7 +773,7 @@ const TabbedResultsPanel = ({
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <Button
                       variant="outline"
                       size="sm"
@@ -783,6 +784,16 @@ const TabbedResultsPanel = ({
                     <Button size="sm" onClick={() => onAnalyzeWithAI(file)}>
                       🤖 AI
                     </Button>
+                    {onGenerateSASTSignature && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => onGenerateSASTSignature(file)}
+                        className="gap-1"
+                      >
+                        ✨ SAST AI
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
