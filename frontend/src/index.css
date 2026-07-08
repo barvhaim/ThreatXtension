@@ -1,73 +1,90 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   FONTS — Security console typography
+   JetBrains Mono for all data/labels, Space Grotesk-free display via
+   a heavier grotesque. Loaded from Google Fonts.
+   ============================================================================ */
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;0,800;1,400&family=Chivo:wght@400;600;700;900&display=swap");
+
 :root {
-  /* ============================================================================
-     MODERN COLOR SYSTEM - Vibrant & Professional
-     ============================================================================ */
+  /* ==========================================================================
+     TERMINAL / SECURITY-OPS COLOR SYSTEM
+     Near-black substrate, phosphor-green signal, amber/red threat channels.
+     Values are HSL triplets consumed via hsl(var(--x)).
+     ========================================================================== */
 
-  /* Background Colors */
-  --color-background: 224 71% 4%;
-  --color-surface: 222 47% 11%;
-  --color-surface-elevated: 217 33% 17%;
-  --color-surface-hover: 217 33% 22%;
+  /* Substrate — layered charcoal, faint green cast */
+  --color-background: 150 12% 4%;
+  --color-surface: 155 10% 7%;
+  --color-surface-elevated: 155 9% 10%;
+  --color-surface-hover: 155 9% 14%;
 
-  /* Foreground Colors */
-  --color-foreground: 210 40% 98%;
-  --color-foreground-muted: 215 20% 75%;
-  --color-foreground-subtle: 215 15% 55%;
+  /* Foreground — off-white / phosphor tint */
+  --color-foreground: 140 20% 94%;
+  --color-foreground-muted: 145 12% 62%;
+  --color-foreground-subtle: 150 8% 42%;
 
-  /* Primary Brand */
-  --color-primary: 217 91% 60%;
-  --color-primary-hover: 217 100% 65%;
-  --color-primary-foreground: 210 40% 98%;
+  /* Primary — phosphor green (the "live signal") */
+  --color-primary: 145 90% 52%;
+  --color-primary-hover: 145 95% 60%;
+  --color-primary-foreground: 150 20% 5%;
 
-  /* Secondary */
-  --color-secondary: 262 83% 58%;
-  --color-secondary-hover: 262 83% 63%;
-  --color-secondary-foreground: 210 40% 98%;
+  /* Secondary — cold cyan (secondary readouts) */
+  --color-secondary: 175 85% 48%;
+  --color-secondary-hover: 175 90% 55%;
+  --color-secondary-foreground: 150 20% 5%;
 
-  /* Accent */
-  --color-accent: 190 95% 50%;
-  --color-accent-hover: 190 95% 55%;
-  --color-accent-foreground: 222 47% 11%;
+  /* Accent — signal amber */
+  --color-accent: 38 96% 56%;
+  --color-accent-hover: 38 100% 62%;
+  --color-accent-foreground: 40 60% 6%;
 
-  /* Status Colors */
-  --color-muted: 217 33% 17%;
-  --color-muted-foreground: 215 20% 65%;
+  /* Muted */
+  --color-muted: 155 9% 12%;
+  --color-muted-foreground: 145 10% 58%;
 
-  --color-destructive: 346 87% 55%;
-  --color-destructive-hover: 346 87% 60%;
-  --color-destructive-foreground: 210 40% 98%;
+  /* Threat channels */
+  --color-destructive: 358 82% 58%;
+  --color-destructive-hover: 358 88% 64%;
+  --color-destructive-foreground: 0 0% 100%;
 
-  --color-success: 152 76% 45%;
-  --color-success-hover: 152 76% 50%;
-  --color-success-foreground: 210 40% 98%;
+  --color-success: 145 80% 48%;
+  --color-success-hover: 145 85% 55%;
+  --color-success-foreground: 150 20% 5%;
 
-  --color-warning: 32 95% 55%;
-  --color-warning-hover: 32 95% 60%;
-  --color-warning-foreground: 224 71% 4%;
+  --color-warning: 38 96% 56%;
+  --color-warning-hover: 38 100% 62%;
+  --color-warning-foreground: 40 60% 6%;
 
-  /* Boarders & Inputs */
-  --color-border: 217 33% 20%;
-  --color-border-subtle: 217 33% 15%;
-  --color-border-strong: 217 33% 25%;
+  /* Borders & inputs — hairline, slightly green */
+  --color-border: 150 10% 16%;
+  --color-border-subtle: 150 10% 12%;
+  --color-border-strong: 150 12% 24%;
 
-  --color-input: 217 33% 20%;
-  --color-input-focus: 217 91% 60%;
-  --color-ring: 217 91% 60%;
+  --color-input: 155 10% 9%;
+  --color-input-focus: 145 90% 52%;
+  --color-ring: 145 90% 52%;
 
-  /* Radii */
-  --radius-sm: 0.5rem;
-  --radius: 0.75rem;
-  --radius-md: 1rem;
-  --radius-lg: 1.5rem;
-  --radius-xl: 2rem;
-  --radius-2xl: 3rem;
+  /* card aliases used by shadcn primitives */
+  --color-card: 155 9% 8%;
+  --color-card-foreground: 140 20% 94%;
+
+  /* Radii — sharp console geometry (near-square) */
+  --radius-sm: 0.125rem;
+  --radius: 0.25rem;
+  --radius-md: 0.3125rem;
+  --radius-lg: 0.375rem;
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.75rem;
   --radius-full: 9999px;
+
+  /* Typography roles */
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-display: "Chivo", "JetBrains Mono", ui-sans-serif, system-ui, sans-serif;
 }
 
 @theme {
-  /* Map CSS variables to Tailwind theme */
   --color-background: hsl(var(--color-background));
   --color-surface: hsl(var(--color-surface));
   --color-surface-elevated: hsl(var(--color-surface-elevated));
@@ -83,15 +100,18 @@
 
   --color-secondary: hsl(var(--color-secondary));
   --color-secondary-hover: hsl(var(--color-secondary-hover));
+  --color-secondary-foreground: hsl(var(--color-secondary-foreground));
 
   --color-accent: hsl(var(--color-accent));
   --color-accent-hover: hsl(var(--color-accent-hover));
+  --color-accent-foreground: hsl(var(--color-accent-foreground));
 
   --color-muted: hsl(var(--color-muted));
   --color-muted-foreground: hsl(var(--color-muted-foreground));
 
   --color-destructive: hsl(var(--color-destructive));
   --color-destructive-hover: hsl(var(--color-destructive-hover));
+  --color-destructive-foreground: hsl(var(--color-destructive-foreground));
 
   --color-success: hsl(var(--color-success));
   --color-success-hover: hsl(var(--color-success-hover));
@@ -103,6 +123,13 @@
   --color-input: hsl(var(--color-input));
   --color-ring: hsl(var(--color-ring));
 
+  --color-card: hsl(var(--color-card));
+  --color-card-foreground: hsl(var(--color-card-foreground));
+
+  --color-accent-foreground: hsl(var(--color-accent-foreground));
+  --color-secondary-foreground: hsl(var(--color-secondary-foreground));
+  --color-muted-foreground: hsl(var(--color-muted-foreground));
+
   --radius-sm: var(--radius-sm);
   --radius: var(--radius);
   --radius-md: var(--radius-md);
@@ -110,12 +137,14 @@
   --radius-xl: var(--radius-xl);
   --radius-2xl: var(--radius-2xl);
   --radius-full: var(--radius-full);
+
+  --font-mono: var(--font-mono);
+  --font-display: var(--font-display);
 }
 
 /* ============================================================================
-   GLOBAL STYLES - Modern Foundation
+   GLOBAL FOUNDATION
    ============================================================================ */
-
 * {
   border-color: hsl(var(--color-border));
   box-sizing: border-box;
@@ -128,231 +157,229 @@ html {
 }
 
 body {
-  background: linear-gradient(135deg, hsl(240 10% 3.9%) 0%, hsl(240 12% 6%) 100%);
+  background: hsl(var(--color-background));
   color: hsl(var(--color-foreground));
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-mono);
+  font-feature-settings: "ss01", "cv01", "zero";
   line-height: 1.6;
   min-height: 100vh;
 }
 
-/* ============================================================================
-   MODERN SCROLLBAR
-   ============================================================================ */
+/* Terminal texture layers — grid + subtle scanlines + vignette.
+   Fixed, non-interactive, behind everything. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(hsl(var(--color-primary) / 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--color-primary) / 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 120% 90% at 50% 0%, #000 30%, transparent 90%);
+  -webkit-mask-image: radial-gradient(ellipse 120% 90% at 50% 0%, #000 30%, transparent 90%);
+}
 
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, hsl(var(--color-primary) / 0.08), transparent 60%),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 2px,
+      rgba(0, 0, 0, 0.14) 3px,
+      transparent 4px
+    );
+  opacity: 0.5;
+}
+
+/* ============================================================================
+   SCROLLBAR — console rail
+   ============================================================================ */
 ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
   background: hsl(var(--color-surface));
-  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, hsl(var(--color-primary)), hsl(var(--color-secondary)));
-  border-radius: 10px;
+  background: hsl(var(--color-border-strong));
   border: 2px solid hsl(var(--color-surface));
+  border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, hsl(var(--color-primary-hover)), hsl(var(--color-secondary-hover)));
+  background: hsl(var(--color-primary) / 0.55);
 }
 
 /* ============================================================================
-   GLASSMORPHISM UTILITIES
+   CONSOLE SURFACE UTILITIES
+   Replace the old glass/gradient slop. Panels read as instrument bezels.
    ============================================================================ */
-
-.glass {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.panel {
+  background: hsl(var(--color-surface-elevated) / 0.7);
+  border: 1px solid hsl(var(--color-border));
+  border-radius: var(--radius-lg);
+  position: relative;
 }
 
-.glass-strong {
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+/* corner ticks — CAD/console framing */
+.panel-ticks::before,
+.panel-ticks::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-color: hsl(var(--color-primary) / 0.6);
+  border-style: solid;
+  pointer-events: none;
+}
+.panel-ticks::before {
+  top: -1px;
+  left: -1px;
+  border-width: 1px 0 0 1px;
+}
+.panel-ticks::after {
+  bottom: -1px;
+  right: -1px;
+  border-width: 0 1px 1px 0;
 }
 
-/* ============================================================================
-   GRADIENT UTILITIES
-   ============================================================================ */
-
-.gradient-primary {
-  background: linear-gradient(135deg, hsl(var(--color-primary)), hsl(var(--color-secondary)));
+.hairline {
+  border: 1px solid hsl(var(--color-border));
 }
 
-.gradient-accent {
-  background: linear-gradient(135deg, hsl(var(--color-accent)), hsl(var(--color-primary)));
-}
-
-.gradient-text {
-  background: linear-gradient(135deg, hsl(var(--color-primary)), hsl(var(--color-accent)));
+/* gradient-text: kept as name but now a phosphor gradient */
+.gradient-text,
+.text-gradient {
+  background: linear-gradient(90deg, hsl(var(--color-primary)), hsl(var(--color-secondary)));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* ============================================================================
-   GLOW EFFECTS
-   ============================================================================ */
+.mono-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: hsl(var(--color-foreground-subtle));
+}
 
+/* Blinking cursor block for terminal wordmarks/prompts */
+.cursor-block {
+  display: inline-block;
+  width: 0.55em;
+  height: 1.05em;
+  margin-left: 0.15em;
+  vertical-align: text-bottom;
+  background: hsl(var(--color-primary));
+  animation: cursor-blink 1.1s steps(2, start) infinite;
+  box-shadow: 0 0 8px hsl(var(--color-primary) / 0.8);
+}
+
+/* Legacy glow classes — retuned to green so old markup doesn't break */
 .glow-primary {
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3),
-    0 0 40px rgba(59, 130, 246, 0.2),
-    0 0 60px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 1px hsl(var(--color-primary) / 0.3), 0 0 24px hsl(var(--color-primary) / 0.18);
 }
-
 .glow-secondary {
-  box-shadow: 0 0 20px rgba(168, 85, 247, 0.3),
-    0 0 40px rgba(168, 85, 247, 0.2),
-    0 0 60px rgba(168, 85, 247, 0.1);
+  box-shadow: 0 0 0 1px hsl(var(--color-secondary) / 0.3), 0 0 24px hsl(var(--color-secondary) / 0.18);
+}
+.glow-accent {
+  box-shadow: 0 0 0 1px hsl(var(--color-accent) / 0.3), 0 0 24px hsl(var(--color-accent) / 0.18);
 }
 
-.glow-accent {
-  box-shadow: 0 0 20px rgba(6, 182, 212, 0.3),
-    0 0 40px rgba(6, 182, 212, 0.2),
-    0 0 60px rgba(6, 182, 212, 0.1);
+/* Legacy glass classes retargeted to console panels */
+.glass,
+.glass-strong {
+  background: hsl(var(--color-surface-elevated) / 0.7);
+  border: 1px solid hsl(var(--color-border));
+  backdrop-filter: none;
 }
 
 /* ============================================================================
-   MODERN ANIMATIONS
+   ANIMATIONS
    ============================================================================ */
+@keyframes cursor-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
 
 @keyframes float {
-
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-
-  50% {
-    transform: translateY(-10px);
-  }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
 
 @keyframes pulse-glow {
-
-  0%,
-  100% {
-    opacity: 1;
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
-  }
-
-  50% {
-    opacity: 0.8;
-    box-shadow: 0 0 40px rgba(59, 130, 246, 0.6);
-  }
+  0%, 100% { opacity: 1; box-shadow: 0 0 12px hsl(var(--color-primary) / 0.5); }
+  50% { opacity: 0.85; box-shadow: 0 0 24px hsl(var(--color-primary) / 0.75); }
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-
-  100% {
-    background-position: 1000px 0;
-  }
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
 }
 
 @keyframes slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-/* Animation utility classes */
-.animate-float {
-  animation: float 3s ease-in-out infinite;
+@keyframes sweep {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(2200%); }
 }
 
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-.animate-shimmer {
-  animation: shimmer 3s linear infinite;
-  background-size: 2000px 100%;
-}
-
-.animate-slide-up {
-  animation: slide-up 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.animate-fade-in {
-  animation: fade-in 0.3s ease-out;
-}
-
-.animate-scale-in {
-  animation: scale-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+.animate-float { animation: float 4s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulse-glow 2.4s ease-in-out infinite; }
+.animate-shimmer { animation: shimmer 3s linear infinite; background-size: 2000px 100%; }
+.animate-slide-up { animation: slide-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-fade-in { animation: fade-in 0.35s ease-out both; }
+.animate-scale-in { animation: scale-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 /* ============================================================================
-   FOCUS STATES - Modern accessibility
+   FOCUS / SELECTION
    ============================================================================ */
-
 *:focus-visible {
-  outline: 2px solid hsl(var(--color-ring));
+  outline: 1px solid hsl(var(--color-ring));
   outline-offset: 2px;
-  border-radius: var(--radius);
+  border-radius: 0;
 }
-
-/* ============================================================================
-   SELECTION STYLING
-   ============================================================================ */
 
 ::selection {
-  background: hsl(var(--color-primary) / 0.3);
+  background: hsl(var(--color-primary) / 0.35);
   color: hsl(var(--color-foreground));
 }
-
 ::-moz-selection {
-  background: hsl(var(--color-primary) / 0.3);
+  background: hsl(var(--color-primary) / 0.35);
   color: hsl(var(--color-foreground));
 }
 
 /* ============================================================================
-   REDUCED MOTION SUPPORT
+   REDUCED MOTION / PRINT
    ============================================================================ */
-
 @media (prefers-reduced-motion: reduce) {
-
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -360,20 +387,8 @@ body {
   }
 }
 
-/* ============================================================================
-   PRINT STYLES
-   ============================================================================ */
-
 @media print {
-  body {
-    background: white;
-    color: black;
-  }
-
-  .glass,
-  .glass-strong {
-    background: white;
-    backdrop-filter: none;
-    border: 1px solid #ccc;
-  }
+  body { background: white; color: black; }
+  body::before, body::after { display: none; }
+  .panel, .glass, .glass-strong { background: white; border: 1px solid #ccc; }
 }

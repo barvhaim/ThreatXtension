@@ -91,8 +91,13 @@ class RealScanService {
     } catch (error) {
       console.error("Failed to check scan status:", error);
       // Determine if it's a network error (server down)
-      if (error.message.includes("fetch") || error.message.includes("network")) {
-        throw new Error("Backend server unavailable. Please make sure the API server is running (make api).");
+      if (
+        error.message.includes("fetch") ||
+        error.message.includes("network")
+      ) {
+        throw new Error(
+          "Backend server unavailable. Please make sure the API server is running (make api).",
+        );
       }
       return { scanned: false, status: "error", error: error.message };
     }
@@ -107,12 +112,14 @@ class RealScanService {
       // Flatten SAST findings from object to array
       const sastFindings = [];
       if (sastResults.sast_findings) {
-        for (const [filePath, findings] of Object.entries(sastResults.sast_findings)) {
+        for (const [filePath, findings] of Object.entries(
+          sastResults.sast_findings,
+        )) {
           if (Array.isArray(findings)) {
-            findings.forEach(finding => {
+            findings.forEach((finding) => {
               sastFindings.push({
                 ...finding,
-                file: finding.file || filePath
+                file: finding.file || filePath,
               });
             });
           }
@@ -125,14 +132,17 @@ class RealScanService {
           cliResults.overall_security_score ||
           sastResults.overall_security_score ||
           0,
-        riskLevel: this.determineRiskLevel(
-          cliResults.overall_security_score ||
-          sastResults.overall_security_score ||
-          0,
-        ),
+        riskLevel: (
+          cliResults.summary?.overall_risk_level ||
+          cliResults.overall_risk ||
+          this.determineRiskLevel(
+            cliResults.overall_security_score ||
+              sastResults.overall_security_score ||
+              0,
+          )
+        ).toUpperCase(),
         totalFiles: cliResults.extracted_files?.length || 0,
-        totalFindings:
-          cliResults.total_findings || sastFindings.length || 0,
+        totalFindings: cliResults.total_findings || sastFindings.length || 0,
 
         // Files information
         files: this.formatFileResults(cliResults.extracted_files || []),
@@ -146,14 +156,28 @@ class RealScanService {
         downloadResult: cliResults.download_result,
 
         // Metadata mapping
-        name: cliResults.metadata?.title || cliResults.manifest?.name || "Unknown Extension",
-        description: cliResults.metadata?.description || cliResults.manifest?.description || "",
-        version: cliResults.metadata?.version || cliResults.manifest?.version || "0.0.0",
-        developer: cliResults.metadata?.developer_name || cliResults.manifest?.author || "Unknown",
+        name:
+          cliResults.metadata?.title ||
+          cliResults.manifest?.name ||
+          "Unknown Extension",
+        description:
+          cliResults.metadata?.description ||
+          cliResults.manifest?.description ||
+          "",
+        version:
+          cliResults.metadata?.version ||
+          cliResults.manifest?.version ||
+          "0.0.0",
+        developer:
+          cliResults.metadata?.developer_name ||
+          cliResults.manifest?.author ||
+          "Unknown",
         lastUpdated: cliResults.metadata?.last_updated || "Unknown",
 
         // Permissions mapping
-        permissions: this.formatPermissions(cliResults.permissions_analysis || {}),
+        permissions: this.formatPermissions(
+          cliResults.permissions_analysis || {},
+        ),
 
         // Recommendations mapping
         recommendations: this.formatRecommendations(cliResults.summary || {}),
@@ -213,10 +237,13 @@ class RealScanService {
     return Math.max(0, Math.round(score));
   }
 
-  // Determine risk level from CLI results
+  // Determine risk level from score (fallback only — prefer backend-computed value)
+  // Thresholds match SecurityScorer._get_risk_level() in security_scorer.py:
+  //   0-39 = critical, 40-64 = high, 65-84 = medium, 85-100 = low
   determineRiskLevel(score) {
-    if (score < 30) return "HIGH";
-    if (score < 70) return "MEDIUM";
+    if (score < 40) return "CRITICAL";
+    if (score < 65) return "HIGH";
+    if (score < 85) return "MEDIUM";
     return "LOW";
   }
 
@@ -284,24 +311,44 @@ class RealScanService {
       // Extract data from Semgrep format
       const extra = finding.extra || {};
       const start = finding.start || {};
+      const end = finding.end || {};
       const metadata = extra.metadata || {};
-      
+
+      // Get line number from multiple possible sources
+      const lineNumber = start.line || finding.line_number || finding.line || 0;
+
       return {
         file: finding.file || finding.path || "Unknown",
-        line: start.line || finding.line_number || finding.line || 0,
-        title: finding.check_id || finding.pattern_name || finding.title || "Security Finding",
-        description: extra.message || finding.description || "No description available",
+        line: lineNumber,
+        line_number: lineNumber, // Add explicit line_number field for modal
+        title:
+          finding.check_id ||
+          finding.pattern_name ||
+          finding.title ||
+          "Security Finding",
+        description:
+          extra.message || finding.description || "No description available",
+        message: extra.message || finding.message || finding.description,
         severity: this.mapRiskLevelToSeverity(
           extra.severity || finding.risk_level || finding.severity || "medium",
         ),
         riskScore: finding.risk_score || 0,
         context: finding.context || extra.lines || "",
-        matchText: finding.match_text || "",
+        matched_text:
+          finding.matched_text || finding.match_text || extra.lines || "",
         // Additional Semgrep-specific fields
+        check_id: finding.check_id,
+        pattern_name: finding.pattern_name || finding.check_id,
         checkId: finding.check_id,
         category: metadata.category,
         mitre: metadata.mitre,
         cwe: metadata.cwe,
+        owasp: metadata.owasp,
+        // Include extra metadata for modal
+        extra: {
+          ...extra,
+          metadata: metadata,
+        },
       };
     });
   }
@@ -319,8 +366,11 @@ class RealScanService {
   async getFileContent(extensionId, filePath) {
     try {
       // Encode each path segment separately to preserve forward slashes
-      const encodedPath = filePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
-      
+      const encodedPath = filePath
+        .split("/")
+        .map((segment) => encodeURIComponent(segment))
+        .join("/");
+
       const response = await fetch(
         `${this.baseURL}/api/scan/file/${extensionId}/${encodedPath}`,
       );
@@ -364,12 +414,12 @@ class RealScanService {
     }
 
     const details = permissionsAnalysis.permissions_details;
-    return Object.keys(details).map(name => {
+    return Object.keys(details).map((name) => {
       const info = details[name];
       return {
         name: name,
         description: info.justification_reasoning || "No details available",
-        risk: info.is_reasonable ? "LOW" : "HIGH" // Infer risk if not provided
+        risk: info.is_reasonable ? "LOW" : "HIGH", // Infer risk if not provided
       };
     });
   }
@@ -380,10 +430,10 @@ class RealScanService {
       return [];
     }
 
-    return summary.recommendations.map(rec => ({
+    return summary.recommendations.map((rec) => ({
       title: rec,
       priority: "MEDIUM", // Default priority
-      description: ""
+      description: "",
     }));
   }
 }

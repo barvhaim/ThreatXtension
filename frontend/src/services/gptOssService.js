@@ -160,6 +160,42 @@ class GPTOSSService {
   }
 
   /**
+   * Generate SAST signature (Semgrep rules) from file content using AI.
+   * Errors are surfaced to the caller — we never fabricate a signature on
+   * failure. Note the backend endpoint already degrades to a regex-based
+   * fallback, so a successful response is always grounded in real analysis.
+   */
+  async generateSASTSignature(fileContent, fileName, provider = "auto") {
+    const formData = new FormData();
+    formData.append("file_content", fileContent);
+    formData.append("file_name", fileName);
+    formData.append("provider", provider);
+
+    const response = await fetch(
+      `${this.baseURL}/api/analyze/generate-sast-signature`,
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.detail ||
+          `SAST signature generation failed: ${response.status}`,
+      );
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      data: result.data,
+      provider: result.data?.provider || "unknown",
+    };
+  }
+
+  /**
    * Get backend configuration
    */
   async getBackendConfig() {

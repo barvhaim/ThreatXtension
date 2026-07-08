@@ -14,13 +14,17 @@ logger = logging.getLogger(__name__)
 class SecurityScorer:
     """
     Calculates overall security score from all analyzer results.
-    
+
     Score: 0-100 where:
-    - 0-39: Critical risk (red)
-    - 40-59: High risk (orange)
-    - 60-79: Medium risk (yellow)
-    - 80-100: Low risk (green)
-    
+    - 0-39:  Critical risk (red)    — confirmed malicious indicators
+    - 40-64: High risk (orange)     — significant suspicious signals
+    - 65-84: Medium risk (yellow)   — some concerns, needs review
+    - 85-100: Low risk (green)      — no meaningful signals detected
+
+    Thresholds are intentionally tight because VT and SAST may both be
+    absent (disabled / no JS files), so the remaining analyzers alone must
+    be able to push borderline extensions out of the "Low" band.
+
     Risk points are accumulated from various analyzers, then inverted to create the score.
     """
 
@@ -485,9 +489,9 @@ class SecurityScorer:
         Returns:
             Risk level string: 'low', 'medium', 'high', or 'critical'
         """
-        if score >= 80:
+        if score >= 85:
             return 'low'
-        elif score >= 60:
+        elif score >= 65:
             return 'medium'
         elif score >= 40:
             return 'high'

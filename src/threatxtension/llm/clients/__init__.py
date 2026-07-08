@@ -47,20 +47,17 @@ def _get_base_llm_settings(model_name: str, model_parameters: Optional[Dict]) ->
     if LLM_PROVIDER == LLMProviderType.RITS:
         rits_base_url = os.getenv("RITS_API_BASE_URL")
 
-        parameters = {
-            "max_tokens": model_parameters.get("max_tokens", 100),
-            "temperature": model_parameters.get("temperature", 0.05),
-            "repetition_penalty": model_parameters.get("repetition_penalty", 1.0),
-            "top_k": model_parameters.get("top_k", 50),
-            "top_p": model_parameters.get("top_p", 1.0),
-            "stop": model_parameters.get("stop_sequences", []),
-        }
-
+        # GPT-OSS-style RITS endpoints only accept the standard OpenAI
+        # parameters; passing repetition_penalty / top_k in extra_body causes
+        # a 422. Send the supported params at the top level instead.
         return {
             "base_url": f"{rits_base_url}/v1",
             "model": model_name,
             "api_key": os.getenv("RITS_API_KEY"),
-            "extra_body": parameters,
+            "max_tokens": model_parameters.get("max_tokens", 100),
+            "temperature": model_parameters.get("temperature", 0.05),
+            "top_p": model_parameters.get("top_p", 1.0),
+            "stop": model_parameters.get("stop_sequences", []),
         }
 
     if LLM_PROVIDER == LLMProviderType.OPENAI:

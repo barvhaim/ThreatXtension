@@ -14,7 +14,20 @@ import FileViewerModal from "../components/FileViewerModal";
 import FindingDetailsModal from "../components/FindingDetailsModal";
 import AllFindingsModal from "../components/AllFindingsModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
-import { Loader2 } from "lucide-react";
+import {
+  Loader2,
+  ScanSearch,
+  ShieldAlert,
+  FileCode2,
+  Bug,
+  Package,
+  History as HistoryIcon,
+  Activity,
+  Download,
+  Boxes,
+  ScanLine,
+  ShieldCheck,
+} from "lucide-react";
 import "./DashboardPage.scss";
 
 const DashboardPage = () => {
@@ -315,60 +328,74 @@ const DashboardPage = () => {
 
   return (
     <div className="dashboard-page">
-      {/* Premium Hero Section */}
+      {/* Console Hero */}
       <section className="dashboard-hero">
-        <div className="hero-content">
-          <h1 className="hero-title">
-            <span className="text-gradient">Secure Your Browser</span>
-          </h1>
-          <p className="hero-subtitle">
-            Advanced security analysis for Chrome Extensions.
-            <br className="hidden md:block" />
-            Detect vulnerabilities, malware, and privacy risks in seconds.
-          </p>
+        <div className="hero-meta">
+          <span className="hero-tag">
+            <ShieldCheck size={13} strokeWidth={2.25} />
+            THREAT&nbsp;CONSOLE
+          </span>
+          <span className="hero-meta-sep">/</span>
+          <span className="hero-meta-dim">chrome web store · crx · zip</span>
         </div>
 
-        {/* Search/Scan Input */}
-        <div className="scan-highlight-box">
-          <EnhancedUrlInput
-            value={url}
-            onChange={setUrl}
-            onScan={handleScanClick}
-            onFileUpload={handleFileUpload}
-            isScanning={isScanning}
-          />
-          
-          {/* Force Re-scan Checkbox */}
-          <div style={{
-            marginTop: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '14px',
-            color: '#64748b'
-          }}>
-            <input
-              type="checkbox"
-              id="force-rescan"
-              checked={forceRescan}
-              onChange={(e) => setForceRescan(e.target.checked)}
-              style={{ cursor: 'pointer' }}
+        <h1 className="hero-title">
+          Know what an extension does{" "}
+          <span className="text-gradient">before you trust it.</span>
+        </h1>
+
+        {/* Terminal scan console */}
+        <div className="scan-console panel panel-ticks">
+          <div className="scan-console__bar">
+            <span className="scan-console__dots">
+              <i /><i /><i />
+            </span>
+            <span className="scan-console__path">threatx@analysis:~ // acquire target</span>
+            <span className="scan-console__status">
+              <span className="scan-console__led" />
+              READY
+            </span>
+          </div>
+          <div className="scan-console__body">
+            <EnhancedUrlInput
+              value={url}
+              onChange={setUrl}
+              onScan={handleScanClick}
+              onFileUpload={handleFileUpload}
+              isScanning={isScanning}
             />
-            <label
-              htmlFor="force-rescan"
-              style={{ cursor: 'pointer', userSelect: 'none' }}
-            >
-              Force re-scan (ignore cached results)
+
+            <label className="rescan-toggle" htmlFor="force-rescan">
+              <input
+                type="checkbox"
+                id="force-rescan"
+                checked={forceRescan}
+                onChange={(e) => setForceRescan(e.target.checked)}
+              />
+              <span className="rescan-box" aria-hidden="true" />
+              <span className="rescan-label">
+                Force re-scan <span className="rescan-hint">// ignore cached results</span>
+              </span>
             </label>
           </div>
         </div>
+
+        <p className="hero-pipeline">
+          <span>static analysis</span>
+          <span>SAST signatures</span>
+          <span>store reputation</span>
+          <span>LLM triage</span>
+          <span className="hero-pipeline__note">one pass · no code executed</span>
+        </p>
       </section>
 
       {/* Stats Overview */}
       <div className="dashboard-content-wrapper">
         <div className="section-header-row">
           <h2 className="section-title">
-            <span className="icon">📊</span> Security Overview
+            <span className="icon"><Activity size={16} strokeWidth={2.25} /></span>
+            Telemetry
+            <span className="section-sub">// aggregated across all scans</span>
           </h2>
           <Button
             variant="ghost"
@@ -376,13 +403,13 @@ const DashboardPage = () => {
             onClick={() => setShowHistory(!showHistory)}
             className="history-toggle-btn"
           >
-            {showHistory ? "Hide History" : "Show History"}
+            {showHistory ? "Hide log" : "Show log"}
           </Button>
         </div>
 
         <div className="stats-grid">
           <EnhancedMetricCard
-            icon="🔍"
+            icon={<ScanSearch size={20} strokeWidth={2} />}
             title="Total Scans"
             subtitle="Analyzed Extensions"
             value={dashboardStats.totalScans.value}
@@ -393,7 +420,7 @@ const DashboardPage = () => {
             helpText="Total number of unique Chrome extensions analyzed."
           />
           <EnhancedMetricCard
-            icon="🛡️"
+            icon={<ShieldAlert size={20} strokeWidth={2} />}
             title="High Risk"
             subtitle="Critical Threats"
             value={dashboardStats.highRisk.value}
@@ -404,7 +431,7 @@ const DashboardPage = () => {
             helpText="Extensions identified with critical security vulnerabilities."
           />
           <EnhancedMetricCard
-            icon="📁"
+            icon={<FileCode2 size={20} strokeWidth={2} />}
             title="Code Analysis"
             subtitle="Files Processed"
             value={dashboardStats.totalFiles.value}
@@ -415,7 +442,7 @@ const DashboardPage = () => {
             helpText="Total file count processed across all scans."
           />
           <EnhancedMetricCard
-            icon="🚨"
+            icon={<Bug size={20} strokeWidth={2} />}
             title="Vulnerabilities"
             subtitle="Issues Detected"
             value={dashboardStats.totalVulnerabilities.value}
@@ -432,42 +459,66 @@ const DashboardPage = () => {
       {showHistory && scanHistory.length > 0 && (
         <div className="dashboard-content-wrapper mt-8">
           <h3 className="section-title mb-4">
-            <span className="icon">🕒</span> Recent Activity
+            <span className="icon"><HistoryIcon size={16} strokeWidth={2.25} /></span>
+            Scan Log
+            <span className="section-sub">// most recent {Math.min(scanHistory.length, 8)}</span>
           </h3>
-          <div className="history-grid">
-            {scanHistory.slice(0, 8).map((scan, index) => (
-              <div
-                key={index}
-                className="history-tile"
-                onClick={() => loadScanFromHistory(scan.extension_id || scan.extensionId)}
-              >
-                <div className="history-content">
-                  <div className="history-icon-wrapper">
-                    <span className="history-icon">📦</span>
-                  </div>
-                  <div className="history-info">
-                    <h4>{scan.extension_name || scan.extensionName || scan.extension_id || scan.extensionId}</h4>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                      <span>{new Date(scan.timestamp).toLocaleDateString()}</span>
-                      <span className="w-1 h-1 rounded-full bg-border"></span>
-                      <span>Score: {scan.security_score || scan.securityScore || "N/A"}</span>
-                    </div>
-                    <div className="mt-2">
-                      <Badge
-                        variant={
-                          (scan.risk_level || scan.riskLevel || "").toUpperCase() === "HIGH" ? "destructive" :
-                            (scan.risk_level || scan.riskLevel || "").toUpperCase() === "MEDIUM" ? "secondary" :
-                              "outline"
-                        }
-                        className="text-[10px] h-5 px-2"
-                      >
-                        {(scan.risk_level || scan.riskLevel || "UNKNOWN").toUpperCase()}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="history-log panel">
+            <div className="history-log__head">
+              <span>TARGET</span>
+              <span>DATE</span>
+              <span title="Safety score — higher is safer (100 = clean)">SAFETY ↑</span>
+              <span>RISK</span>
+            </div>
+            {scanHistory.slice(0, 8).map((scan, index) => {
+              const risk = (scan.risk_level || scan.riskLevel || "UNKNOWN").toUpperCase();
+              const rawScore = scan.security_score ?? scan.securityScore;
+              const hasScore = rawScore !== undefined && rawScore !== null;
+              const score = Number(rawScore);
+              // Safety score: higher is safer (100 = clean). Match the results panel.
+              const scoreTone = !hasScore
+                ? "score-none"
+                : score < 40
+                  ? "score-critical"
+                  : score < 65
+                    ? "score-high"
+                    : score < 85
+                      ? "score-moderate"
+                      : "score-secure";
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  className="history-row"
+                  onClick={() => loadScanFromHistory(scan.extension_id || scan.extensionId)}
+                >
+                  <span className="history-row__target">
+                    <Package size={14} strokeWidth={2} className="history-row__pkg" />
+                    <span className="history-row__name">
+                      {scan.extension_name || scan.extensionName || scan.extension_id || scan.extensionId}
+                    </span>
+                  </span>
+                  <span className="history-row__date">
+                    {new Date(scan.timestamp).toLocaleDateString()}
+                  </span>
+                  <span className={`history-row__score ${scoreTone}`}>
+                    {hasScore ? score : "—"}
+                    {hasScore && <span className="history-row__score-max">/100</span>}
+                  </span>
+                  <span className="history-row__risk">
+                    <Badge
+                      variant={
+                        risk === "HIGH" ? "destructive" :
+                          risk === "MEDIUM" ? "secondary" : "outline"
+                      }
+                      className="text-[10px] h-5 px-2"
+                    >
+                      {risk}
+                    </Badge>
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -482,18 +533,25 @@ const DashboardPage = () => {
       )}
 
       {isScanning && (
-        <div className="scanning-section">
+        <div className="scanning-section panel panel-ticks">
           <div className="scanning-content">
-            <div className="simple-loader">
-              <div className="spinner"></div>
+            <div className="scanning-head">
+              <span className="scanning-led" />
+              <span className="mono-label">deep_scan // in progress</span>
             </div>
-            <h3 className="scanning-title">Performing Deep Scan</h3>
-            <p className="scanning-text">Analyzing extension package structure, permissions, and code patterns...</p>
+            <h3 className="scanning-title">Analyzing target</h3>
+            <p className="scanning-text">
+              Unpacking the package and inspecting structure, permissions, and
+              code patterns. Large extensions take longer.
+            </p>
             <div className="scanning-steps">
-              <span className="step active">📥 Fetching</span>
-              <span className="step">📦 Unpacking</span>
-              <span className="step">🔍 Static Analysis</span>
-              <span className="step">🛡️ Threat Check</span>
+              <span className="step active"><Download size={14} strokeWidth={2} /> Fetch</span>
+              <span className="step"><Boxes size={14} strokeWidth={2} /> Unpack</span>
+              <span className="step"><ScanLine size={14} strokeWidth={2} /> Static</span>
+              <span className="step"><ShieldCheck size={14} strokeWidth={2} /> Triage</span>
+            </div>
+            <div className="scanning-progress" aria-hidden="true">
+              <span className="scanning-progress__fill" />
             </div>
           </div>
         </div>

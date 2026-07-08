@@ -109,17 +109,17 @@ RESULTS_DIR.mkdir(exist_ok=True)
 def extract_extension_id(url: str) -> Optional[str]:
     """
     Extract extension ID from Chrome Web Store URL or validate standalone ID.
-    
+
     Args:
         url: Chrome Web Store URL or 32-character extension ID
-        
+
     Returns:
         Extension ID if valid, None otherwise
     """
     # Check if input is already an extension ID (32 lowercase letters a-p)
-    if re.match(r'^[a-p]{32}$', url.strip().lower()):
+    if re.match(r"^[a-p]{32}$", url.strip().lower()):
         return url.strip().lower()
-    
+
     # Try to extract from URL
     match = re.search(r"/detail/(?:[^/]+/)?([a-z]{32})", url)
     return match.group(1) if match else None
@@ -185,9 +185,15 @@ async def run_analysis_workflow(url: str, extension_id: str):
                 "status": "completed",
                 "metadata": metadata,
                 "chromeStatsMetadata": (
-                    metadata.get("chrome_stats") if metadata and "chrome_stats" in metadata
-                    else metadata if metadata and "download_source" in metadata and metadata.get("download_source") == "chrome-stats.com"
-                    else None
+                    metadata.get("chrome_stats")
+                    if metadata and "chrome_stats" in metadata
+                    else (
+                        metadata
+                        if metadata
+                        and "download_source" in metadata
+                        and metadata.get("download_source") == "chrome-stats.com"
+                        else None
+                    )
                 ),
                 "manifest": manifest,
                 "permissions_analysis": analysis_results.get("permissions_analysis") or {},
@@ -269,9 +275,9 @@ def calculate_security_score(state: WorkflowState) -> int:
     - Entropy/Obfuscation (30 points max): Code obfuscation, high entropy files
     - Webstore Trust (10 points max): User ratings, install count, reputation
     - Manifest Quality (5 points max): Proper metadata, CSP, update URL
-    
+
     Total Risk Points: 0-170 (capped at 100, inverted to security score)
-    
+
     Malicious extensions will typically score:
     - High SAST findings: 40-50 points
     - Unreasonable permissions: 25-35 points
@@ -292,7 +298,7 @@ def calculate_security_score(state: WorkflowState) -> int:
         sast_findings = javascript_analysis.get("sast_findings", {})
         high_count = 0
         medium_count = 0
-        
+
         for findings_list in sast_findings.values():
             for finding in findings_list:
                 severity = finding.get("extra", {}).get("severity", "INFO").upper()
@@ -304,13 +310,13 @@ def calculate_security_score(state: WorkflowState) -> int:
                     medium_count += 1
                 elif severity == "LOW":
                     sast_score += 1
-        
+
         # Bonus penalty for multiple critical findings (indicates systematic issues)
         if high_count >= 10:
             sast_score += 20  # Many critical issues = very dangerous
         elif high_count >= 5:
             sast_score += 10
-            
+
     sast_score = min(50, sast_score)  # Cap at 50 (increased from 40)
 
     # Component 2: Permissions Analysis (35 points max risk) - INCREASED from 30
@@ -342,7 +348,7 @@ def calculate_security_score(state: WorkflowState) -> int:
                 permissions_score += 4  # INCREASED from 2
             else:
                 permissions_score += 2  # INCREASED from 1
-    
+
     # Bonus penalty for many unreasonable permissions
     if unreasonable_count >= 10:
         permissions_score += 15  # Many unreasonable permissions = very suspicious
@@ -416,27 +422,27 @@ def calculate_security_score(state: WorkflowState) -> int:
     if vt_analysis and vt_analysis.get("enabled", True):
         summary = vt_analysis.get("summary", {})
         threat_level = summary.get("threat_level", "").lower()
-        
+
         # Malicious detection = instant high risk
         if threat_level == "malicious":
             virustotal_score += 40  # Maximum penalty
         elif threat_level == "suspicious":
             virustotal_score += 25  # High penalty
-        
+
         # Check for detected malware families
         detected_families = summary.get("detected_families", [])
         if detected_families:
             virustotal_score += min(20, len(detected_families) * 5)  # +5 per family, max 20
-        
+
         # Check detection stats
         total_malicious = vt_analysis.get("total_malicious", 0)
         total_suspicious = vt_analysis.get("total_suspicious", 0)
-        
+
         if total_malicious > 0:
             virustotal_score += min(30, total_malicious * 3)  # +3 per malicious detection
         elif total_suspicious > 0:
             virustotal_score += min(15, total_suspicious * 2)  # +2 per suspicious detection
-    
+
     virustotal_score = min(40, virustotal_score)  # Cap at 40
 
     # Component 6: Entropy/Obfuscation Analysis (30 points max risk)
@@ -445,23 +451,23 @@ def calculate_security_score(state: WorkflowState) -> int:
     if entropy_analysis:
         summary = entropy_analysis.get("summary", {})
         overall_risk = summary.get("overall_risk", "").lower()
-        
+
         # High obfuscation risk
         if overall_risk == "high":
             entropy_score += 25
         elif overall_risk == "medium":
             entropy_score += 15
-        
+
         # Penalize high entropy files
         high_entropy_files = summary.get("high_entropy_files", [])
         if high_entropy_files:
             entropy_score += min(20, len(high_entropy_files) * 5)  # +5 per obfuscated file
-        
+
         # Penalize obfuscation patterns
         obfuscated_files = entropy_analysis.get("obfuscated_files", 0)
         if obfuscated_files > 0:
             entropy_score += min(15, obfuscated_files * 3)  # +3 per obfuscated file
-    
+
     entropy_score = min(30, entropy_score)  # Cap at 30
 
     # Component 7: Chrome Stats behavioral risk (20 points max risk)
@@ -494,15 +500,15 @@ def calculate_security_score(state: WorkflowState) -> int:
     # Calculate final risk score (sum of all risk components)
     # Total possible: 50 + 35 + 10 + 5 + 40 + 30 + 20 = 190 points
     risk_score = (
-        sast_score +
-        permissions_score +
-        webstore_score +
-        manifest_score +
-        virustotal_score +
-        entropy_score +
-        chromestats_score
+        sast_score
+        + permissions_score
+        + webstore_score
+        + manifest_score
+        + virustotal_score
+        + entropy_score
+        + chromestats_score
     )
-    
+
     # Invert to security score: 100 = safest, 0 = most dangerous
     # Higher risk = lower security score
     # Cap risk at 100 to ensure score doesn't go negative
@@ -676,7 +682,7 @@ async def trigger_scan(request: ScanRequest, background_tasks: BackgroundTasks):
     if not extension_id:
         raise HTTPException(
             status_code=400,
-            detail="Invalid input. Please provide a Chrome Web Store URL or extension ID (32-character string)"
+            detail="Invalid input. Please provide a Chrome Web Store URL or extension ID (32-character string)",
         )
 
     # Check if already scanning
@@ -716,10 +722,7 @@ async def trigger_scan(request: ScanRequest, background_tasks: BackgroundTasks):
 
 
 @app.post("/api/scan/upload")
-async def upload_and_scan(
-    background_tasks: BackgroundTasks,
-    file: UploadFile = File(...)
-):
+async def upload_and_scan(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     """
     Upload a CRX/ZIP file and trigger analysis.
 
@@ -733,12 +736,11 @@ async def upload_and_scan(
     # Validate file extension
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
-    
+
     filename_lower = file.filename.lower()
-    if not (filename_lower.endswith('.crx') or filename_lower.endswith('.zip')):
+    if not (filename_lower.endswith(".crx") or filename_lower.endswith(".zip")):
         raise HTTPException(
-            status_code=400,
-            detail="Invalid file type. Only .crx and .zip files are supported"
+            status_code=400, detail="Invalid file type. Only .crx and .zip files are supported"
         )
 
     # Validate file size (max 100MB)
@@ -747,11 +749,12 @@ async def upload_and_scan(
     if len(file_content) > max_size:
         raise HTTPException(
             status_code=400,
-            detail=f"File too large. Maximum size is {max_size / (1024*1024):.0f}MB"
+            detail=f"File too large. Maximum size is {max_size / (1024*1024):.0f}MB",
         )
 
     # Generate unique ID for uploaded file
     import uuid
+
     extension_id = str(uuid.uuid4())
 
     # Save uploaded file to extensions_storage
@@ -820,7 +823,7 @@ async def get_scan_results(extension_id: str):
     results = db.get_scan_result(extension_id)
     if results:
         metadata = results.get("metadata", {})
-        
+
         # Ensure consistent field naming for frontend
         formatted_results = {
             "extension_id": results.get("extension_id"),
@@ -830,9 +833,15 @@ async def get_scan_results(extension_id: str):
             "status": results.get("status"),
             "metadata": metadata,
             "chromeStatsMetadata": (
-                metadata.get("chrome_stats") if metadata and "chrome_stats" in metadata
-                else metadata if metadata and "download_source" in metadata and metadata.get("download_source") == "chrome-stats.com"
-                else None
+                metadata.get("chrome_stats")
+                if metadata and "chrome_stats" in metadata
+                else (
+                    metadata
+                    if metadata
+                    and "download_source" in metadata
+                    and metadata.get("download_source") == "chrome-stats.com"
+                    else None
+                )
             ),
             "manifest": results.get("manifest", {}),
             "permissions_analysis": results.get("permissions_analysis", {}),
@@ -901,23 +910,22 @@ async def generate_pdf_report(extension_id: str) -> Response:
         report_generator = ReportGenerator()
         if not report_generator.enabled:
             raise HTTPException(
-                status_code=503,
-                detail="PDF generation is disabled. Install weasyprint to enable."
+                status_code=503, detail="PDF generation is disabled. Install weasyprint to enable."
             )
 
         pdf_bytes = report_generator.generate_pdf(results)
 
         # Get extension name for filename
-        extension_name = results.get("extension_name", results.get("metadata", {}).get("title", extension_id))
+        extension_name = results.get(
+            "extension_name", results.get("metadata", {}).get("title", extension_id)
+        )
         safe_name = "".join(c for c in extension_name if c.isalnum() or c in " -_")[:50]
         filename = f"ThreatXtension_Report_{safe_name}.pdf"
 
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
-            headers={
-                "Content-Disposition": f'attachment; filename="{filename}"'
-            }
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate PDF: {str(e)}")
@@ -1084,20 +1092,20 @@ async def analyze_file_with_ai(
     file_content: str = Form(..., description="File content to analyze"),
     file_name: str = Form(..., description="Name of the file"),
     file_type: str = Form(..., description="Type/extension of the file"),
-    provider: str = Form(default="auto", description="LLM provider to use")
+    provider: str = Form(default="auto", description="LLM provider to use"),
 ):
     """
     Analyze a file using AI/LLM for security insights.
-    
+
     This endpoint provides AI-powered security analysis of individual files
     from Chrome extensions using configured LLM providers.
-    
+
     Args:
         file_content: The actual content of the file to analyze
         file_name: Name of the file (e.g., "background.js")
         file_type: File type/extension (e.g., "js", "json")
         provider: LLM provider to use ("auto", "watsonx", "openai", "ollama", etc.)
-    
+
     Returns:
         AI analysis results including risk score, findings, and recommendations
     """
@@ -1105,14 +1113,14 @@ async def analyze_file_with_ai(
         from threatxtension.llm.clients import get_chat_llm_client
         from langchain_core.prompts import PromptTemplate
         from langchain_core.output_parsers import JsonOutputParser
-        
+
         # Determine which LLM provider to use
         if provider == "auto":
             # Use the configured model from environment
             llm_provider = os.getenv("LLM_MODEL", "meta-llama/llama-3-3-70b-instruct")
         else:
             llm_provider = provider
-        
+
         # Create analysis prompt
         prompt_template = """You are a security expert analyzing a Chrome extension file for potential security vulnerabilities and malicious behavior.
 
@@ -1150,51 +1158,47 @@ Provide your analysis in the following JSON format:
 Focus on actionable security insights. Be specific about any suspicious patterns found."""
 
         prompt = PromptTemplate(
-            input_variables=["file_name", "file_type", "file_content"],
-            template=prompt_template
+            input_variables=["file_name", "file_type", "file_content"], template=prompt_template
         )
-        
+
         # Get LLM client
         llm = get_chat_llm_client(
             model_name=llm_provider,
             model_parameters={
                 "temperature": 0.1,
                 "max_tokens": 2048,
-            }
+            },
         )
-        
+
         # Truncate file content if too large (keep first 5000 chars)
         truncated_content = file_content[:5000]
         if len(file_content) > 5000:
             truncated_content += "\n\n... (content truncated for analysis)"
-        
+
         # Run analysis with better error handling
         try:
             # Create chain with JSON parser
             chain = prompt | llm | JsonOutputParser()
-            
-            result = chain.invoke({
-                "file_name": file_name,
-                "file_type": file_type,
-                "file_content": truncated_content
-            })
+
+            result = chain.invoke(
+                {"file_name": file_name, "file_type": file_type, "file_content": truncated_content}
+            )
         except Exception as parse_error:
             # If JSON parsing fails, try without parser and extract JSON manually
             logger.warning(f"JSON parsing failed, trying raw output: {parse_error}")
             chain_raw = prompt | llm
-            
-            raw_result = chain_raw.invoke({
-                "file_name": file_name,
-                "file_type": file_type,
-                "file_content": truncated_content
-            })
-            
+
+            raw_result = chain_raw.invoke(
+                {"file_name": file_name, "file_type": file_type, "file_content": truncated_content}
+            )
+
             # Extract JSON from response
             import re
-            raw_text = raw_result.content if hasattr(raw_result, 'content') else str(raw_result)
-            
+
+            raw_text = raw_result.content if hasattr(raw_result, "content") else str(raw_result)
+
             # Try to find JSON in the response
-            json_match = re.search(r'\{[\s\S]*\}', raw_text)
+            json_match = re.search(r"\{[\s\S]*\}", raw_text)
             if json_match:
                 try:
                     result = json.loads(json_match.group(0))
@@ -1206,7 +1210,7 @@ Focus on actionable security insights. Be specific about any suspicious patterns
                         "confidence": "Low",
                         "analysis": raw_text[:500],
                         "findings": ["Unable to parse detailed analysis"],
-                        "recommendations": ["Manual review recommended"]
+                        "recommendations": ["Manual review recommended"],
                     }
             else:
                 # No JSON found, return basic analysis
@@ -1216,33 +1220,530 @@ Focus on actionable security insights. Be specific about any suspicious patterns
                     "confidence": "Low",
                     "analysis": raw_text[:500],
                     "findings": ["Unable to parse detailed analysis"],
-                    "recommendations": ["Manual review recommended"]
+                    "recommendations": ["Manual review recommended"],
                 }
-        
+
         # Add metadata
         result["metadata"] = {
             "model": llm_provider,
             "deployment": "Backend API",
             "file_size": len(file_content),
             "truncated": len(file_content) > 5000,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
-        
-        return {
-            "success": True,
-            "data": result
-        }
-        
+
+        return {"success": True, "data": result}
+
     except ImportError as e:
         raise HTTPException(
-            status_code=503,
-            detail=f"LLM dependencies not available: {str(e)}"
+            status_code=503, detail=f"LLM dependencies not available: {str(e)}"
         ) from e
     except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI analysis failed: {str(e)}") from e
+
+
+@app.post("/api/analyze/generate-sast-signature")
+async def generate_sast_signature(
+    file_content: str = Form(...), file_name: str = Form(...), provider: str = Form("auto")
+):
+    """
+    Generate SAST signatures (Semgrep rules) from file content using AI.
+
+    This endpoint analyzes the file and creates multiple custom Semgrep rule patterns
+    based on the actual code patterns found in the file.
+    """
+    try:
+        # Import LLM client
+        from threatxtension.llm.clients import get_chat_llm_client
+
+        # Get LLM client
+        llm_client = get_chat_llm_client()
+
+        # Limit file content to avoid token limits
+        content_preview = file_content[:3000] if len(file_content) > 3000 else file_content
+
+        # Create prompt for SAST signature generation
+        prompt = f"""You are a security expert analyzing JavaScript code to create Semgrep SAST rules.
+
+Analyze this {file_name} file and generate 3-5 Semgrep rules based on ACTUAL security patterns found in the code.
+
+File Content:
+```javascript
+{content_preview}
+```
+
+For each security pattern you find in the code, create a Semgrep rule. Focus on:
+1. Actual dangerous function calls present in the code (eval, innerHTML, document.write, etc.)
+2. Network requests (fetch, XMLHttpRequest, WebSocket)
+3. Data storage operations (localStorage, sessionStorage, cookies)
+4. DOM manipulation patterns
+5. Authentication/authorization code
+
+Return a JSON array of rules in this format:
+[
+  {{
+    "rule_id": "descriptive-name-based-on-pattern",
+    "pattern": "actual semgrep pattern matching code in file",
+    "message": "Clear description of security issue",
+    "severity": "ERROR|WARNING|INFO",
+    "languages": ["javascript"],
+    "metadata": {{
+      "category": "security",
+      "cwe": "CWE-XXX",
+      "confidence": "HIGH|MEDIUM|LOW"
+    }}
+  }}
+]
+
+IMPORTANT: Only create rules for patterns that ACTUALLY EXIST in the provided code.
+Return ONLY the JSON array, no additional text."""
+
+        # Generate signature using LLM
+        response = llm_client.invoke(prompt)
+
+        # Extract content from response
+        if hasattr(response, "content"):
+            response_text = response.content
+        else:
+            response_text = str(response)
+
+        # Parse JSON response
+        try:
+            # Try to extract JSON from response
+            response_text = response_text.strip()
+            if "```json" in response_text:
+                response_text = response_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in response_text:
+                response_text = response_text.split("```")[1].split("```")[0].strip()
+
+            signatures = json.loads(response_text)
+
+            # Ensure it's a list
+            if not isinstance(signatures, list):
+                signatures = [signatures]
+
+        except json.JSONDecodeError:
+            # Fallback: analyze file content and create basic signatures
+            signatures = _generate_fallback_signatures(file_content, file_name)
+
+        # Add metadata to each signature
+        for sig in signatures:
+            sig["provider"] = provider
+            sig["generated_at"] = datetime.now().isoformat()
+            sig["source_file"] = file_name
+
+        return {
+            "success": True,
+            "data": signatures[0] if len(signatures) == 1 else signatures,
+            "total_signatures": len(signatures),
+        }
+
+    except ImportError as e:
+        # Fallback to pattern-based generation
+        logger.warning(f"LLM not available, using fallback: {e}")
+        signatures = _generate_fallback_signatures(file_content, file_name)
+        return {
+            "success": True,
+            "data": signatures[0] if len(signatures) == 1 else signatures,
+            "total_signatures": len(signatures),
+            "provider": "fallback",
+        }
+    except Exception as e:
+        logger.error(f"SAST signature generation failed: {e}")
+        # Return fallback instead of error
+        signatures = _generate_fallback_signatures(file_content, file_name)
+        return {
+            "success": True,
+            "data": signatures[0] if len(signatures) == 1 else signatures,
+            "total_signatures": len(signatures),
+            "provider": "fallback",
+            "note": f"Used fallback due to error: {str(e)}",
+        }
+
+
+def _generate_fallback_signatures(file_content: str, file_name: str) -> list:
+    """Generate SAST signatures based on actual patterns found in file content."""
+    import re
+
+    signatures = []
+
+    # Pattern detection rules with regex for more accurate matching
+    patterns_to_check = [
+        {
+            "regex": r"\beval\s*\(",
+            "rule_id": f"custom-eval-usage-{file_name.replace('.', '-')}",
+            "pattern": "eval(...)",
+            "message": f"Dangerous eval() usage detected in {file_name}",
+            "severity": "ERROR",
+            "cwe": "CWE-95",
+            "example": "eval(userInput)",
+        },
+        {
+            "regex": r"\.innerHTML\s*=",
+            "rule_id": f"custom-innerhtml-{file_name.replace('.', '-')}",
+            "pattern": "$X.innerHTML = $Y",
+            "message": f"Potential XSS via innerHTML in {file_name}",
+            "severity": "WARNING",
+            "cwe": "CWE-79",
+            "example": "element.innerHTML = data",
+        },
+        {
+            "regex": r"\bdocument\.write\s*\(",
+            "rule_id": f"custom-document-write-{file_name.replace('.', '-')}",
+            "pattern": "document.write(...)",
+            "message": f"Dangerous document.write() usage in {file_name}",
+            "severity": "WARNING",
+            "cwe": "CWE-79",
+            "example": "document.write(content)",
+        },
+        {
+            "regex": r"\bfetch\s*\(",
+            "rule_id": f"custom-fetch-usage-{file_name.replace('.', '-')}",
+            "pattern": "fetch($URL, ...)",
+            "message": f"Network request detected in {file_name}",
+            "severity": "INFO",
+            "cwe": "CWE-200",
+            "example": "fetch('https://api.example.com')",
+        },
+        {
+            "regex": r"\bnew\s+XMLHttpRequest\s*\(",
+            "rule_id": f"custom-xhr-{file_name.replace('.', '-')}",
+            "pattern": "new XMLHttpRequest()",
+            "message": f"XMLHttpRequest usage in {file_name}",
+            "severity": "INFO",
+            "cwe": "CWE-200",
+            "example": "new XMLHttpRequest()",
+        },
+        {
+            "regex": r"\blocalStorage\s*[\.\[]",
+            "rule_id": f"custom-localstorage-{file_name.replace('.', '-')}",
+            "pattern": "localStorage.$METHOD(...)",
+            "message": f"localStorage usage in {file_name} - potential data exposure",
+            "severity": "INFO",
+            "cwe": "CWE-922",
+            "example": "localStorage.setItem('key', value)",
+        },
+        {
+            "regex": r"\bsessionStorage\s*[\.\[]",
+            "rule_id": f"custom-sessionstorage-{file_name.replace('.', '-')}",
+            "pattern": "sessionStorage.$METHOD(...)",
+            "message": f"sessionStorage usage in {file_name}",
+            "severity": "INFO",
+            "cwe": "CWE-922",
+            "example": "sessionStorage.getItem('key')",
+        },
+        {
+            "regex": r"\batob\s*\(",
+            "rule_id": f"custom-base64-decode-{file_name.replace('.', '-')}",
+            "pattern": "atob(...)",
+            "message": f"Base64 decoding in {file_name} - check for obfuscation",
+            "severity": "INFO",
+            "cwe": "CWE-506",
+            "example": "atob(encodedData)",
+        },
+        {
+            "regex": r"\bbtoa\s*\(",
+            "rule_id": f"custom-base64-encode-{file_name.replace('.', '-')}",
+            "pattern": "btoa(...)",
+            "message": f"Base64 encoding in {file_name} - check for data exfiltration",
+            "severity": "INFO",
+            "cwe": "CWE-506",
+            "example": "btoa(sensitiveData)",
+        },
+        {
+            "regex": r"\.outerHTML\s*=",
+            "rule_id": f"custom-outerhtml-{file_name.replace('.', '-')}",
+            "pattern": "$X.outerHTML = $Y",
+            "message": f"Potential XSS via outerHTML in {file_name}",
+            "severity": "WARNING",
+            "cwe": "CWE-79",
+            "example": "element.outerHTML = data",
+        },
+        {
+            "regex": r'\bsetTimeout\s*\(\s*["\']',
+            "rule_id": f"custom-settimeout-string-{file_name.replace('.', '-')}",
+            "pattern": "setTimeout($STR, ...)",
+            "message": f"setTimeout with string argument in {file_name} - acts like eval",
+            "severity": "WARNING",
+            "cwe": "CWE-95",
+            "example": "setTimeout('code', 1000)",
+        },
+        {
+            "regex": r'\bsetInterval\s*\(\s*["\']',
+            "rule_id": f"custom-setinterval-string-{file_name.replace('.', '-')}",
+            "pattern": "setInterval($STR, ...)",
+            "message": f"setInterval with string argument in {file_name} - acts like eval",
+            "severity": "WARNING",
+            "cwe": "CWE-95",
+            "example": "setInterval('code', 1000)",
+        },
+        {
+            "regex": r"\bnew\s+Function\s*\(",
+            "rule_id": f"custom-function-constructor-{file_name.replace('.', '-')}",
+            "pattern": "new Function(...)",
+            "message": f"Function constructor usage in {file_name} - acts like eval",
+            "severity": "ERROR",
+            "cwe": "CWE-95",
+            "example": "new Function('return x + y')",
+        },
+        {
+            "regex": r"\bchrome\.runtime\.sendMessage\s*\(",
+            "rule_id": f"custom-chrome-messaging-{file_name.replace('.', '-')}",
+            "pattern": "chrome.runtime.sendMessage(...)",
+            "message": f"Chrome extension messaging in {file_name}",
+            "severity": "INFO",
+            "cwe": "CWE-200",
+            "example": "chrome.runtime.sendMessage({data: value})",
+        },
+        {
+            "regex": r"\bchrome\.storage\.",
+            "rule_id": f"custom-chrome-storage-{file_name.replace('.', '-')}",
+            "pattern": "chrome.storage.$API.$METHOD(...)",
+            "message": f"Chrome storage API usage in {file_name}",
+            "severity": "INFO",
+            "cwe": "CWE-922",
+            "example": "chrome.storage.local.set({key: value})",
+        },
+    ]
+
+    # Check which patterns exist in the file using regex
+    for pattern_def in patterns_to_check:
+        if re.search(pattern_def["regex"], file_content, re.IGNORECASE):
+            # Find actual match for better context
+            match = re.search(pattern_def["regex"], file_content, re.IGNORECASE)
+            matched_text = match.group(0) if match else pattern_def["example"]
+
+            signatures.append(
+                {
+                    "rule_id": pattern_def["rule_id"],
+                    "pattern": pattern_def["pattern"],
+                    "message": pattern_def["message"],
+                    "severity": pattern_def["severity"],
+                    "languages": ["javascript"],
+                    "metadata": {
+                        "category": "security",
+                        "cwe": pattern_def["cwe"],
+                        "confidence": "HIGH",
+                        "matched_example": matched_text[:100],  # First 100 chars of match
+                    },
+                }
+            )
+
+    # If no patterns found, return empty list (don't create generic signature)
+    if not signatures:
+        logger.info(f"No security patterns found in {file_name}")
+        # Return a message signature
+        signatures.append(
+            {
+                "rule_id": f"custom-no-patterns-{file_name.replace('.', '-')}",
+                "pattern": "// No suspicious patterns detected",
+                "message": f"No common security patterns found in {file_name}. File appears clean or uses uncommon patterns.",
+                "severity": "INFO",
+                "languages": ["javascript"],
+                "metadata": {"category": "informational", "cwe": "CWE-710", "confidence": "LOW"},
+            }
+        )
+
+    return signatures
+
+
+# In-memory registry of batch jobs (batch_id -> status/results)
+batch_jobs: Dict[str, Dict[str, Any]] = {}
+
+
+class BatchAnalyzeRequest(BaseModel):
+    """Request model for batch analysis."""
+
+    extensions: list[str]  # List of URLs, IDs, or file paths
+    parallel: bool = True
+    max_workers: int = 4
+
+
+class BatchStatusResponse(BaseModel):
+    """Response model for batch status."""
+
+    batch_id: str
+    status: str
+    total_extensions: int
+    completed: int
+    failed: int
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+
+
+@app.post("/api/batch/analyze")
+async def batch_analyze(request: BatchAnalyzeRequest, background_tasks: BackgroundTasks):
+    """
+    Trigger batch analysis of multiple extensions.
+
+    Args:
+        request: BatchAnalyzeRequest containing list of extensions and options
+        background_tasks: FastAPI background tasks
+
+    Returns:
+        Dict with batch_id and initial status
+    """
+    from threatxtension.core.batch_processor import BatchProcessor
+
+    if not request.extensions:
+        raise HTTPException(status_code=400, detail="Extension list cannot be empty")
+
+    if len(request.extensions) > 100:
+        raise HTTPException(status_code=400, detail="Maximum 100 extensions allowed per batch")
+
+    # Initialize batch processor
+    processor = BatchProcessor(output_dir="./batch_results")
+
+    # Generate batch ID
+    import uuid
+
+    batch_id = f"batch_{uuid.uuid4().hex[:8]}"
+
+    # Initialize batch job status
+    batch_jobs[batch_id] = {
+        "batch_id": batch_id,
+        "status": "pending",
+        "total_extensions": len(request.extensions),
+        "completed": 0,
+        "failed": 0,
+        "start_time": datetime.utcnow().isoformat(),
+        "end_time": None,
+    }
+
+    # Run batch processing in background
+    async def run_batch():
+        try:
+            batch_jobs[batch_id]["status"] = "running"
+            result = processor.process_batch(
+                extension_list=request.extensions,
+                batch_id=batch_id,
+                parallel=request.parallel,
+                max_workers=request.max_workers,
+            )
+            # Update batch job with results
+            batch_jobs[batch_id].update(
+                {
+                    "status": result.get("status", "completed"),
+                    "completed": result.get("completed", 0),
+                    "failed": result.get("failed", 0),
+                    "end_time": result.get("end_time"),
+                    "results": result.get("results", []),
+                    "report_path": result.get("report_path"),
+                }
+            )
+        except Exception as e:
+            logger.error(f"Batch processing failed: {e}", exc_info=True)
+            batch_jobs[batch_id].update(
+                {
+                    "status": "failed",
+                    "error": str(e),
+                    "end_time": datetime.utcnow().isoformat(),
+                }
+            )
+
+    background_tasks.add_task(run_batch)
+
+    return {
+        "batch_id": batch_id,
+        "status": "pending",
+        "message": f"Batch analysis started for {len(request.extensions)} extensions",
+    }
+
+
+@app.get("/api/batch/status/{batch_id}")
+async def get_batch_status(batch_id: str):
+    """
+    Get the status of a batch analysis job.
+
+    Args:
+        batch_id: Batch identifier
+
+    Returns:
+        BatchStatusResponse with current batch status
+    """
+    if batch_id not in batch_jobs:
+        raise HTTPException(status_code=404, detail=f"Batch {batch_id} not found")
+
+    job = batch_jobs[batch_id]
+
+    return BatchStatusResponse(
+        batch_id=job["batch_id"],
+        status=job["status"],
+        total_extensions=job["total_extensions"],
+        completed=job.get("completed", 0),
+        failed=job.get("failed", 0),
+        start_time=job.get("start_time"),
+        end_time=job.get("end_time"),
+    )
+
+
+@app.get("/api/batch/results/{batch_id}")
+async def get_batch_results(batch_id: str):
+    """
+    Get the full results of a completed batch analysis.
+
+    Args:
+        batch_id: Batch identifier
+
+    Returns:
+        Dict containing complete batch results
+    """
+    if batch_id not in batch_jobs:
+        raise HTTPException(status_code=404, detail=f"Batch {batch_id} not found")
+
+    job = batch_jobs[batch_id]
+
+    if job["status"] not in ["completed", "failed"]:
         raise HTTPException(
-            status_code=500,
-            detail=f"AI analysis failed: {str(e)}"
-        ) from e
+            status_code=400,
+            detail=f"Batch is still {job['status']}. Results not yet available.",
+        )
+
+    # Try to load results from file if available
+    from threatxtension.core.batch_processor import BatchProcessor
+
+    processor = BatchProcessor(output_dir="./batch_results")
+    file_results = processor.get_batch_results(batch_id)
+
+    if file_results:
+        return file_results
+
+    # Return in-memory results if file not available
+    return {
+        "batch_id": job["batch_id"],
+        "status": job["status"],
+        "total_extensions": job["total_extensions"],
+        "completed": job.get("completed", 0),
+        "failed": job.get("failed", 0),
+        "start_time": job.get("start_time"),
+        "end_time": job.get("end_time"),
+        "results": job.get("results", []),
+        "error": job.get("error"),
+    }
+
+
+@app.get("/api/batch/list")
+async def list_batch_jobs():
+    """
+    List all batch jobs.
+
+    Returns:
+        Dict containing list of all batch jobs with their status
+    """
+    jobs_list = [
+        {
+            "batch_id": job["batch_id"],
+            "status": job["status"],
+            "total_extensions": job["total_extensions"],
+            "completed": job.get("completed", 0),
+            "failed": job.get("failed", 0),
+            "start_time": job.get("start_time"),
+            "end_time": job.get("end_time"),
+        }
+        for job in batch_jobs.values()
+    ]
+
+    return {"batches": jobs_list, "total": len(jobs_list)}
 
 
 @app.get("/health")
