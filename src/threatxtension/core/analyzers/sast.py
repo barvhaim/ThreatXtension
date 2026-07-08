@@ -148,10 +148,12 @@ class JavaScriptAnalyzer(BaseAnalyzer):
             return True
         except FileNotFoundError:
             pass
-        
+
         # Try via uv run (for Docker/uv environments)
         try:
-            subprocess.run(["uv", "run", "semgrep", "--version"], capture_output=True, text=True, check=True)
+            subprocess.run(
+                ["uv", "run", "semgrep", "--version"], capture_output=True, text=True, check=True
+            )
             logger.info("Semgrep available via 'uv run semgrep'")
             return True
         except FileNotFoundError:
@@ -159,7 +161,7 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                 "Semgrep is not installed or not found in PATH. Install 'semgrep' python package."
             )
             return False
-    
+
     @staticmethod
     def _get_semgrep_command() -> List[str]:
         """Get the appropriate semgrep command based on environment."""
@@ -169,10 +171,12 @@ class JavaScriptAnalyzer(BaseAnalyzer):
             return ["semgrep"]
         except FileNotFoundError:
             pass
-        
+
         # Fall back to uv run semgrep
         try:
-            subprocess.run(["uv", "run", "semgrep", "--version"], capture_output=True, text=True, check=True)
+            subprocess.run(
+                ["uv", "run", "semgrep", "--version"], capture_output=True, text=True, check=True
+            )
             return ["uv", "run", "semgrep"]
         except FileNotFoundError:
             return ["semgrep"]  # Fallback to direct command
@@ -228,7 +232,7 @@ class JavaScriptAnalyzer(BaseAnalyzer):
         file_paths: List[str], extension_dir: str, config: str = "auto", timeout: int = 300
     ) -> tuple[Dict[str, List], bool]:
         """Run Semgrep scan on multiple JavaScript files in a single batch.
-        
+
         Returns:
             tuple: (findings_by_file, has_parse_errors)
         """
@@ -288,14 +292,13 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                     sum(1 for f in findings_by_file.values() if f),
                     len(file_paths),
                 )
-                
+
                 # Return findings with parse error flag
                 return findings_by_file, has_parse_errors
-            
+
             logger.info("No findings from batch Semgrep scan")
             return {
-                JavaScriptAnalyzer._get_relative_path(fp, extension_dir): []
-                for fp in file_paths
+                JavaScriptAnalyzer._get_relative_path(fp, extension_dir): [] for fp in file_paths
             }, False
 
         except subprocess.TimeoutExpired:
@@ -313,7 +316,7 @@ class JavaScriptAnalyzer(BaseAnalyzer):
         self, file_paths: List[str], extension_dir: str, config: str = "auto", max_workers: int = 4
     ) -> tuple[Dict[str, List], bool]:
         """Run Semgrep scans on files in parallel batches.
-        
+
         Returns:
             tuple: (findings_by_file, has_parse_errors)
         """
@@ -394,180 +397,221 @@ class JavaScriptAnalyzer(BaseAnalyzer):
     def _detect_obfuscation_patterns(self, file_path: str) -> Dict:
         """Detect obfuscation indicators in a JavaScript file using regex patterns."""
         try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                 content = f.read()
-            
+
             patterns = {
-                'hex_strings': (r'\\x[0-9a-fA-F]{2}', 10),
-                'unicode_escapes': (r'\\u[0-9a-fA-F]{4}', 10),
-                'mangled_vars': (r'_0x[0-9a-fA-F]+', 50),
-                'short_vars': (r'\b[a-z]_[0-9]+\b', 50),
+                "hex_strings": (r"\\x[0-9a-fA-F]{2}", 10),
+                "unicode_escapes": (r"\\u[0-9a-fA-F]{4}", 10),
+                "mangled_vars": (r"_0x[0-9a-fA-F]+", 50),
+                "short_vars": (r"\b[a-z]_[0-9]+\b", 50),
             }
-            
+
             obfuscation_score = 0
             indicators = []
-            
+
             for pattern_name, (regex, threshold) in patterns.items():
                 matches = len(re.findall(regex, content))
                 if matches > threshold:
                     obfuscation_score += matches
                     indicators.append(f"{pattern_name}: {matches}")
-            
+
             return {
-                'is_obfuscated': obfuscation_score > 100,
-                'obfuscation_score': obfuscation_score,
-                'indicators': indicators
+                "is_obfuscated": obfuscation_score > 100,
+                "obfuscation_score": obfuscation_score,
+                "indicators": indicators,
             }
         except Exception as exc:
             logger.error("Error detecting obfuscation in %s: %s", file_path, exc)
-            return {'is_obfuscated': False, 'obfuscation_score': 0, 'indicators': []}
+            return {"is_obfuscated": False, "obfuscation_score": 0, "indicators": []}
 
     def _run_pattern_based_scan(self, file_path: str, extension_dir: str) -> List[Dict]:
         """Run pattern-based security scan for obfuscated code that Semgrep can't parse."""
         try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                 content = f.read()
-            
+
             findings = []
             rel_path = self._get_relative_path(file_path, extension_dir)
-            
+
             # Define suspicious patterns with their security implications
             suspicious_patterns = {
-                'XMLHttpRequest': {
-                    'regex': r'new\s+XMLHttpRequest\s*\(',
-                    'severity': 'ERROR',
-                    'message': 'XMLHttpRequest usage detected - potential data exfiltration',
-                    'category': 'c2-communication',
-                    'rule_id': 'pattern.c2.xhr_usage'
+                "XMLHttpRequest": {
+                    "regex": r"new\s+XMLHttpRequest\s*\(",
+                    "severity": "ERROR",
+                    "message": "XMLHttpRequest usage detected - potential data exfiltration",
+                    "category": "c2-communication",
+                    "rule_id": "pattern.c2.xhr_usage",
                 },
-                'fetch': {
-                    'regex': r'\bfetch\s*\(',
-                    'severity': 'ERROR',
-                    'message': 'Fetch API usage detected - potential data exfiltration',
-                    'category': 'c2-communication',
-                    'rule_id': 'pattern.c2.fetch_usage'
+                "fetch": {
+                    "regex": r"\bfetch\s*\(",
+                    "severity": "ERROR",
+                    "message": "Fetch API usage detected - potential data exfiltration",
+                    "category": "c2-communication",
+                    "rule_id": "pattern.c2.fetch_usage",
                 },
-                'FormData': {
-                    'regex': r'new\s+FormData\s*\(',
-                    'severity': 'WARNING',
-                    'message': 'FormData usage detected - potential credential theft',
-                    'category': 'credential-theft',
-                    'rule_id': 'pattern.credential.formdata'
+                "FormData": {
+                    "regex": r"new\s+FormData\s*\(",
+                    "severity": "WARNING",
+                    "message": "FormData usage detected - potential credential theft",
+                    "category": "credential-theft",
+                    "rule_id": "pattern.credential.formdata",
                 },
-                'btoa': {
-                    'regex': r'\bbtoa\s*\(',
-                    'severity': 'WARNING',
-                    'message': 'Base64 encoding detected - potential data obfuscation',
-                    'category': 'obfuscation',
-                    'rule_id': 'pattern.obfuscation.base64_encode'
+                "btoa": {
+                    "regex": r"\bbtoa\s*\(",
+                    "severity": "WARNING",
+                    "message": "Base64 encoding detected - potential data obfuscation",
+                    "category": "obfuscation",
+                    "rule_id": "pattern.obfuscation.base64_encode",
                 },
-                'atob': {
-                    'regex': r'\batob\s*\(',
-                    'severity': 'WARNING',
-                    'message': 'Base64 decoding detected - potential code deobfuscation',
-                    'category': 'obfuscation',
-                    'rule_id': 'pattern.obfuscation.base64_decode'
+                "atob": {
+                    "regex": r"\batob\s*\(",
+                    "severity": "WARNING",
+                    "message": "Base64 decoding detected - potential code deobfuscation",
+                    "category": "obfuscation",
+                    "rule_id": "pattern.obfuscation.base64_decode",
                 },
-                'eval': {
-                    'regex': r'\beval\s*\(',
-                    'severity': 'CRITICAL',
-                    'message': 'eval() usage detected - dynamic code execution risk',
-                    'category': 'code-injection',
-                    'rule_id': 'pattern.code_injection.eval'
+                "eval": {
+                    "regex": r"\beval\s*\(",
+                    "severity": "CRITICAL",
+                    "message": "eval() usage detected - dynamic code execution risk",
+                    "category": "code-injection",
+                    "rule_id": "pattern.code_injection.eval",
                 },
-                'Function': {
-                    'regex': r'new\s+Function\s*\(',
-                    'severity': 'CRITICAL',
-                    'message': 'new Function() detected - dynamic code execution risk',
-                    'category': 'code-injection',
-                    'rule_id': 'pattern.code_injection.function_constructor'
+                "Function": {
+                    "regex": r"new\s+Function\s*\(",
+                    "severity": "CRITICAL",
+                    "message": "new Function() detected - dynamic code execution risk",
+                    "category": "code-injection",
+                    "rule_id": "pattern.code_injection.function_constructor",
                 },
-                'innerHTML': {
-                    'regex': r'\.innerHTML\s*=',
-                    'severity': 'WARNING',
-                    'message': 'innerHTML manipulation detected - potential XSS risk',
-                    'category': 'dom-manipulation',
-                    'rule_id': 'pattern.dom.innerhtml'
+                "innerHTML": {
+                    "regex": r"\.innerHTML\s*=",
+                    "severity": "WARNING",
+                    "message": "innerHTML manipulation detected - potential XSS risk",
+                    "category": "dom-manipulation",
+                    "rule_id": "pattern.dom.innerhtml",
                 },
-                'document.cookie': {
-                    'regex': r'document\.cookie',
-                    'severity': 'ERROR',
-                    'message': 'Cookie access detected - potential session hijacking',
-                    'category': 'cookie-theft',
-                    'rule_id': 'pattern.cookie.access'
+                "document.cookie": {
+                    "regex": r"document\.cookie",
+                    "severity": "ERROR",
+                    "message": "Cookie access detected - potential session hijacking",
+                    "category": "cookie-theft",
+                    "rule_id": "pattern.cookie.access",
                 },
-                'localStorage': {
-                    'regex': r'\blocalStorage\.',
-                    'severity': 'WARNING',
-                    'message': 'localStorage access detected - potential data theft',
-                    'category': 'storage-access',
-                    'rule_id': 'pattern.storage.localstorage'
+                "localStorage": {
+                    "regex": r"\blocalStorage\.",
+                    "severity": "WARNING",
+                    "message": "localStorage access detected - potential data theft",
+                    "category": "storage-access",
+                    "rule_id": "pattern.storage.localstorage",
                 },
-                'WebSocket': {
-                    'regex': r'new\s+WebSocket\s*\(',
-                    'severity': 'ERROR',
-                    'message': 'WebSocket connection detected - potential C2 channel',
-                    'category': 'c2-communication',
-                    'rule_id': 'pattern.c2.websocket'
+                "WebSocket": {
+                    "regex": r"new\s+WebSocket\s*\(",
+                    "severity": "ERROR",
+                    "message": "WebSocket connection detected - potential C2 channel",
+                    "category": "c2-communication",
+                    "rule_id": "pattern.c2.websocket",
+                },
+                "computed_property_concat": {
+                    "regex": r"\[\w+\.concat\([^\)]+\)\]\s*\(",
+                    "severity": "ERROR",
+                    "message": "Computed property with concat() - obfuscated method call",
+                    "category": "obfuscation",
+                    "rule_id": "pattern.obfuscation.computed_property_concat",
+                },
+                "nested_template_literals": {
+                    "regex": r"\$\{[^\}]*\[[^\]]+\]\}.*\$\{[^\}]*\[[^\]]+\]\}",
+                    "severity": "ERROR",
+                    "message": "Nested template literals with property access - code obfuscation",
+                    "category": "obfuscation",
+                    "rule_id": "pattern.obfuscation.nested_template_literals",
+                },
+                "async_fetch_json": {
+                    "regex": r"await\s+fetch\([^\)]+\)\[[^\]]+\]\(\(",
+                    "severity": "CRITICAL",
+                    "message": "Async fetch with computed property access - potential C2 command retrieval",
+                    "category": "c2-communication",
+                    "rule_id": "pattern.c2.async_fetch_json",
+                },
+                "string_array_obfuscation": {
+                    "regex": r"const\s+\w+\s*=\s*\[[^\]]{500,}\];",
+                    "severity": "CRITICAL",
+                    "message": "Large string array detected - common obfuscation technique",
+                    "category": "obfuscation",
+                    "rule_id": "pattern.obfuscation.large_string_array",
                 },
             }
-            
+
             # Scan for each pattern
             for pattern_name, pattern_info in suspicious_patterns.items():
-                matches = list(re.finditer(pattern_info['regex'], content))
+                matches = list(re.finditer(pattern_info["regex"], content))
                 if matches:
                     # Get line numbers for matches
                     for match in matches[:5]:  # Limit to first 5 occurrences per pattern
-                        line_num = content[:match.start()].count('\n') + 1
-                        
+                        line_num = content[: match.start()].count("\n") + 1
+
                         # Extract the matched text and surrounding context
                         matched_text = match.group(0)
-                        
+
                         # Get the full line containing the match
-                        line_start = content.rfind('\n', 0, match.start()) + 1
-                        line_end = content.find('\n', match.end())
+                        line_start = content.rfind("\n", 0, match.start()) + 1
+                        line_end = content.find("\n", match.end())
                         if line_end == -1:
                             line_end = len(content)
                         full_line = content[line_start:line_end]
-                        
+
                         # Calculate column position within the line
                         col_start = match.start() - line_start
                         col_end = match.end() - line_start
-                        
-                        findings.append({
-                            'check_id': pattern_info['rule_id'],
-                            'path': rel_path,
-                            'file': rel_path,  # Add file field for frontend
-                            'line_number': line_num,  # Add line_number for frontend
-                            'line': line_num,  # Also add line for compatibility
-                            'pattern_name': pattern_name,  # Add pattern_name for frontend title
-                            'title': pattern_info['message'],  # Add title for frontend
-                            'description': f"{pattern_info['message']} (Found {len(matches)} occurrence{'s' if len(matches) != 1 else ''} in this file)",  # Add description
-                            'severity': pattern_info['severity'],  # Add severity at top level
-                            'risk_level': pattern_info['severity'],  # Add risk_level for frontend
-                            'start': {'line': line_num, 'col': col_start},
-                            'end': {'line': line_num, 'col': col_end},
-                            'matched_text': matched_text,  # Store the actual matched text
-                            'code_snippet': full_line.strip(),  # Store the full line for context
-                            'extra': {
-                                'message': pattern_info['message'],
-                                'severity': pattern_info['severity'],
-                                'lines': full_line.strip(),  # Add the code line to extra
-                                'metadata': {
-                                    'category': pattern_info['category'],
-                                    'detection_method': 'pattern-based (obfuscated code fallback)',
-                                    'pattern': pattern_name,
-                                    'matched_text': matched_text,  # Also in metadata
-                                    'total_occurrences': len(matches)
-                                }
+
+                        # Extract a focused code snippet around the match (not the full line)
+                        # so the frontend can highlight the correct part.
+                        snippet_start = max(0, match.start() - 50)
+                        snippet_end = min(len(content), match.end() + 50)
+                        code_snippet = content[snippet_start:snippet_end].strip()
+
+                        findings.append(
+                            {
+                                "check_id": pattern_info["rule_id"],
+                                "path": rel_path,
+                                "file": rel_path,  # Add file field for frontend
+                                "line_number": line_num,  # Add line_number for frontend
+                                "line": line_num,  # Also add line for compatibility
+                                "pattern_name": pattern_name,  # Add pattern_name for frontend title
+                                "title": pattern_info["message"],  # Add title for frontend
+                                "description": f"{pattern_info['message']} (Found {len(matches)} occurrence{'s' if len(matches) != 1 else ''} in this file)",  # Add description
+                                "severity": pattern_info["severity"],  # Add severity at top level
+                                "risk_level": pattern_info[
+                                    "severity"
+                                ],  # Add risk_level for frontend
+                                "start": {"line": line_num, "col": col_start},
+                                "end": {"line": line_num, "col": col_end},
+                                "matched_text": matched_text,  # Store the actual matched text for highlighting
+                                "code_snippet": code_snippet,  # Store focused snippet around the match
+                                "full_line": full_line.strip(),  # Store the full line for additional context
+                                "extra": {
+                                    "message": pattern_info["message"],
+                                    "severity": pattern_info["severity"],
+                                    "lines": full_line.strip(),  # Add the code line to extra
+                                    "metadata": {
+                                        "category": pattern_info["category"],
+                                        "detection_method": "pattern-based (obfuscated code fallback)",
+                                        "pattern": pattern_name,
+                                        "matched_text": matched_text,  # Also in metadata for frontend fallback
+                                        "total_occurrences": len(matches),
+                                        "col_start": col_start,  # Add column info for precise highlighting
+                                        "col_end": col_end,
+                                    },
+                                },
                             }
-                        })
-            
+                        )
+
             if findings:
                 logger.info("Pattern-based scan found %d findings in %s", len(findings), rel_path)
-            
+
             return findings
-            
+
         except Exception as exc:
             logger.error("Error in pattern-based scan of %s: %s", file_path, exc)
             return []
@@ -577,47 +621,50 @@ class JavaScriptAnalyzer(BaseAnalyzer):
     ) -> Dict[str, List]:
         """Run pattern-based scans on files as fallback when Semgrep fails."""
         all_findings = {}
-        
+
         for file_path in file_paths:
             rel_path = self._get_relative_path(file_path, extension_dir)
-            
+
             # Check for obfuscation
             obfuscation_info = self._detect_obfuscation_patterns(file_path)
-            
+
             # Run pattern-based scan
             findings = self._run_pattern_based_scan(file_path, extension_dir)
-            
+
             # Add obfuscation warning if detected
-            if obfuscation_info['is_obfuscated']:
+            if obfuscation_info["is_obfuscated"]:
                 obf_message = f"Heavy code obfuscation detected (score: {obfuscation_info['obfuscation_score']})"
                 obf_description = f"{obf_message}. Indicators: {', '.join(obfuscation_info['indicators'])}. This may indicate attempts to hide malicious code."
-                findings.insert(0, {
-                    'check_id': 'pattern.obfuscation.detected',
-                    'path': rel_path,
-                    'file': rel_path,  # Add file field for frontend
-                    'line_number': 1,  # Add line_number for frontend
-                    'line': 1,  # Also add line for compatibility
-                    'pattern_name': 'Code Obfuscation',  # Add pattern_name for frontend title
-                    'title': obf_message,  # Add title for frontend
-                    'description': obf_description,  # Add description
-                    'severity': 'CRITICAL',  # Add severity at top level
-                    'risk_level': 'CRITICAL',  # Add risk_level for frontend
-                    'start': {'line': 1, 'col': 0},
-                    'end': {'line': 1, 'col': 0},
-                    'extra': {
-                        'message': obf_message,
-                        'severity': 'CRITICAL',
-                        'metadata': {
-                            'category': 'obfuscation',
-                            'detection_method': 'pattern-based',
-                            'obfuscation_score': obfuscation_info['obfuscation_score'],
-                            'indicators': obfuscation_info['indicators']
-                        }
-                    }
-                })
-            
+                findings.insert(
+                    0,
+                    {
+                        "check_id": "pattern.obfuscation.detected",
+                        "path": rel_path,
+                        "file": rel_path,  # Add file field for frontend
+                        "line_number": 1,  # Add line_number for frontend
+                        "line": 1,  # Also add line for compatibility
+                        "pattern_name": "Code Obfuscation",  # Add pattern_name for frontend title
+                        "title": obf_message,  # Add title for frontend
+                        "description": obf_description,  # Add description
+                        "severity": "CRITICAL",  # Add severity at top level
+                        "risk_level": "CRITICAL",  # Add risk_level for frontend
+                        "start": {"line": 1, "col": 0},
+                        "end": {"line": 1, "col": 0},
+                        "extra": {
+                            "message": obf_message,
+                            "severity": "CRITICAL",
+                            "metadata": {
+                                "category": "obfuscation",
+                                "detection_method": "pattern-based",
+                                "obfuscation_score": obfuscation_info["obfuscation_score"],
+                                "indicators": obfuscation_info["indicators"],
+                            },
+                        },
+                    },
+                )
+
             all_findings[rel_path] = findings
-        
+
         logger.info("Pattern-based fallback scan completed for %d files", len(file_paths))
         return all_findings
 
@@ -740,7 +787,7 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                         "findings_details": findings_details,
                     }
                 )
-            
+
             with ThreadPoolExecutor(max_workers=1) as executor:
                 future = executor.submit(_invoke_llm)
                 try:
@@ -772,26 +819,36 @@ class JavaScriptAnalyzer(BaseAnalyzer):
 
         # If all files were filtered out, run pattern-based scan on ALL JS files in directory as fallback
         if not files_to_scan:
-            logger.warning("All manifest files filtered out - scanning ALL JavaScript files in extension directory as fallback")
+            logger.warning(
+                "All manifest files filtered out - scanning ALL JavaScript files in extension directory as fallback"
+            )
             # Find ALL .js files in the extension directory recursively
             all_js_files = []
             for root, _, files in os.walk(extension_dir):
                 for file in files:
-                    if file.endswith('.js'):
+                    if file.endswith(".js"):
                         all_js_files.append(os.path.join(root, file))
-            
+
             logger.info("Found %d total JavaScript files in extension directory", len(all_js_files))
-            
+
             # Apply filtering to fallback files too (respect exclusion patterns and size limits)
-            filtered_fallback_files, skipped_fallback = self._filter_files(all_js_files, extension_dir)
-            logger.info("After filtering: %d files to scan, %d skipped", len(filtered_fallback_files), len(skipped_fallback))
-            
-            pattern_findings = self._run_fallback_pattern_scans(filtered_fallback_files, extension_dir)
-            
+            filtered_fallback_files, skipped_fallback = self._filter_files(
+                all_js_files, extension_dir
+            )
+            logger.info(
+                "After filtering: %d files to scan, %d skipped",
+                len(filtered_fallback_files),
+                len(skipped_fallback),
+            )
+
+            pattern_findings = self._run_fallback_pattern_scans(
+                filtered_fallback_files, extension_dir
+            )
+
             # Aggregate and return findings
             stats = self._aggregate_findings(pattern_findings)
             summary = self._summarize_sast_findings(pattern_findings, len(all_js_files), metadata)
-            
+
             return {
                 "sast_findings": pattern_findings,
                 "summary": summary,
@@ -865,5 +922,6 @@ class JavaScriptAnalyzer(BaseAnalyzer):
             "sast_analysis": sast_analysis,
             "sast_findings": all_findings,
         }
+
 
 # Made with Bob
