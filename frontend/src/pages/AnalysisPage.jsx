@@ -6,6 +6,7 @@ import gptOssService from "../services/gptOssService";
 import TabbedResultsPanel from "../components/TabbedResultsPanel";
 import FileViewerModal from "../components/FileViewerModal";
 import FindingDetailsModal from "../components/FindingDetailsModal";
+import AllFindingsModal from "../components/AllFindingsModal";
 import SASTSignatureModal from "../components/SASTSignatureModal";
 import {
   Dialog,

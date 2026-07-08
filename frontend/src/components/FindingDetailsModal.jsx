@@ -52,7 +52,6 @@ const FindingDetailsModal = ({
   const prettifyCode = (code) => {
     try {
       // Simple JavaScript beautifier
-      let formatted = code;
       let indent = 0;
       const indentStr = "  ";
       const lines = [];
@@ -211,8 +210,8 @@ const FindingDetailsModal = ({
         function_constructor: /Function\s*\(/gi,
         innerhtml: /innerHTML\s*=/gi,
         cookie: /document\.cookie/gi,
-        localstorage: /localStorage[.\[]/gi,
-        sessionstorage: /sessionStorage[.\[]/gi,
+        localstorage: /localStorage[.[]/gi,
+        sessionstorage: /sessionStorage[.[]/gi,
         websocket: /WebSocket\s*\(/gi,
       };
 
@@ -380,7 +379,7 @@ const FindingDetailsModal = ({
               <DialogTitle className="text-xl">
                 {finding.title || finding.pattern_name || "Security Finding"}
               </DialogTitle>
-              <DialogDescription className="mt-2">
+              <DialogDescription asChild className="mt-2">
                 <div className="flex flex-wrap gap-2 items-center">
                   <Badge
                     variant={
