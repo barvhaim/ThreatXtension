@@ -125,11 +125,15 @@ class RealScanService {
           cliResults.overall_security_score ||
           sastResults.overall_security_score ||
           0,
-        riskLevel: this.determineRiskLevel(
-          cliResults.overall_security_score ||
-          sastResults.overall_security_score ||
-          0,
-        ),
+        riskLevel: (
+          cliResults.summary?.overall_risk_level ||
+          cliResults.overall_risk ||
+          this.determineRiskLevel(
+            cliResults.overall_security_score ||
+            sastResults.overall_security_score ||
+            0,
+          )
+        ).toUpperCase(),
         totalFiles: cliResults.extracted_files?.length || 0,
         totalFindings:
           cliResults.total_findings || sastFindings.length || 0,
@@ -213,10 +217,13 @@ class RealScanService {
     return Math.max(0, Math.round(score));
   }
 
-  // Determine risk level from CLI results
+  // Determine risk level from score (fallback only — prefer backend-computed value)
+  // Thresholds match SecurityScorer._get_risk_level() in security_scorer.py:
+  //   0-39 = critical, 40-64 = high, 65-84 = medium, 85-100 = low
   determineRiskLevel(score) {
-    if (score < 30) return "HIGH";
-    if (score < 70) return "MEDIUM";
+    if (score < 40) return "CRITICAL";
+    if (score < 65) return "HIGH";
+    if (score < 85) return "MEDIUM";
     return "LOW";
   }
 
