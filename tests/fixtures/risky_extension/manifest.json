@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Risky Synthetic Extension",
+  "version": "1.0.0",
+  "description": "Inert fixture containing intentionally risky static signals",
+  "permissions": [
+    "debugger",
+    "cookies",
+    "history",
+    "nativeMessaging"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
