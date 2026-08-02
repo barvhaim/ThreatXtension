@@ -30,7 +30,7 @@ class DatabaseService {
         total_files_analyzed: 0,
         total_vulnerabilities: 0,
         avg_security_score: 0,
-        risk_distribution: { high: 0, medium: 0, low: 0 }
+        risk_distribution: { critical: 0, high: 0, medium: 0, low: 0 }
       };
     }
   }
@@ -168,7 +168,7 @@ class DatabaseService {
    */
   async getRiskDistribution() {
     const stats = await this.getStatistics();
-    return stats.risk_distribution || { high: 0, medium: 0, low: 0 };
+    return stats.risk_distribution || { critical: 0, high: 0, medium: 0, low: 0 };
   }
 
   /**
@@ -189,7 +189,7 @@ class DatabaseService {
         totalFiles: { value: 0, sparkline: [0] },
         totalVulnerabilities: { value: 0, sparkline: [0] },
         avgSecurityScore: 0,
-        riskDistribution: { high: 0, medium: 0, low: 0 }
+        riskDistribution: { critical: 0, high: 0, medium: 0, low: 0 }
       };
     }
 
@@ -230,7 +230,7 @@ class DatabaseService {
         sparkline: findingsSparkline.length > 0 ? findingsSparkline : [0]
       },
       avgSecurityScore: stats.avg_security_score || 0,
-      riskDistribution: stats.risk_distribution || { high: 0, medium: 0, low: 0 }
+      riskDistribution: stats.risk_distribution || { critical: 0, high: 0, medium: 0, low: 0 }
     };
   }
 }

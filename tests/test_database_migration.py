@@ -121,3 +121,18 @@ def test_statistics_high_risk_count_includes_critical(tmp_path):
     _insert_legacy_row(db_path, "g" * 32, 5, "low")
 
     assert db.get_statistics()["high_risk_extensions"] == 2
+
+
+def test_risk_distribution_reports_critical(tmp_path):
+    """`critical` rows must appear in the distribution instead of being dropped."""
+
+    db_path = str(tmp_path / "dist.db")
+    db = Database(db_path)
+    _insert_legacy_row(db_path, "h" * 32, 90, "critical")
+    _insert_legacy_row(db_path, "i" * 32, 40, "high")
+    _insert_legacy_row(db_path, "j" * 32, 5, "low")
+
+    distribution = db.get_risk_distribution()
+
+    assert distribution == {"critical": 1, "high": 1, "medium": 0, "low": 1}
+    assert sum(distribution.values()) == 3

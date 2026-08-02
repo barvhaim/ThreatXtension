@@ -412,16 +412,16 @@ class Database:
                 """
                 )
 
-                distribution = {"high": 0, "medium": 0, "low": 0}
+                distribution = {"critical": 0, "high": 0, "medium": 0, "low": 0}
                 for row in cursor.fetchall():
-                    risk_level = row["risk_level"]
+                    risk_level = (row["risk_level"] or "").lower()
                     if risk_level in distribution:
                         distribution[risk_level] = row["count"]
 
                 return distribution
         except Exception as e:
             print(f"Error getting risk distribution: {e}")
-            return {"high": 0, "medium": 0, "low": 0}
+            return {"critical": 0, "high": 0, "medium": 0, "low": 0}
 
     def get_recent_scans(self, limit: int = 10) -> List[Dict[str, Any]]:
         """Get recent scans with summary info."""
