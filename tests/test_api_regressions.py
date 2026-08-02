@@ -105,7 +105,7 @@ def test_score_increases_when_risk_increases():
 
 
 def test_overall_risk_bands_cover_critical(monkeypatch):
-    """All four bands must be reachable, including the `critical` level."""
+    """All four fallback bands must be reachable, including the `critical` level."""
 
     bands = {
         0: "low",
@@ -120,7 +120,89 @@ def test_overall_risk_bands_cover_critical(monkeypatch):
 
     for score, expected in bands.items():
         monkeypatch.setattr(api_main, "calculate_security_score", lambda _state, s=score: s)
+        # No executive_summary, so banding falls through to the local thresholds.
         assert api_main.determine_overall_risk({}) == expected
+
+
+def test_api_score_matches_security_scorer_result():
+    """The dashboard score must be the same number the summary reports, not a rival one."""
+
+    state = {
+        "analysis_results": {"permissions_analysis": {}},
+        "manifest_data": {"name": "Example", "description": "Example extension"},
+        "executive_summary": {"security_score": 50, "overall_risk_level": "high"},
+    }
+
+    assert api_main.calculate_security_score(state) == 50
+    assert api_main.determine_overall_risk(state) == "high"
+
+
+def test_api_score_prefers_scorer_over_local_calculation():
+    """A state whose local math would disagree must still report the scorer's number."""
+
+    base = {
+        "analysis_results": {
+            "virustotal_analysis": {
+                "enabled": True,
+                "summary": {"threat_level": "malicious"},
+                "total_malicious": 5,
+            }
+        },
+        "manifest_data": {"name": "Example", "description": "Example extension"},
+    }
+
+    local_only = api_main.calculate_security_score(base)
+    with_summary = api_main.calculate_security_score(
+        {**base, "executive_summary": {"security_score": 7, "overall_risk_level": "low"}}
+    )
+
+    assert local_only != 7, "fixture no longer exercises a disagreement"
+    assert with_summary == 7
+    assert (
+        api_main.determine_overall_risk(
+            {**base, "executive_summary": {"security_score": 7, "overall_risk_level": "low"}}
+        )
+        == "low"
+    )
+
+
+def test_api_score_falls_back_when_summary_is_unusable():
+    """Missing or malformed summaries must fall back instead of reporting a bogus score."""
+
+    base = {
+        "analysis_results": {"permissions_analysis": {}},
+        "manifest_data": {"name": "Example", "description": "Example extension"},
+    }
+    expected = api_main.calculate_security_score(base)
+
+    for unusable in (
+        None,
+        {},
+        "not-a-dict",
+        {"security_score": None},
+        {"security_score": "high"},
+        {"security_score": True},
+    ):
+        state = {**base, "executive_summary": unusable}
+        score = api_main.calculate_security_score(state)
+        assert score == expected
+        assert isinstance(score, int)
+        assert 0 <= score <= 100
+
+
+def test_api_score_clamps_out_of_range_summary_values():
+    """A summary score outside 0-100 must be clamped, not passed through."""
+
+    base = {"analysis_results": {}, "manifest_data": {"name": "Example"}}
+
+    assert (
+        api_main.calculate_security_score({**base, "executive_summary": {"security_score": 250}})
+        == 100
+    )
+    assert (
+        api_main.calculate_security_score({**base, "executive_summary": {"security_score": -40}})
+        == 0
+    )
 
 
 def test_directory_containment_rejects_prefix_sibling(tmp_path):

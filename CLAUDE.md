@@ -102,12 +102,18 @@ costs 5, or 10 if it's in `HIGH_RISK_PERMISSIONS`, and an `<all_urls>` / `*://*/
 a flat +15; any VirusTotal malicious detection is an instant 50 (suspicious-only 25); missing CSP
 +3 and deprecated Manifest V2 +2.
 
-**There are two independent implementations of this scoring, and they must stay in sync**:
-`SecurityScorer` (used by the CLI/MCP path via `SummaryGenerator`) and
-`calculate_security_score()` in `api/main.py` (used by the web path, with its own weights and a
-`determine_overall_risk()` band helper). Changing the direction or the bands means editing both,
-plus the frontend threshold ladders in `TabbedResultsPanel.jsx`, `DashboardPage.jsx`,
-`ScanHistoryPage.jsx`, `CacheConfirmationModal.jsx`, and the `determineRiskLevel()` fallback in
+**`SecurityScorer` is the single source of truth for the score.** `calculate_security_score()` in
+`api/main.py` reads the value the summary node already stamped onto
+`state["executive_summary"]["security_score"]`, and `determine_overall_risk()` likewise prefers
+`overall_risk_level`. Both keep a local weighted calculation *only* as a fallback for states that
+never reached the summary node (`SummaryGenerator.generate()` returns `None` when analysis results
+or the manifest are empty). Those two implementations used to run independently with different
+weights, so the dashboard and the executive summary reported different numbers for the same
+extension — don't reintroduce that by "fixing" the API-side math in isolation.
+
+Changing the direction or the bands means editing `SecurityScorer`, the `api/main.py` fallback, and
+the frontend threshold ladders in `TabbedResultsPanel.jsx`, `DashboardPage.jsx`,
+`ScanHistoryPage.jsx`, `CacheConfirmationModal.jsx`, plus the `determineRiskLevel()` fallback in
 `services/realScanService.js`. `report_generator.py` colors by `risk_level` rather than the raw
 number, so it needs no threshold edits.
 

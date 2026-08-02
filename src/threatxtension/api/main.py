@@ -264,32 +264,61 @@ def get_extracted_files(extracted_path: Optional[str]) -> list[str]:
     return files
 
 
+def _score_from_executive_summary(state: WorkflowState) -> Optional[int]:
+    """
+    Read the SecurityScorer result the summary node stamped onto the state.
+
+    Returns None when the state has no usable score, so the caller can fall back to its
+    own calculation. `SummaryGenerator` writes this on both the LLM-success and
+    LLM-failure paths, so a failed LLM call still yields the deterministic score.
+    """
+    summary = state.get("executive_summary") or {}
+    if not isinstance(summary, dict):
+        return None
+
+    score = summary.get("security_score")
+    if isinstance(score, bool) or not isinstance(score, (int, float)):
+        return None
+
+    return max(0, min(100, int(score)))
+
+
+def _risk_level_from_executive_summary(state: WorkflowState) -> Optional[str]:
+    """Read the SecurityScorer risk level, so the band matches the score it came from."""
+    summary = state.get("executive_summary") or {}
+    if not isinstance(summary, dict):
+        return None
+
+    level = summary.get("overall_risk_level")
+    if not isinstance(level, str):
+        return None
+
+    level = level.strip().lower()
+    return level if level in {"low", "medium", "high", "critical"} else None
+
+
 def calculate_security_score(state: WorkflowState) -> int:
     """
-    Calculate overall risk score using weighted multi-factor analysis.
+    Return the authoritative risk score for a completed scan (0-100, higher = worse).
 
-    Scoring Components (0-100 scale, where 100 = MOST DANGEROUS):
-    - SAST Findings (50 points max): Critical code vulnerabilities, malicious patterns
-    - Permissions Risk (35 points max): Unreasonable/excessive permissions
-    - VirusTotal (40 points max): Malware detections, threat intelligence
-    - Entropy/Obfuscation (30 points max): Code obfuscation, high entropy files
-    - Webstore Trust (10 points max): User ratings, install count, reputation
-    - Manifest Quality (5 points max): Proper metadata, CSP, update URL
+    `SecurityScorer` owns the scoring model, so this defers to the score the workflow
+    already stamped onto the executive summary. It used to reimplement scoring with its
+    own weights, which meant the dashboard and the summary reported different numbers
+    for the same extension (e.g. 41 vs 50).
 
-    Total Risk Points: 0-190 (capped at 100)
-
-    Malicious extensions will typically score:
-    - High SAST findings: 40-50 points
-    - Unreasonable permissions: 25-35 points
-    - VirusTotal detections: 30-40 points
-    - High obfuscation: 20-30 points
-    = 115-155 risk points → Risk Score: 100 (Critical)
+    The local weighted calculation below is retained only as a fallback for states that
+    never reached the summary node — `SummaryGenerator.generate()` returns None when the
+    analysis results or manifest are empty, and callers may score a partial state.
 
     Returns:
         int: Risk score from 0 (lowest risk) to 100 (most dangerous)
     """
     analysis_results = state.get("analysis_results", {}) or {}
     manifest = state.get("manifest_data", {}) or {}
+
+    scored = _score_from_executive_summary(state)
+    if scored is not None:
+        return scored
 
     # Component 1: SAST Analysis (50 points max risk) - INCREASED from 40
     sast_score = 0  # Start at 0 risk
@@ -611,7 +640,16 @@ def calculate_risk_distribution(state: WorkflowState) -> Dict[str, int]:
 
 
 def determine_overall_risk(state: WorkflowState) -> str:
-    """Determine overall risk level."""
+    """
+    Determine overall risk level, preferring the level SecurityScorer already assigned.
+
+    Falls back to banding the score locally for states that never reached the summary
+    node. The thresholds mirror `SecurityScorer._get_risk_level()`.
+    """
+    level = _risk_level_from_executive_summary(state)
+    if level is not None:
+        return level
+
     score = calculate_security_score(state)
 
     if score >= 61:
