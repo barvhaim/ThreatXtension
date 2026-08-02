@@ -26,6 +26,9 @@ downloads/
 eggs/
 .eggs/
 lib/
+# Frontend source utilities are not Python build artifacts.
+!frontend/src/lib/
+!frontend/src/lib/**
 lib64/
 parts/
 sdist/

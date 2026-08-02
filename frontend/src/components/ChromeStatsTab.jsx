@@ -8,7 +8,7 @@ import { ChevronDown, ChevronUp, ExternalLink, Star, Users, TrendingUp, Shield, 
  * Chrome Stats Tab Component
  * Displays comprehensive metadata from chrome-stats.com API
  */
-const ChromeStatsTab = ({ metadata, collapsedSections, toggleSection, isSectionCollapsed }) => {
+const ChromeStatsTab = ({ metadata, toggleSection, isSectionCollapsed }) => {
   if (!metadata) {
     return (
       <div className="text-center text-muted-foreground py-8">

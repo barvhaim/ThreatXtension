@@ -54,7 +54,7 @@ function App() {
             </NavLink>
 
             <nav className="main-nav" aria-label="Primary">
-              {NAV.map(({ to, label, code, Icon, end }) => (
+              {NAV.map(({ to, label, code, Icon: NavIcon, end }) => (
                 <NavLink
                   key={to}
                   to={to}
@@ -64,7 +64,11 @@ function App() {
                   }
                 >
                   <span className="nav-code">{code}</span>
-                  <Icon className="nav-icon" size={16} strokeWidth={2} />
+                  {React.createElement(NavIcon, {
+                    className: "nav-icon",
+                    size: 16,
+                    strokeWidth: 2,
+                  })}
                   <span className="nav-text">{label}</span>
                 </NavLink>
               ))}
