@@ -467,7 +467,7 @@ const DashboardPage = () => {
             <div className="history-log__head">
               <span>TARGET</span>
               <span>DATE</span>
-              <span title="Safety score — higher is safer (100 = clean)">SAFETY ↑</span>
+              <span title="Risk score — higher is more dangerous (100 = critical)">RISK SCORE ↑</span>
               <span>RISK</span>
             </div>
             {scanHistory.slice(0, 8).map((scan, index) => {
@@ -475,14 +475,14 @@ const DashboardPage = () => {
               const rawScore = scan.security_score ?? scan.securityScore;
               const hasScore = rawScore !== undefined && rawScore !== null;
               const score = Number(rawScore);
-              // Safety score: higher is safer (100 = clean). Match the results panel.
+              // Risk score: higher is more dangerous. Match the results panel.
               const scoreTone = !hasScore
                 ? "score-none"
-                : score < 40
+                : score >= 61
                   ? "score-critical"
-                  : score < 65
+                  : score >= 36
                     ? "score-high"
-                    : score < 85
+                    : score >= 16
                       ? "score-moderate"
                       : "score-secure";
               return (

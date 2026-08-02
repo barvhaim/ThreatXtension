@@ -266,9 +266,9 @@ def get_extracted_files(extracted_path: Optional[str]) -> list[str]:
 
 def calculate_security_score(state: WorkflowState) -> int:
     """
-    Calculate overall security score using weighted multi-factor analysis.
+    Calculate overall risk score using weighted multi-factor analysis.
 
-    Scoring Components (0-100 scale, where 100 = SAFEST):
+    Scoring Components (0-100 scale, where 100 = MOST DANGEROUS):
     - SAST Findings (50 points max): Critical code vulnerabilities, malicious patterns
     - Permissions Risk (35 points max): Unreasonable/excessive permissions
     - VirusTotal (40 points max): Malware detections, threat intelligence
@@ -276,17 +276,17 @@ def calculate_security_score(state: WorkflowState) -> int:
     - Webstore Trust (10 points max): User ratings, install count, reputation
     - Manifest Quality (5 points max): Proper metadata, CSP, update URL
 
-    Total Risk Points: 0-170 (capped at 100, inverted to security score)
+    Total Risk Points: 0-190 (capped at 100)
 
     Malicious extensions will typically score:
     - High SAST findings: 40-50 points
     - Unreasonable permissions: 25-35 points
     - VirusTotal detections: 30-40 points
     - High obfuscation: 20-30 points
-    = 115-155 risk points → Security Score: 0-0 (Critical)
+    = 115-155 risk points → Risk Score: 100 (Critical)
 
     Returns:
-        int: Security score from 0 (highest risk/malicious) to 100 (safest)
+        int: Risk score from 0 (lowest risk) to 100 (most dangerous)
     """
     analysis_results = state.get("analysis_results", {}) or {}
     manifest = state.get("manifest_data", {}) or {}
@@ -381,9 +381,9 @@ def calculate_security_score(state: WorkflowState) -> int:
         webstore_score += 2  # No rating data
 
     # Check install count (low adoption = higher risk)
-    users = metadata.get("users", "0")
+    users = metadata.get("user_count", metadata.get("users", "0"))
     try:
-        user_count = int(users.replace(",", "").replace("+", ""))
+        user_count = int(str(users).replace(",", "").replace("+", ""))
         if user_count >= 1000000:
             webstore_score += 0  # Very popular - trusted
         elif user_count >= 100000:
@@ -509,13 +509,9 @@ def calculate_security_score(state: WorkflowState) -> int:
         + chromestats_score
     )
 
-    # Invert to security score: 100 = safest, 0 = most dangerous
-    # Higher risk = lower security score
-    # Cap risk at 100 to ensure score doesn't go negative
+    # Cap at 100. Higher means more dangerous.
     risk_score = min(100, risk_score)
-    security_score = 100 - risk_score
-
-    return max(0, min(100, security_score))
+    return max(0, risk_score)
 
 
 def _is_within_directory(base_dir: str, target_path: str) -> bool:
@@ -618,9 +614,11 @@ def determine_overall_risk(state: WorkflowState) -> str:
     """Determine overall risk level."""
     score = calculate_security_score(state)
 
-    if score < 30:
+    if score >= 61:
+        return "critical"
+    if score >= 36:
         return "high"
-    if score < 70:
+    if score >= 16:
         return "medium"
     return "low"
 

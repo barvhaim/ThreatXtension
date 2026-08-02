@@ -73,6 +73,37 @@ def test_security_score_handles_chromestats_analysis():
     assert 0 <= score <= 100
 
 
+def test_score_increases_when_risk_increases():
+    """The public score should be higher for a more dangerous extension."""
+
+    safe_state = {
+        "analysis_results": {},
+        "manifest_data": {
+            "name": "Example",
+            "description": "Example extension",
+            "content_security_policy": {"extension_pages": "script-src 'self'"},
+            "update_url": "https://clients2.google.com/service/update2/crx",
+        },
+        "extension_metadata": {"rating": "4.8", "user_count": 1_000_000},
+    }
+    dangerous_state = {
+        **safe_state,
+        "analysis_results": {
+            "virustotal_analysis": {
+                "enabled": True,
+                "summary": {"threat_level": "malicious"},
+                "total_malicious": 1,
+            }
+        },
+    }
+
+    safe_score = api_main.calculate_security_score(safe_state)
+    dangerous_score = api_main.calculate_security_score(dangerous_state)
+
+    assert dangerous_score > safe_score
+    assert api_main.determine_overall_risk(dangerous_state) == "high"
+
+
 def test_directory_containment_rejects_prefix_sibling(tmp_path):
     """A sibling path with the same prefix must not pass the containment check."""
 

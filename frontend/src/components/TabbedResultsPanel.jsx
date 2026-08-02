@@ -54,17 +54,17 @@ const TabbedResultsPanel = ({
           (finding) => finding.severity === severityFilter,
         );
 
-  // Security score is "how safe" — higher is better (100 = safe, 0 = critical).
+  // Risk score: higher means more dangerous (100 = critical, 0 = low risk).
   // Derive a single verdict so the icon, color, and label can't disagree.
   const score = Number(scanResults.securityScore) || 0;
   const scoreVerdict =
-    score < 40
+    score >= 61
       ? { label: "Critical", tone: "text-destructive", Icon: ShieldAlert }
-      : score < 65
+      : score >= 36
         ? { label: "High risk", tone: "text-orange-500", Icon: ShieldAlert }
-        : score < 85
+        : score >= 16
           ? { label: "Moderate", tone: "text-yellow-500", Icon: Shield }
-          : { label: "Secure", tone: "text-primary", Icon: ShieldCheck };
+          : { label: "Low risk", tone: "text-primary", Icon: ShieldCheck };
   const ScoreIcon = scoreVerdict.Icon;
 
   return (
@@ -80,7 +80,7 @@ const TabbedResultsPanel = ({
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium">
-                Safety Score
+                Risk Score
               </CardTitle>
               <ScoreIcon className={scoreVerdict.tone} size={22} strokeWidth={2.25} />
             </div>
@@ -96,7 +96,7 @@ const TabbedResultsPanel = ({
               {scoreVerdict.label}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              higher is safer · 100 = clean
+              higher is riskier · 100 = critical
             </p>
           </CardContent>
         </Card>

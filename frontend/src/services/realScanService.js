@@ -218,32 +218,25 @@ class RealScanService {
     }
   }
 
-  // Calculate security score from CLI results
+  // Calculate a fallback risk score from CLI results. Higher means more dangerous.
   calculateSecurityScore(analysis) {
     if (analysis.security_score !== undefined) {
       return analysis.security_score;
     }
 
-    // Calculate based on findings
     const totalFindings = analysis.total_findings || 0;
     const highRiskFindings = analysis.high_risk_findings || 0;
+    const score = highRiskFindings * 20 + totalFindings * 2;
 
-    if (totalFindings === 0) return 100;
-
-    let score = 100;
-    score -= highRiskFindings * 20; // High risk findings heavily penalize score
-    score -= totalFindings * 2; // Each finding reduces score
-
-    return Math.max(0, Math.round(score));
+    return Math.min(100, Math.round(score));
   }
 
-  // Determine risk level from score (fallback only — prefer backend-computed value)
-  // Thresholds match SecurityScorer._get_risk_level() in security_scorer.py:
-  //   0-39 = critical, 40-64 = high, 65-84 = medium, 85-100 = low
+  // Determine risk level from score (fallback only — prefer backend-computed value).
+  // Higher scores mean greater risk.
   determineRiskLevel(score) {
-    if (score < 40) return "CRITICAL";
-    if (score < 65) return "HIGH";
-    if (score < 85) return "MEDIUM";
+    if (score >= 61) return "CRITICAL";
+    if (score >= 36) return "HIGH";
+    if (score >= 16) return "MEDIUM";
     return "LOW";
   }
 

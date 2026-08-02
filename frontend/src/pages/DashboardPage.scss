@@ -345,7 +345,7 @@
   margin-left: 1px;
 }
 
-/* Safety score tone — higher is safer (matches results panel) */
+/* Risk score tone — higher is more dangerous (matches results panel) */
 .history-row__score.score-critical { color: hsl(var(--color-destructive)); }
 .history-row__score.score-high     { color: hsl(38 96% 56%); }
 .history-row__score.score-moderate { color: hsl(48 96% 56%); }

@@ -149,10 +149,10 @@ const ScanHistoryPage = () => {
 
                   <div className="flex-1 grid grid-cols-2 lg:grid-cols-4 gap-4 w-full lg:w-auto">
                     <div>
-                      <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1" title="Higher is safer (100 = clean)">Safety ↑</div>
-                      <div className={`text-xl font-bold ${scan.securityScore < 40 ? "text-destructive" :
-                        scan.securityScore < 65 ? "text-orange-500" :
-                          scan.securityScore < 85 ? "text-yellow-500" : "text-success"
+                      <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1" title="Higher is more dangerous (100 = critical)">Risk Score ↑</div>
+                      <div className={`text-xl font-bold ${scan.securityScore >= 61 ? "text-destructive" :
+                        scan.securityScore >= 36 ? "text-orange-500" :
+                          scan.securityScore >= 16 ? "text-yellow-500" : "text-success"
                         }`}>
                         {scan.securityScore}<span className="text-xs font-medium text-muted-foreground">/100</span>
                       </div>
@@ -229,14 +229,14 @@ const ScanHistoryPage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-lg bg-surface/50 border border-border/50">
-                  <div className="text-sm text-muted-foreground mb-1">Safety Score</div>
-                  <div className={`text-2xl font-bold ${selectedScan.securityScore < 40 ? "text-destructive" :
-                    selectedScan.securityScore < 65 ? "text-orange-500" :
-                      selectedScan.securityScore < 85 ? "text-yellow-500" : "text-success"
+                  <div className="text-sm text-muted-foreground mb-1">Risk Score</div>
+                  <div className={`text-2xl font-bold ${selectedScan.securityScore >= 61 ? "text-destructive" :
+                    selectedScan.securityScore >= 36 ? "text-orange-500" :
+                      selectedScan.securityScore >= 16 ? "text-yellow-500" : "text-success"
                     }`}>
                     {selectedScan.securityScore}<span className="text-sm font-medium text-muted-foreground">/100</span>
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">higher is safer · 100 = clean</div>
+                  <div className="text-xs text-muted-foreground mt-1">higher is riskier · 100 = critical</div>
                 </div>
                 <div className="p-4 rounded-lg bg-surface/50 border border-border/50">
                   <div className="text-sm text-muted-foreground mb-1">Download Size</div>

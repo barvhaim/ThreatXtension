@@ -124,7 +124,7 @@ Key Indicators:
                 - summary: Executive summary text
                 - key_findings: List of critical findings
                 - recommendations: List of actionable recommendations
-                - security_score: Overall security score (0-100)
+                - security_score: Overall risk score (0-100, higher is more dangerous)
                 - risk_breakdown: Detailed risk breakdown by category
         """
         if not analysis_results:
@@ -140,7 +140,7 @@ Key Indicators:
         score_results = scorer.calculate_score(analysis_results)
 
         logger.info(
-            "Security score calculated: %d/100 (Risk: %s)",
+            "Risk score calculated: %d/100 (Risk: %s)",
             score_results["security_score"],
             score_results["risk_level"],
         )
@@ -162,14 +162,14 @@ Key Indicators:
             chain = prompt | llm | JsonOutputParser()
             summary = chain.invoke({})
 
-            # Add security score to summary
+            # Add deterministic risk score to summary
             summary["security_score"] = score_results["security_score"]
             summary["overall_risk_level"] = score_results["risk_level"]
             summary["risk_breakdown"] = score_results["risk_breakdown"]
             summary["risk_details"] = score_results["risk_details"]
             summary["total_risk_points"] = score_results["total_risk_points"]
 
-            logger.info("Executive summary generated successfully with security score")
+            logger.info("Executive summary generated successfully with risk score")
             return summary
         except Exception as exc:
             logger.exception("Failed to generate executive summary: %s", exc)
@@ -180,7 +180,7 @@ Key Indicators:
                 "risk_breakdown": score_results["risk_breakdown"],
                 "risk_details": score_results["risk_details"],
                 "total_risk_points": score_results["total_risk_points"],
-                "summary": f"Security analysis completed with score: {score_results['security_score']}/100",
+                "summary": f"Security analysis completed with risk score: {score_results['security_score']}/100",
                 "key_findings": [],
                 "recommendations": ["Review detailed analysis results for specific findings"],
                 "error": str(exc),
@@ -221,7 +221,7 @@ Key Indicators:
         score_results = scorer.calculate_score(analysis_results)
 
         logger.info(
-            "Generating executive summary with security score: %d/100 (Risk: %s)",
+            "Generating executive summary with risk score: %d/100 (Risk: %s)",
             score_results["security_score"],
             score_results["risk_level"],
         )
@@ -333,7 +333,7 @@ Key Indicators:
             chain = template | llm | JsonOutputParser()
             executive_summary = chain.invoke({})
 
-            # Add security score details to summary
+            # Add risk score details to summary
             executive_summary["security_score"] = score_results["security_score"]
             executive_summary["risk_breakdown"] = score_results["risk_breakdown"]
             executive_summary["risk_details"] = score_results["risk_details"]
@@ -346,7 +346,7 @@ Key Indicators:
             logger.exception("Failed to generate executive summary: %s", exc)
             # Return basic summary with score results
             return {
-                "executive_overview": f"Security analysis completed with score: {score_results['security_score']}/100 (Risk: {score_results['risk_level']})",
+                "executive_overview": f"Security analysis completed with risk score: {score_results['security_score']}/100 (Risk: {score_results['risk_level']})",
                 "overall_risk_level": score_results["risk_level"],
                 "security_score": score_results["security_score"],
                 "risk_breakdown": score_results["risk_breakdown"],

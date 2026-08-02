@@ -4,15 +4,15 @@
 
 Source: `src/threatxtension/core/security_scorer.py`
 
-The `SecurityScorer` converts raw analyzer output into a single, **deterministic** number.
+The `SecurityScorer` converts raw analyzer output into a single risk score.
 This is deliberate: the LLM writes prose, but the *score and risk level are never left to the LLM*.
 The scorer runs first inside `SummaryGenerator.generate()`, and its result is stamped onto the
 executive summary even if the LLM call fails.
 
 ## The model
 
-The scorer **accumulates risk points** across seven categories, caps the total at 100, then
-**inverts** it: `security_score = 100 - total_risk`. Higher = safer.
+The scorer **accumulates risk points** across seven categories and caps the total at 100:
+`security_score = min(100, total_risk)`. Higher = more dangerous.
 
 | Category | Max points | Source analyzer |
 |----------|-----------|-----------------|
@@ -30,10 +30,10 @@ The scorer **accumulates risk points** across seven categories, caps the total a
 ## Risk bands
 
 ```
-85–100  → low       (green)
-65–84   → medium    (yellow)
-40–64   → high      (orange)
- 0–39   → critical  (red)
+ 0–15   → low       (green)
+16–35   → medium    (yellow)
+36–60   → high      (orange)
+61–100  → critical  (red)
 ```
 
 Bands are intentionally tight. As the docstring notes, VirusTotal and SAST may *both* be absent
@@ -60,8 +60,8 @@ borderline extension out of the "low" band.
 
 ```python
 {
-  "security_score": 72,           # 0–100, higher is safer
-  "risk_level": "medium",         # low | medium | high | critical
+  "security_score": 28,           # 0–100, higher is more dangerous
+  "risk_level": "medium",        # low | medium | high | critical
   "total_risk_points": 28,
   "risk_breakdown": {"sast": 12, "permissions": 10, ...},  # points per category
   "risk_details": {...},          # per-category human-readable detail dicts

@@ -1,7 +1,7 @@
 """
 Security Scorer
 
-Calculates overall security score from all analyzer results.
+Calculates overall risk score from all analyzer results.
 Aggregates risk points from SAST, permissions, VirusTotal, entropy, webstore, and manifest.
 """
 
@@ -13,19 +13,19 @@ logger = logging.getLogger(__name__)
 
 class SecurityScorer:
     """
-    Calculates overall security score from all analyzer results.
+    Calculates overall risk score from all analyzer results.
 
-    Score: 0-100 where:
-    - 0-39:  Critical risk (red)    — confirmed malicious indicators
-    - 40-64: High risk (orange)     — significant suspicious signals
-    - 65-84: Medium risk (yellow)   — some concerns, needs review
-    - 85-100: Low risk (green)      — no meaningful signals detected
+    Score: 0-100 where higher means more dangerous:
+    - 0-15:   Low risk (green)      — no meaningful signals detected
+    - 16-35:  Medium risk (yellow)  — some concerns, needs review
+    - 36-60:  High risk (orange)    — significant suspicious signals
+    - 61-100: Critical risk (red)   — confirmed malicious indicators
 
     Thresholds are intentionally tight because VT and SAST may both be
     absent (disabled / no JS files), so the remaining analyzers alone must
     be able to push borderline extensions out of the "Low" band.
 
-    Risk points are accumulated from various analyzers, then inverted to create the score.
+    Risk points are accumulated from the analyzers and capped at 100.
     """
 
     # Maximum risk points per category
@@ -120,15 +120,15 @@ class SecurityScorer:
         breakdown['manifest'] = manifest_risk
         details['manifest'] = manifest_details
 
-        # Cap at 100 and invert (100 = secure, 0 = dangerous)
+        # Cap at 100. Higher means more dangerous.
         total_risk = min(100, risk_points)
-        security_score = 100 - total_risk
+        security_score = total_risk
 
         # Determine risk level
         risk_level = self._get_risk_level(security_score)
 
         logger.info(
-            "Security score calculated: %d/100 (Risk: %s, Total risk points: %d)",
+            "Risk score calculated: %d/100 (Risk: %s, Total risk points: %d)",
             security_score, risk_level, total_risk
         )
 
@@ -484,18 +484,18 @@ class SecurityScorer:
         Determine risk level from score.
 
         Args:
-            score: Security score (0-100)
+            score: Risk score (0-100)
 
         Returns:
             Risk level string: 'low', 'medium', 'high', or 'critical'
         """
-        if score >= 85:
-            return 'low'
-        elif score >= 65:
-            return 'medium'
-        elif score >= 40:
-            return 'high'
-        else:
+        if score >= 61:
             return 'critical'
+        elif score >= 36:
+            return 'high'
+        elif score >= 16:
+            return 'medium'
+        else:
+            return 'low'
 
 # Made with Bob

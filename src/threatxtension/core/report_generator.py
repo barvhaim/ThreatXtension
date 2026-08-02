@@ -114,7 +114,7 @@ class ReportGenerator:
         return elements
 
     def _create_score_section(self, security_score: int, risk_level: str) -> List:
-        """Create security score section."""
+        """Create risk score section."""
         elements = []
 
         # Score box
@@ -126,7 +126,7 @@ class ReportGenerator:
                 textColor=score_color,
                 alignment=TA_CENTER,
             ))],
-            [Paragraph("Security Score", self.styles['SmallText'])],
+            [Paragraph("Risk Score", self.styles['SmallText'])],
         ]
 
         risk_data = [
