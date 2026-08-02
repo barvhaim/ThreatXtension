@@ -102,8 +102,8 @@ const CacheConfirmationModal = ({
                 <div className="space-y-1">
                   <span className="text-sm text-muted-foreground">Risk Level:</span>
                   <Badge variant={
-                    cachedData.data.riskLevel === "HIGH" ? "destructive" :
-                      cachedData.data.riskLevel === "MEDIUM" ? "secondary" : "default"
+                    ["CRITICAL", "HIGH"].includes((cachedData.data.riskLevel || "").toUpperCase()) ? "destructive" :
+                      (cachedData.data.riskLevel || "").toUpperCase() === "MEDIUM" ? "secondary" : "default"
                   }>
                     {cachedData.data.riskLevel || "N/A"}
                   </Badge>

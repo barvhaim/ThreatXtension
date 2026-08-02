@@ -138,6 +138,8 @@ class Database:
                 """
                 )
 
+            self._migrate_risk_score_direction(cursor)
+
             # Create indexes for better query performance
             cursor.execute(
                 """
@@ -175,6 +177,65 @@ class Database:
                 ON batch_scans(status)
             """
             )
+
+    # Bumped whenever stored scan_results values change meaning rather than shape.
+    # 1 = security_score was "how safe" (100 = clean); 2 = risk score (100 = critical).
+    SCHEMA_VERSION = 2
+
+    def _migrate_risk_score_direction(self, cursor) -> None:
+        """
+        Flip pre-existing rows to the risk-score direction (higher = more dangerous).
+
+        `security_score` used to mean "how safe is this" and was stored inverted, so a
+        malicious extension was persisted as a low number. Reading those rows with the
+        current bands would render the worst extensions as green/low. History is not
+        recomputed from raw analyzer output (it isn't retained), so invert in place and
+        re-derive risk_level from the corrected score.
+        """
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS schema_meta (
+                key TEXT PRIMARY KEY,
+                value INTEGER NOT NULL
+            )
+        """
+        )
+        cursor.execute("SELECT value FROM schema_meta WHERE key='version'")
+        row = cursor.fetchone()
+
+        if row is None:
+            # No marker: either a brand-new database, or one written before versioning
+            # existed. Only the latter has rows needing the flip.
+            cursor.execute("SELECT COUNT(*) AS count FROM scan_results")
+            needs_flip = cursor.fetchone()["count"] > 0
+        else:
+            needs_flip = row["value"] < self.SCHEMA_VERSION
+
+        if needs_flip:
+            cursor.execute(
+                """
+                UPDATE scan_results
+                SET security_score = 100 - security_score,
+                    risk_level = CASE
+                        WHEN 100 - security_score >= 61 THEN 'critical'
+                        WHEN 100 - security_score >= 36 THEN 'high'
+                        WHEN 100 - security_score >= 16 THEN 'medium'
+                        ELSE 'low'
+                    END
+                WHERE security_score IS NOT NULL
+                  AND security_score BETWEEN 0 AND 100
+            """
+            )
+            if cursor.rowcount:
+                print(
+                    f"Migrated {cursor.rowcount} scan result(s) to the risk-score "
+                    "direction (higher = more dangerous)"
+                )
+
+        cursor.execute(
+            "INSERT OR REPLACE INTO schema_meta (key, value) VALUES ('version', ?)",
+            (self.SCHEMA_VERSION,),
+        )
 
     def save_scan_result(self, result: Dict[str, Any]) -> bool:
         """Save or update scan result."""
@@ -301,7 +362,9 @@ class Database:
                     """
                     SELECT 
                         COUNT(*) as total_scans,
-                        SUM(CASE WHEN risk_level = 'high' THEN 1 ELSE 0 END) as high_risk,
+                        SUM(
+                            CASE WHEN LOWER(risk_level) IN ('high', 'critical') THEN 1 ELSE 0 END
+                        ) as high_risk,
                         SUM(total_files) as total_files,
                         SUM(total_findings) as total_findings,
                         AVG(security_score) as avg_security_score

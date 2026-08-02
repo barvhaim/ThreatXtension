@@ -104,6 +104,25 @@ def test_score_increases_when_risk_increases():
     assert api_main.determine_overall_risk(dangerous_state) == "high"
 
 
+def test_overall_risk_bands_cover_critical(monkeypatch):
+    """All four bands must be reachable, including the `critical` level."""
+
+    bands = {
+        0: "low",
+        15: "low",
+        16: "medium",
+        35: "medium",
+        36: "high",
+        60: "high",
+        61: "critical",
+        100: "critical",
+    }
+
+    for score, expected in bands.items():
+        monkeypatch.setattr(api_main, "calculate_security_score", lambda _state, s=score: s)
+        assert api_main.determine_overall_risk({}) == expected
+
+
 def test_directory_containment_rejects_prefix_sibling(tmp_path):
     """A sibling path with the same prefix must not pass the containment check."""
 

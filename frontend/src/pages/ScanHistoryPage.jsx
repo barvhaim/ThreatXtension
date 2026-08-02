@@ -46,7 +46,8 @@ const ScanHistoryPage = () => {
   }, []);
 
   const getRiskBadgeVariant = (riskLevel) => {
-    switch (riskLevel) {
+    switch ((riskLevel || "").toLowerCase()) {
+      case "critical": return "destructive";
       case "high": return "destructive";
       case "medium": return "secondary";
       case "low": return "default"; // Will rely on default success color in theme if mapped, otherwise primary
@@ -55,7 +56,8 @@ const ScanHistoryPage = () => {
   };
 
   const getRiskIcon = (riskLevel) => {
-    switch (riskLevel) {
+    switch ((riskLevel || "").toLowerCase()) {
+      case "critical": return <XCircle className="h-4 w-4" />;
       case "high": return <XCircle className="h-4 w-4" />;
       case "medium": return <AlertTriangle className="h-4 w-4" />;
       case "low": return <CheckCircle className="h-4 w-4" />;

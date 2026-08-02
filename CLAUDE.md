@@ -54,9 +54,71 @@ All analyzers inherit from `BaseAnalyzer` (`src/threatxtension/core/analyzers/__
 - **ChromeStats Analyzer** (`chromestats.py`) - Behavioral/reputation intelligence via chrome-stats.com. Requires the extension ID, so it only runs for `--id` input; with `--url` or `--file` it reports `Extension ID required` and contributes 0 risk points
 
 Additional core modules (not analyzers, but consumed by the workflow):
-- `security_scorer.py` - Computes the aggregate security score from analyzer outputs
+- `security_scorer.py` - Computes the aggregate risk score from analyzer outputs (see Risk Scoring below)
 - `report_generator.py` - Builds PDF reports (served via `/api/scan/report/{id}`)
 - `chromestats_downloader.py` - Downloads extensions by ID via chrome-stats.com (requires `CHROMESTATS_API_KEY`)
+
+### Risk Scoring
+
+**Higher means more dangerous.** `security_score` is a *risk* score: 0 is clean, 100 is critical.
+The field name is historical — it is not a "how safe is this" score, and it is never inverted.
+Anything that renders, thresholds, or compares it must follow that direction.
+
+`SecurityScorer.calculate_score()` (`core/security_scorer.py`) **accumulates risk points** across
+seven categories and caps the total: `security_score = min(100, total_risk)`. The scorer is
+deliberately deterministic — the LLM writes prose, but **the score and risk level are never left to
+the LLM**. It runs first inside `SummaryGenerator.generate()`, and its result is stamped onto the
+executive summary even when the LLM call fails.
+
+| Category | Max points (`WEIGHTS`) | Source analyzer |
+|----------|-----------------------|-----------------|
+| `sast` | 60 | Semgrep findings (severity-weighted) |
+| `virustotal` | 50 | AV engine detections |
+| `permissions` | 30 | Unreasonable / high-risk manifest permissions |
+| `entropy` | 30 | Obfuscated / packed code |
+| `chromestats` | 28 | Behavioral threat intelligence |
+| `webstore` | 5 | Rating & user-count reputation |
+| `manifest` | 5 | Missing CSP, deprecated MV2 |
+
+The category maxima sum to 208 — deliberately over 100, so any single strong signal (e.g. one
+VirusTotal hit) can push an extension into the danger zone by itself.
+
+Risk bands (`_get_risk_level()`):
+
+```
+ 0–15   → low       (green)
+16–35   → medium    (yellow)
+36–60   → high      (orange)
+61–100  → critical  (red)
+```
+
+Bands are intentionally tight because VirusTotal and SAST may *both* be absent (VT disabled, or no
+JS files to scan), so the remaining analyzers alone must be able to lift a borderline extension out
+of the "low" band.
+
+Notable rules: SAST severities cost `CRITICAL`=15 / `ERROR`=12 / `WARNING`=5 / `INFO`=1 per finding,
+plus a bonus +15 (≥5 critical) or +30 (≥10 critical); a permission flagged `is_reasonable=False`
+costs 5, or 10 if it's in `HIGH_RISK_PERMISSIONS`, and an `<all_urls>` / `*://*/*` host pattern adds
+a flat +15; any VirusTotal malicious detection is an instant 50 (suspicious-only 25); missing CSP
++3 and deprecated Manifest V2 +2.
+
+**There are two independent implementations of this scoring, and they must stay in sync**:
+`SecurityScorer` (used by the CLI/MCP path via `SummaryGenerator`) and
+`calculate_security_score()` in `api/main.py` (used by the web path, with its own weights and a
+`determine_overall_risk()` band helper). Changing the direction or the bands means editing both,
+plus the frontend threshold ladders in `TabbedResultsPanel.jsx`, `DashboardPage.jsx`,
+`ScanHistoryPage.jsx`, `CacheConfirmationModal.jsx`, and the `determineRiskLevel()` fallback in
+`services/realScanService.js`. `report_generator.py` colors by `risk_level` rather than the raw
+number, so it needs no threshold edits.
+
+`risk_level` has **four** values (`low`/`medium`/`high`/`critical`). Frontend `switch`/ternary
+ladders must handle `critical` explicitly — falling through to a `default` branch renders the worst
+extensions with a benign badge. Note `database.py`'s statistics query counts
+`WHERE risk_level = 'high'` only, so `high_risk_extensions` excludes `critical` rows.
+
+Stored scores are **not migrated**. `/api/history` and `/api/statistics` return whatever direction
+was written at scan time, so a database written by an older build will be misread by a newer one.
+Clear scan history (`POST /api/clear`) when the scoring direction changes.
 
 ### LLM Integration
 
