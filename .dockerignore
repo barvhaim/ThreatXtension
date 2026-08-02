@@ -40,7 +40,6 @@ data/
 # Documentation and misc (keep README.md for pyproject.toml)
 docs/
 images/
-AGENTS.md
 CLAUDE.md
 *.png
 *.jpg
