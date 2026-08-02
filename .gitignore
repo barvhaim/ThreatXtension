@@ -179,4 +179,8 @@ extensions_storage/
 .bob/
 .playwright-mcp/
 *.db
+# Backups of migrated databases (see Risk Scoring in CLAUDE.md)
+*.db.pre-inversion
+# Built frontend copied here for single-port serving; the Dockerfile builds its own.
+static/
 .DS_Store

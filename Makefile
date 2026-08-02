@@ -1,4 +1,4 @@
-.PHONY: help format lint test api frontend clean install analyze docker-build docker-up docker-down docker-logs
+.PHONY: help format lint test api frontend static demo clean install analyze docker-build docker-up docker-down docker-logs
 
 # Default target - show help
 help:
@@ -18,7 +18,9 @@ help:
 	@echo "  make precommit       - Run pre-commit hooks on all files"
 	@echo ""
 	@echo "Run Applications (Local Development):"
-	@echo "  make api             - Start FastAPI server for frontend (port 8007)"
+	@echo "  make demo            - Build UI + serve everything on port 8007 (single origin)"
+	@echo "  make static          - Build the frontend into static/ only"
+	@echo "  make api             - Start FastAPI server, API only (port 8007)"
 	@echo "  make frontend        - Start React frontend dev server (port 5173)"
 	@echo "  make analyze URL=... - Analyze extension from Chrome Web Store URL"
 	@echo "  make analyze-file FILE=... - Analyze local CRX/ZIP file"
@@ -52,18 +54,39 @@ precommit:
 	pre-commit run --all-files
 	@echo "✓ Pre-commit checks complete"
 
-# Start FastAPI server
+# Start FastAPI server (API only — the web UI needs `make demo` or `make frontend`)
 api:
 	@echo "Starting FastAPI server with auto-reload..."
-	@echo "Access at: http://localhost:8007"
-	@echo "API docs at: http://localhost:8007/docs"
+	@echo "API at:   http://localhost:8007/api"
+	@echo "API docs: http://localhost:8007/docs"
+	@echo "Note: / serves the web UI only if static/ exists — run 'make demo' for that."
 	uv run threatxtension serve --reload
 
 # Start React frontend
 frontend:
 	@echo "Starting React frontend development server..."
 	@echo "Access at: http://localhost:5173"
+	@echo "Requires the API running separately (make api) and frontend/.env.local"
 	cd frontend && npm run dev
+
+# Build the frontend into static/ so the API serves the UI on a single port.
+# This is what the Dockerfile does (frontend/dist -> static/); replicated here
+# for running a demo straight from a checkout without Docker.
+static:
+	@echo "Building frontend into static/ ..."
+	cd frontend && npm install --no-fund --no-audit && npm run build
+	rm -rf static
+	cp -R frontend/dist static
+	@echo "Built static/ — the API will now serve the UI at http://localhost:8007"
+
+# One command for a live demo: build the UI, then serve API + UI on port 8007.
+demo: static
+	@echo ""
+	@echo "ThreatXtension demo — UI and API on one origin"
+	@echo "  UI:   http://localhost:8007"
+	@echo "  Docs: http://localhost:8007/docs"
+	@echo ""
+	uv run threatxtension serve
 
 # Analyze extension via CLI from URL
 analyze:
