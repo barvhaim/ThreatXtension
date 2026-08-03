@@ -33,8 +33,14 @@ class Database:
     @contextmanager
     def get_connection(self):
         """Context manager for database connections."""
-        conn = sqlite3.connect(self.db_path)
+        # timeout: wait for a competing writer instead of failing instantly
+        # (SQLite's default busy timeout is 0). Scans run in FastAPI background
+        # threads while the UI polls, so writes and reads do overlap.
+        conn = sqlite3.connect(self.db_path, timeout=30.0, check_same_thread=False)
         conn.row_factory = sqlite3.Row
+        # WAL lets readers proceed while a writer holds the lock.
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=30000")
         try:
             yield conn
             conn.commit()
@@ -294,8 +300,9 @@ class Database:
                     ),
                 )
 
-                # Update statistics
-                self._update_statistics()
+                # Reuse this connection: a second one would block on the write
+                # lock we are already holding.
+                self._update_statistics(conn)
 
                 return True
         except Exception as e:
@@ -458,7 +465,7 @@ class Database:
                     (extension_id,),
                 )
 
-                self._update_statistics()
+                self._update_statistics(conn)
                 return True
         except Exception as e:
             print(f"Error deleting scan result: {e}")
@@ -470,75 +477,64 @@ class Database:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("DELETE FROM scan_results")
-                self._update_statistics()
+                self._update_statistics(conn)
                 return True
         except Exception as e:
             print(f"Error clearing results: {e}")
             return False
 
-    def _update_statistics(self):
-        """Update aggregated statistics."""
+    def _update_statistics(self, conn: sqlite3.Connection = None):
+        """Update aggregated statistics.
+
+        Args:
+            conn: Reuse an existing connection when already inside a write
+                  transaction. Opening a second connection here would block on
+                  the caller's own write lock and self-deadlock.
+        """
+        if conn is not None:
+            self._update_statistics_on(conn)
+            return
         try:
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
-
-                # Update total scans
-                cursor.execute(
-                    """
-                    UPDATE statistics 
-                    SET metric_value = (
-                        SELECT COUNT(*) FROM scan_results WHERE status = 'completed'
-                    ),
-                        updated_at = ?
-                    WHERE metric_name = 'total_scans'
-                """,
-                    (datetime.now().isoformat(),),
-                )
-
-                # Update high risk count
-                cursor.execute(
-                    """
-                    UPDATE statistics 
-                    SET metric_value = (
-                        SELECT COUNT(*) FROM scan_results 
-                        WHERE status = 'completed' AND risk_level = 'high'
-                    ),
-                    updated_at = ?
-                    WHERE metric_name = 'high_risk_extensions'
-                """,
-                    (datetime.now().isoformat(),),
-                )
-
-                # Update total files
-                cursor.execute(
-                    """
-                    UPDATE statistics 
-                    SET metric_value = (
-                        SELECT COALESCE(SUM(total_files), 0) FROM scan_results 
-                        WHERE status = 'completed'
-                    ),
-                    updated_at = ?
-                    WHERE metric_name = 'total_files_analyzed'
-                """,
-                    (datetime.now().isoformat(),),
-                )
-
-                # Update total vulnerabilities
-                cursor.execute(
-                    """
-                    UPDATE statistics 
-                    SET metric_value = (
-                        SELECT COALESCE(SUM(total_findings), 0) FROM scan_results 
-                        WHERE status = 'completed'
-                    ),
-                    updated_at = ?
-                    WHERE metric_name = 'total_vulnerabilities'
-                """,
-                    (datetime.now().isoformat(),),
-                )
-
-        except Exception as e:
+            with self.get_connection() as owned:
+                self._update_statistics_on(owned)
+        except Exception as e:  # pylint: disable=broad-except
             print(f"Error updating statistics: {e}")
+
+    def _update_statistics_on(self, conn: sqlite3.Connection):
+        """Run the statistics UPDATEs on an existing connection."""
+        now = datetime.now().isoformat()
+        cursor = conn.cursor()
+
+        # `high_risk_extensions` counts 'high' and 'critical' so the metric does
+        # not silently drop the worst extensions.
+        metrics = (
+            (
+                "total_scans",
+                "SELECT COUNT(*) FROM scan_results WHERE status = 'completed'",
+            ),
+            (
+                "high_risk_extensions",
+                "SELECT COUNT(*) FROM scan_results WHERE status = 'completed' "
+                "AND LOWER(risk_level) IN ('high', 'critical')",
+            ),
+            (
+                "total_files_analyzed",
+                "SELECT COALESCE(SUM(total_files), 0) FROM scan_results "
+                "WHERE status = 'completed'",
+            ),
+            (
+                "total_vulnerabilities",
+                "SELECT COALESCE(SUM(total_findings), 0) FROM scan_results "
+                "WHERE status = 'completed'",
+            ),
+        )
+
+        for metric_name, subquery in metrics:
+            cursor.execute(
+                f"UPDATE statistics SET metric_value = ({subquery}), updated_at = ? "
+                "WHERE metric_name = ?",
+                (now, metric_name),
+            )
 
     def _row_to_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
         """Convert database row to dictionary with JSON parsing."""

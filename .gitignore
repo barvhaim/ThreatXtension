@@ -179,6 +179,9 @@ extensions_storage/
 .bob/
 .playwright-mcp/
 *.db
+# SQLite WAL sidecar files (the DB runs in WAL mode for concurrent scans)
+*.db-wal
+*.db-shm
 # Backups of migrated databases (see Risk Scoring in CLAUDE.md)
 *.db.pre-inversion
 # Built frontend copied here for single-port serving; the Dockerfile builds its own.
