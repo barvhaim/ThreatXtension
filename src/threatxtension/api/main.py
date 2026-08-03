@@ -93,6 +93,34 @@ def load_existing_results():
 
 load_existing_results()
 
+
+def resolve_scan_result(extension_id: str) -> Optional[Dict[str, Any]]:
+    """Look up a scan result, falling back past the in-memory cache.
+
+    `scan_results` only holds scans performed since the process started, so any
+    endpoint reading it directly 404s on earlier scans after a restart. Fall
+    back to the database and then the on-disk JSON, repopulating the cache.
+    Returns None when the extension is unknown to all three.
+    """
+    results = scan_results.get(extension_id)
+    if results:
+        return results
+
+    results = db.get_scan_result(extension_id)
+    if results:
+        scan_results[extension_id] = results
+        return results
+
+    results_file = RESULTS_DIR / f"{extension_id}_results.json"
+    if results_file.exists():
+        with open(results_file, "r", encoding="utf-8") as f:
+            results = json.load(f)
+        scan_results[extension_id] = results
+        return results
+
+    return None
+
+
 RESULTS_DIR = Path("extensions_storage")
 RESULTS_DIR.mkdir(exist_ok=True)
 
@@ -851,20 +879,7 @@ async def generate_pdf_report(extension_id: str) -> Response:
     Returns:
         PDF file as downloadable response
     """
-    results = scan_results.get(extension_id)
-
-    if not results:
-        results = db.get_scan_result(extension_id)
-        if results:
-            scan_results[extension_id] = results
-
-    if not results:
-        results_file = RESULTS_DIR / f"{extension_id}_results.json"
-        if results_file.exists():
-            with open(results_file, "r", encoding="utf-8") as f:
-                results = json.load(f)
-                scan_results[extension_id] = results
-
+    results = resolve_scan_result(extension_id)
     if not results:
         raise HTTPException(status_code=404, detail="Scan results not found")
 
@@ -903,7 +918,7 @@ async def get_file_list(extension_id: str) -> FileListResponse:
     Returns:
         List of file paths
     """
-    results = scan_results.get(extension_id)
+    results = resolve_scan_result(extension_id)
     if not results:
         raise HTTPException(status_code=404, detail="Extension not found")
 
@@ -927,7 +942,7 @@ async def get_file_content(extension_id: str, file_path: str) -> FileContentResp
     Returns:
         File content
     """
-    results = scan_results.get(extension_id)
+    results = resolve_scan_result(extension_id)
     if not results:
         raise HTTPException(status_code=404, detail="Extension not found")
 
