@@ -6,6 +6,8 @@ from typing import Optional, Dict
 import requests
 from bs4 import BeautifulSoup
 
+from threatxtension.utils.extension import extract_extension_id_by_url
+
 logger = logging.getLogger(__name__)
 
 
@@ -565,6 +567,10 @@ class ExtensionMetadata:
         metadata = {}
 
         try:
+            # ChromeStatsAnalyzer and the chrome-stats metadata enrichment both key
+            # off this; without it they skip with "Extension ID required".
+            metadata["extension_id"] = extract_extension_id_by_url(self.extension_url)
+
             metadata["title"] = self._extract_title(soup)
 
             metadata["user_count"] = self._extract_user_count(soup)
