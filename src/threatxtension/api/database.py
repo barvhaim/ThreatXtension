@@ -33,12 +33,12 @@ class Database:
     @contextmanager
     def get_connection(self):
         """Context manager for database connections."""
-        # timeout: wait for a competing writer instead of failing instantly
-        # (SQLite's default busy timeout is 0). Scans run in FastAPI background
-        # threads while the UI polls, so writes and reads do overlap.
+        # Scans run in FastAPI background threads while the UI polls, so writes
+        # and reads overlap. Wait for a competing writer instead of failing
+        # instantly (SQLite's default busy timeout is 0); WAL lets readers
+        # proceed while a writer holds the lock.
         conn = sqlite3.connect(self.db_path, timeout=30.0, check_same_thread=False)
         conn.row_factory = sqlite3.Row
-        # WAL lets readers proceed while a writer holds the lock.
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA busy_timeout=30000")
         try:
@@ -300,8 +300,6 @@ class Database:
                     ),
                 )
 
-                # Reuse this connection: a second one would block on the write
-                # lock we are already holding.
                 self._update_statistics(conn)
 
                 return True
@@ -505,8 +503,8 @@ class Database:
         now = datetime.now().isoformat()
         cursor = conn.cursor()
 
-        # `high_risk_extensions` counts 'high' and 'critical' so the metric does
-        # not silently drop the worst extensions.
+        # `high_risk_extensions` counts 'critical' too, so the metric does not
+        # silently drop the worst extensions.
         metrics = (
             (
                 "total_scans",

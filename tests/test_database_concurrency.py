@@ -39,7 +39,6 @@ def _stats_table(db_path):
 
 
 def test_save_scan_result_updates_statistics_table(tmp_path, capsys):
-    """A single save must persist statistics without a locking error."""
     db_path = tmp_path / "tx.db"
     db = Database(str(db_path))
 
@@ -54,7 +53,6 @@ def test_save_scan_result_updates_statistics_table(tmp_path, capsys):
 
 
 def test_statistics_table_counts_critical_as_high_risk(tmp_path):
-    """`high_risk_extensions` must include critical, not just 'high'."""
     db_path = tmp_path / "tx.db"
     db = Database(str(db_path))
 
@@ -77,7 +75,6 @@ def test_delete_and_clear_do_not_deadlock(tmp_path, capsys):
 
 
 def test_concurrent_writes_and_reads_do_not_lock(tmp_path, capsys):
-    """Scans run in FastAPI background threads while the UI polls."""
     db = Database(str(tmp_path / "tx.db"))
     failures = []
 
