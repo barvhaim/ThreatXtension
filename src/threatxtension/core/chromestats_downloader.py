@@ -89,18 +89,15 @@ class ChromeStatsDownloader:
             logger.error("Chrome Stats downloader is disabled (API key not configured)")
             return None, None
         
-        # Validate file format
         if file_format not in ["ZIP", "CRX"]:
             logger.error("Invalid file format: %s. Must be ZIP or CRX", file_format)
             return None, None
         
-        # Get extension details first to get version and metadata
         extension_details = self._get_extension_details(extension_id)
         if not extension_details:
             logger.error("Failed to fetch extension details for ID: %s", extension_id)
             return None, None
         
-        # Extract version if not provided
         if not version:
             version = extension_details.get("version")
             if not version:
@@ -108,7 +105,6 @@ class ChromeStatsDownloader:
                 return None, None
             logger.info("Using latest version: %s", version)
         
-        # Prepare download request
         try:
             url = f"{self.api_base_url}/api/download"
             headers = {
@@ -128,19 +124,15 @@ class ChromeStatsDownloader:
             response = requests.get(url, headers=headers, params=params, timeout=60, stream=True)
             response.raise_for_status()
             
-            # Determine file extension
             file_ext = ".zip" if file_format == "ZIP" else ".crx"
             
-            # Save to extensions_storage directory
             storage_path = os.getenv("EXTENSION_STORAGE_PATH", "./extensions_storage")
             os.makedirs(storage_path, exist_ok=True)
             
-            # Create filename with extension ID and version
             extension_name = extension_details.get("name", "unknown").replace(" ", "_")[:50]
             filename = f"{extension_name}_{extension_id}_{version}{file_ext}"
             file_path = os.path.join(storage_path, filename)
             
-            # Download file
             with open(file_path, "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
@@ -149,7 +141,6 @@ class ChromeStatsDownloader:
             file_size = os.path.getsize(file_path)
             logger.info("Successfully downloaded extension to %s (%.2f MB)", file_path, file_size / 1024 / 1024)
             
-            # Prepare comprehensive metadata from chrome-stats API
             metadata = {
                 "extension_id": extension_id,
                 "name": extension_details.get("name"),
@@ -180,42 +171,31 @@ class ChromeStatsDownloader:
                 "publisher_country": extension_details.get("publisherCountry"),
                 "is_download_blocked": extension_details.get("isDownloadBlocked"),
                 
-                # Risk assessment
                 "risk": extension_details.get("risk"),
-                
-                # Review summary
                 "review_summary": extension_details.get("reviewSummary"),
-                
                 # Recent reviews (limit to top 5)
                 "reviews": extension_details.get("reviews", [])[:5] if extension_details.get("reviews") else [],
                 
-                # Metrics changes
                 "one_week_delta": extension_details.get("oneWeekDelta"),
                 "one_day_delta": extension_details.get("oneDayDelta"),
                 
-                # Manifest data
                 "manifest_json": extension_details.get("manifestJson"),
                 "manifest_summary": extension_details.get("manifestSummary"),
                 
-                # Media
                 "media": extension_details.get("media"),
                 "small_banner": extension_details.get("smallBanner"),
                 "marquee_banner": extension_details.get("marqueeBanner"),
                 "num_screenshots": extension_details.get("numScreenshots"),
                 "num_videos": extension_details.get("numVideos"),
                 
-                # Related items
                 "related": extension_details.get("related"),
                 "alternatives": extension_details.get("alternatives"),
                 
-                # Cross-platform data
                 "cross_platform_data": extension_details.get("crossPlatformData"),
                 
-                # Rankings
                 "all_ranks": extension_details.get("allRanks"),
                 "one_week_ago_ranks": extension_details.get("oneWeekAgoRanks"),
                 
-                # Download info
                 "download_source": "chrome-stats.com",
                 "file_format": file_format,
                 "file_size": file_size,
@@ -243,8 +223,5 @@ class ChromeStatsDownloader:
         """
         details = self._get_extension_details(extension_id)
         if details:
-            # Check if API provides version history
             return details.get("version_history", [details.get("version")])
         return None
-
-# Made with Bob

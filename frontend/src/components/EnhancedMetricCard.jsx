@@ -3,9 +3,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/t
 import { Info } from "lucide-react";
 import "./EnhancedMetricCard.scss";
 
-/**
- * Enhanced Metric Card Component with trend indicators and sparkline charts
- */
 const EnhancedMetricCard = ({
   icon,
   title,

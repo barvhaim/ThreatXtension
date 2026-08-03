@@ -8,10 +8,6 @@ import { Download, Eye, Shield, FileText, AlertTriangle, CheckCircle, XCircle, I
 
 import databaseService from "../services/databaseService";
 
-/**
- * ScanHistoryPage Component
- * Displays viewing history of scanned extensions with a premium glassmorphism design.
- */
 const ScanHistoryPage = () => {
   const [scans, setScans] = useState([]);
   const [loading, setLoading] = useState(true);

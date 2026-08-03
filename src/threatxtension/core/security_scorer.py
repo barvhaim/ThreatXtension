@@ -28,18 +28,18 @@ class SecurityScorer:
     Risk points are accumulated from the analyzers and capped at 100.
     """
 
-    # Maximum risk points per category
+    # Category maxima deliberately sum to >100 so a single strong signal (e.g. one
+    # VirusTotal hit) can reach the danger zone on its own.
     WEIGHTS = {
-        'sast': 60,           # SAST findings (increased from planned 50)
-        'permissions': 30,     # Permission risks (reduced from 35)
-        'virustotal': 50,      # VirusTotal detections
-        'entropy': 30,         # Obfuscation detection
-        'chromestats': 28,     # Behavioral threat intelligence (NEW)
-        'webstore': 5,         # Webstore reputation (reduced from 10)
-        'manifest': 5,         # Manifest issues
+        'sast': 60,
+        'permissions': 30,
+        'virustotal': 50,
+        'entropy': 30,
+        'chromestats': 28,
+        'webstore': 5,
+        'manifest': 5,
     }
 
-    # High-risk permissions that warrant extra scrutiny
     HIGH_RISK_PERMISSIONS = {
         'debugger', 'webRequest', 'webRequestBlocking', 'cookies',
         'clipboardRead', 'nativeMessaging', 'proxy', 'management',
@@ -64,7 +64,6 @@ class SecurityScorer:
         breakdown = {}
         details = {}
 
-        # 1. SAST Analysis (60 points max)
         sast_risk, sast_details = self._calculate_sast_risk(
             analysis_results.get('javascript_analysis', {})
         )
@@ -72,7 +71,6 @@ class SecurityScorer:
         breakdown['sast'] = sast_risk
         details['sast'] = sast_details
 
-        # 2. Permissions Analysis (30 points max)
         perm_risk, perm_details = self._calculate_permissions_risk(
             analysis_results.get('permissions_analysis', {})
         )
@@ -80,7 +78,6 @@ class SecurityScorer:
         breakdown['permissions'] = perm_risk
         details['permissions'] = perm_details
 
-        # 3. VirusTotal Analysis (50 points max)
         vt_risk, vt_details = self._calculate_virustotal_risk(
             analysis_results.get('virustotal_analysis', {})
         )
@@ -88,7 +85,6 @@ class SecurityScorer:
         breakdown['virustotal'] = vt_risk
         details['virustotal'] = vt_details
 
-        # 4. Entropy/Obfuscation Analysis (30 points max)
         entropy_risk, entropy_details = self._calculate_entropy_risk(
             analysis_results.get('entropy_analysis', {})
         )
@@ -96,7 +92,6 @@ class SecurityScorer:
         breakdown['entropy'] = entropy_risk
         details['entropy'] = entropy_details
 
-        # 5. Chrome Stats Analysis (28 points max)
         chromestats_risk, chromestats_details = self._calculate_chromestats_risk(
             analysis_results.get('chromestats_analysis', {})
         )
@@ -104,7 +99,6 @@ class SecurityScorer:
         breakdown['chromestats'] = chromestats_risk
         details['chromestats'] = chromestats_details
 
-        # 6. Webstore Analysis (5 points max)
         webstore_risk, webstore_details = self._calculate_webstore_risk(
             analysis_results.get('webstore_analysis', {})
         )
@@ -112,7 +106,6 @@ class SecurityScorer:
         breakdown['webstore'] = webstore_risk
         details['webstore'] = webstore_details
 
-        # 7. Manifest Analysis (5 points max)
         manifest_risk, manifest_details = self._calculate_manifest_risk(
             analysis_results.get('manifest', {})
         )
@@ -124,7 +117,6 @@ class SecurityScorer:
         total_risk = min(100, risk_points)
         security_score = total_risk
 
-        # Determine risk level
         risk_level = self._get_risk_level(security_score)
 
         logger.info(
@@ -165,22 +157,21 @@ class SecurityScorer:
             for finding in file_findings:
                 severity = finding.get('extra', {}).get('severity', 'INFO')
                 if severity == 'CRITICAL':
-                    risk += 15  # Increased from 10
+                    risk += 15
                     critical_count += 1
                 elif severity == 'ERROR':
-                    risk += 12  # Increased from 10
+                    risk += 12
                     high_count += 1
                 elif severity == 'WARNING':
-                    risk += 5   # Increased from 3
+                    risk += 5
                     medium_count += 1
                 elif severity == 'INFO':
                     risk += 1
                     low_count += 1
 
-        # Bonus penalty for many critical findings
         bonus = 0
         if critical_count >= 10:
-            bonus = 30  # Increased from 20
+            bonus = 30
             risk += bonus
         elif critical_count >= 5:
             bonus = 15
@@ -222,24 +213,21 @@ class SecurityScorer:
                 unreasonable_count += 1
                 unreasonable_perms.append(perm_name)
                 
-                # Check if it's a high-risk permission
                 if perm_name in self.HIGH_RISK_PERMISSIONS:
-                    risk += 10  # Increased from 8
+                    risk += 10
                     high_risk_count += 1
                 else:
                     risk += 5
 
-        # Check host permissions for critical patterns
         host_analysis = perm_data.get('host_permissions_analysis', '')
         critical_host = False
         if '<all_urls>' in host_analysis or '*://*/*' in host_analysis:
             risk += 15  # Critical host permission
             critical_host = True
 
-        # Bonus penalty for many unreasonable permissions
         bonus = 0
         if unreasonable_count >= 10:
-            bonus = 20  # Increased from 15
+            bonus = 20
             risk += bonus
         elif unreasonable_count >= 5:
             bonus = 10
@@ -311,14 +299,12 @@ class SecurityScorer:
         suspicious = entropy_data.get('suspicious_files', 0)
         files_analyzed = entropy_data.get('files_analyzed', 0)
 
-        # Risk based on obfuscated files
         if obfuscated > 0:
             risk += min(20, obfuscated * 10)  # 10 points per obfuscated file, max 20
 
         if suspicious > 0:
             risk += min(10, suspicious * 5)   # 5 points per suspicious file, max 10
 
-        # Check for high-risk patterns
         patterns = entropy_data.get('summary', {}).get('pattern_summary', {})
         high_risk_patterns = [p for p, info in patterns.items()
                              if info.get('risk') == 'high']
@@ -352,11 +338,9 @@ class SecurityScorer:
         if not webstore_data:
             return 0, {'message': 'No webstore data'}
 
-        # Extract rating and user count safely
         rating = None
         user_count = None
         
-        # Try to get from webstore_analysis string or direct fields
         if isinstance(webstore_data, dict):
             rating = webstore_data.get('rating')
             user_count = webstore_data.get('user_count')
@@ -412,14 +396,12 @@ class SecurityScorer:
         risk = 0
         issues = []
 
-        # Check for missing CSP
         csp_risk = 0
         if not manifest.get('content_security_policy'):
             csp_risk = 3
             risk += 3
             issues.append('Missing Content Security Policy')
 
-        # Check manifest version
         mv_risk = 0
         manifest_version = manifest.get('manifest_version')
         if manifest_version == 2:
@@ -454,12 +436,10 @@ class SecurityScorer:
         if chromestats_data.get('error'):
             return 0, {'message': f"Chrome Stats error: {chromestats_data.get('error')}"}
 
-        # Use the total risk score calculated by the analyzer
         total_risk_score = chromestats_data.get('total_risk_score', 0)
         risk_indicators = chromestats_data.get('risk_indicators', [])
         overall_risk = chromestats_data.get('overall_risk_level', 'low')
 
-        # Extract key metrics
         install_trends = chromestats_data.get('install_trends', {})
         rating_patterns = chromestats_data.get('rating_patterns', {})
         developer_reputation = chromestats_data.get('developer_reputation', {})
@@ -475,7 +455,6 @@ class SecurityScorer:
             'message': f"{len(risk_indicators)} behavioral risk indicators detected"
         }
 
-        # Cap at 28 points (max weight for chromestats)
         return min(28, total_risk_score), details
 
     @staticmethod
@@ -497,5 +476,3 @@ class SecurityScorer:
             return 'medium'
         else:
             return 'low'
-
-# Made with Bob

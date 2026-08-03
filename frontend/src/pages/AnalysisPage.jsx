@@ -55,11 +55,9 @@ const AnalysisPage = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      // 1. Try to get ID from URL query params
       const params = new URLSearchParams(location.search);
       let scanId = params.get("id");
 
-      // 2. Fallback: Get most recent scan from history if no ID provided
       if (!scanId) {
         const history = await databaseService.getScanHistory(1);
         if (history.length > 0) {
@@ -69,11 +67,9 @@ const AnalysisPage = () => {
         }
       }
 
-      // 3. Load scan results if we have an ID
       if (scanId) {
         const dbResult = await databaseService.getScanResult(scanId);
         if (dbResult) {
-          // Format raw database results for TabbedResultsPanel
           const formattedResults = realScanService.formatRealResults(dbResult);
           setScanResults(formattedResults);
         }
@@ -93,7 +89,6 @@ const AnalysisPage = () => {
   };
 
   const handleAnalyzeWithAI = async (file) => {
-    // Open modal and start analysis
     setAiAnalysisModal({
       isOpen: true,
       file: file,
@@ -103,21 +98,18 @@ const AnalysisPage = () => {
     });
 
     try {
-      // Get file content
       const fileContent = await realScanService.getFileContent(
         scanResults.extensionId,
         file.path,
       );
 
-      // Determine file type
       const fileType = file.type || file.name.split(".").pop() || "unknown";
 
-      // Analyze with GPT-OSS
       const analysisResult = await gptOssService.analyzeFileContent(
         fileContent,
         file.name,
         fileType,
-        "auto", // Use auto provider selection
+        "auto",
       );
 
       if (analysisResult.success) {
@@ -235,7 +227,6 @@ const AnalysisPage = () => {
         />
       </div>
 
-      {/* Modals */}
       <FileViewerModal
         isOpen={fileViewerModal.isOpen}
         onClose={() => setFileViewerModal({ isOpen: false, file: null })}
@@ -244,7 +235,6 @@ const AnalysisPage = () => {
         onGetFileContent={getFileContent}
       />
 
-      {/* Finding Details Modal */}
       <FindingDetailsModal
         isOpen={findingDetailsModal.isOpen}
         onClose={() => setFindingDetailsModal({ isOpen: false, finding: null })}
@@ -253,7 +243,6 @@ const AnalysisPage = () => {
         onGetFileContent={getFileContent}
       />
 
-      {/* SAST Signature Generation Modal */}
       <SASTSignatureModal
         isOpen={sastSignatureModal.isOpen}
         onClose={() => setSastSignatureModal({ isOpen: false, file: null })}
@@ -270,7 +259,6 @@ const AnalysisPage = () => {
         onViewFindingDetails={handleViewFindingDetails}
       />
 
-      {/* AI Analysis Modal */}
       <Dialog open={aiAnalysisModal.isOpen} onOpenChange={closeAiAnalysisModal}>
         <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -316,7 +304,6 @@ const AnalysisPage = () => {
 
             {aiAnalysisModal.result && !aiAnalysisModal.isAnalyzing && (
               <div className="space-y-4">
-                {/* Analysis Summary */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base">
@@ -375,7 +362,6 @@ const AnalysisPage = () => {
                   </CardContent>
                 </Card>
 
-                {/* Detailed Analysis */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base">
@@ -391,7 +377,6 @@ const AnalysisPage = () => {
                   </CardContent>
                 </Card>
 
-                {/* Findings */}
                 {aiAnalysisModal.result.findings &&
                   aiAnalysisModal.result.findings.length > 0 && (
                     <Card>
@@ -415,7 +400,6 @@ const AnalysisPage = () => {
                     </Card>
                   )}
 
-                {/* Recommendations */}
                 {aiAnalysisModal.result.recommendations &&
                   aiAnalysisModal.result.recommendations.length > 0 && (
                     <Card>
@@ -439,7 +423,6 @@ const AnalysisPage = () => {
                     </Card>
                   )}
 
-                {/* Metadata */}
                 {aiAnalysisModal.result.metadata && (
                   <Card>
                     <CardHeader>

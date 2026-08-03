@@ -20,9 +20,6 @@ import {
 } from "lucide-react";
 import ChromeStatsTab from "./ChromeStatsTab";
 
-/**
- * Tabbed Results Panel Component for organizing scan results
- */
 const TabbedResultsPanel = ({
   scanResults,
   onViewFile,
@@ -74,7 +71,6 @@ const TabbedResultsPanel = ({
         Security Analysis Results
       </h2>
 
-      {/* Key Metrics Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader>
@@ -206,7 +202,6 @@ const TabbedResultsPanel = ({
         </Card>
       </div>
 
-      {/* Export PDF Button */}
       <div className="flex justify-end mb-4">
         <Button
           variant="outline"
@@ -227,7 +222,6 @@ const TabbedResultsPanel = ({
         </Button>
       </div>
 
-      {/* Tabbed Interface */}
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -243,9 +237,7 @@ const TabbedResultsPanel = ({
           <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
         </TabsList>
 
-        {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4">
-          {/* Executive Summary Card */}
           <Card className="border-l-4 border-l-primary">
             <CardHeader>
               <CardTitle>Executive Summary</CardTitle>
@@ -437,7 +429,6 @@ const TabbedResultsPanel = ({
           </Card>
         </TabsContent>
 
-        {/* Threat Intelligence Tab (VirusTotal) */}
         <TabsContent value="threatintel" className="space-y-4">
           <Card className="border-l-4 border-l-blue-500">
             <CardHeader>
@@ -449,7 +440,6 @@ const TabbedResultsPanel = ({
             <CardContent>
               {scanResults.virustotalAnalysis ? (
                 <div className="space-y-4">
-                  {/* Summary Stats */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center p-4 bg-muted rounded-lg">
                       <div className="text-2xl font-bold">
@@ -486,7 +476,6 @@ const TabbedResultsPanel = ({
                     </div>
                   </div>
 
-                  {/* Threat Level Badge */}
                   <div className="flex items-center gap-2">
                     <span className="font-medium">Threat Level:</span>
                     <Badge
@@ -505,7 +494,6 @@ const TabbedResultsPanel = ({
                     </Badge>
                   </div>
 
-                  {/* Detected Malware Families */}
                   {scanResults.virustotalAnalysis.summary?.detected_families
                     ?.length > 0 && (
                     <div>
@@ -524,7 +512,6 @@ const TabbedResultsPanel = ({
                     </div>
                   )}
 
-                  {/* File Results */}
                   {scanResults.virustotalAnalysis.file_results?.length > 0 && (
                     <div>
                       <h4 className="font-medium mb-2">File Hash Analysis:</h4>
@@ -565,7 +552,6 @@ const TabbedResultsPanel = ({
                     </div>
                   )}
 
-                  {/* Recommendation */}
                   <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
                     <p className="text-sm">
                       {scanResults.virustotalAnalysis.summary?.recommendation ||
@@ -586,7 +572,6 @@ const TabbedResultsPanel = ({
           </Card>
         </TabsContent>
 
-        {/* Obfuscation Analysis Tab (Entropy) */}
         <TabsContent value="obfuscation" className="space-y-4">
           <Card className="border-l-4 border-l-purple-500">
             <CardHeader>
@@ -598,7 +583,6 @@ const TabbedResultsPanel = ({
             <CardContent>
               {scanResults.entropyAnalysis ? (
                 <div className="space-y-4">
-                  {/* Summary Stats */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center p-4 bg-muted rounded-lg">
                       <div className="text-2xl font-bold">
@@ -634,7 +618,6 @@ const TabbedResultsPanel = ({
                     </div>
                   </div>
 
-                  {/* Risk Level */}
                   <div className="flex items-center gap-2">
                     <span className="font-medium">Obfuscation Risk:</span>
                     <Badge
@@ -653,7 +636,6 @@ const TabbedResultsPanel = ({
                     </Badge>
                   </div>
 
-                  {/* High Entropy Files */}
                   {scanResults.entropyAnalysis.summary?.high_entropy_files
                     ?.length > 0 && (
                     <div>
@@ -694,7 +676,6 @@ const TabbedResultsPanel = ({
                     </div>
                   )}
 
-                  {/* Detected Patterns */}
                   {Object.keys(
                     scanResults.entropyAnalysis.summary?.pattern_summary || {},
                   ).length > 0 && (
@@ -740,7 +721,6 @@ const TabbedResultsPanel = ({
                     </div>
                   )}
 
-                  {/* Recommendation */}
                   <div className="p-4 bg-purple-50 dark:bg-purple-950 rounded-lg">
                     <p className="text-sm">
                       {scanResults.entropyAnalysis.summary?.recommendation ||
@@ -758,7 +738,6 @@ const TabbedResultsPanel = ({
           </Card>
         </TabsContent>
 
-        {/* Files Tab */}
         <TabsContent value="files" className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">
@@ -830,7 +809,6 @@ const TabbedResultsPanel = ({
           </div>
         </TabsContent>
 
-        {/* SAST Findings Tab */}
         <TabsContent value="findings" className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">
@@ -941,7 +919,6 @@ const TabbedResultsPanel = ({
           </div>
         </TabsContent>
 
-        {/* Chrome Stats Tab */}
         <TabsContent value="chromestats" className="space-y-4">
           <ChromeStatsTab
             metadata={scanResults.chromeStatsMetadata || scanResults.metadata}
@@ -951,7 +928,6 @@ const TabbedResultsPanel = ({
           />
         </TabsContent>
 
-        {/* Recommendations Tab */}
         <TabsContent value="recommendations" className="space-y-4">
           <h3 className="text-lg font-semibold">Security Recommendations</h3>
           {(scanResults.recommendations || []).length > 0 ? (

@@ -88,12 +88,10 @@ class ReportGenerator:
         """Create report header elements."""
         elements = []
 
-        # Title
         elements.append(Paragraph("ThreatXtension", self.styles['ReportTitle']))
         elements.append(Paragraph("Security Analysis Report", self.styles['Heading2']))
         elements.append(Spacer(1, 20))
 
-        # Extension info table
         info_data = [
             ["Extension:", extension_name],
             ["ID:", extension_id],
@@ -117,7 +115,6 @@ class ReportGenerator:
         """Create risk score section."""
         elements = []
 
-        # Score box
         score_color = self._get_risk_color(risk_level)
         score_data = [
             [Paragraph(f"<b>{security_score}</b>/100", ParagraphStyle(
@@ -139,7 +136,6 @@ class ReportGenerator:
             [Paragraph("Risk Level", self.styles['SmallText'])],
         ]
 
-        # Create side-by-side tables
         combined_data = [[
             Table(score_data, colWidths=[2.5 * inch]),
             Table(risk_data, colWidths=[2.5 * inch]),
@@ -166,7 +162,7 @@ class ReportGenerator:
         elements.append(Paragraph("1. Executive Summary", self.styles['SectionHeader']))
 
         summary_text = summary.get("summary", "No executive summary available.")
-        # Clean up the text for ReportLab
+        # ReportLab paragraphs take markup, not raw newlines
         summary_text = summary_text.replace('\n', '<br/>')
         elements.append(Paragraph(summary_text, self.styles['BodyTextCustom']))
         elements.append(Spacer(1, 15))
@@ -188,7 +184,6 @@ class ReportGenerator:
         summary = vt_analysis.get("summary", {})
         threat_level = summary.get("threat_level", "unknown")
 
-        # Stats table
         stats_data = [
             ["Files Scanned", "With Detections", "Malicious", "Suspicious"],
             [
@@ -211,14 +206,12 @@ class ReportGenerator:
         elements.append(stats_table)
         elements.append(Spacer(1, 10))
 
-        # Threat level
         threat_color = self._get_risk_color(threat_level)
         elements.append(Paragraph(
             f"Threat Level: <b><font color='{threat_color.hexval()}'>{threat_level.upper()}</font></b>",
             self.styles['BodyTextCustom']
         ))
 
-        # Malware families
         families = summary.get("detected_families", [])
         if families:
             elements.append(Paragraph(
@@ -226,7 +219,6 @@ class ReportGenerator:
                 self.styles['BodyTextCustom']
             ))
 
-        # Recommendation
         recommendation = summary.get("recommendation", "")
         if recommendation:
             elements.append(Spacer(1, 5))
@@ -250,7 +242,6 @@ class ReportGenerator:
         summary = entropy_analysis.get("summary", {})
         overall_risk = summary.get("overall_risk", "normal")
 
-        # Stats table
         stats_data = [
             ["Files Analyzed", "Skipped", "Obfuscated", "Suspicious"],
             [
@@ -273,14 +264,12 @@ class ReportGenerator:
         elements.append(stats_table)
         elements.append(Spacer(1, 10))
 
-        # Risk level
         risk_color = self._get_risk_color(overall_risk)
         elements.append(Paragraph(
             f"Obfuscation Risk: <b><font color='{risk_color.hexval()}'>{overall_risk.upper()}</font></b>",
             self.styles['BodyTextCustom']
         ))
 
-        # High entropy files
         high_entropy_files = summary.get("high_entropy_files", [])
         if high_entropy_files:
             elements.append(Paragraph("High Entropy Files:", self.styles['BodyTextCustom']))
@@ -290,7 +279,6 @@ class ReportGenerator:
                     self.styles['SmallText']
                 ))
 
-        # Recommendation
         recommendation = summary.get("recommendation", "")
         if recommendation:
             elements.append(Spacer(1, 5))
@@ -312,7 +300,6 @@ class ReportGenerator:
             ))
             return elements
 
-        # Permissions table
         table_data = [["Permission", "Reasonable", "Risk"]]
         for perm_name, perm_info in list(details.items())[:15]:
             is_reasonable = perm_info.get("is_reasonable", True)
@@ -351,7 +338,6 @@ class ReportGenerator:
             ))
             return elements
 
-        # Overall risk
         overall_risk = chromestats_analysis.get("overall_risk_level", "unknown")
         total_risk_score = chromestats_analysis.get("total_risk_score", 0)
         
@@ -362,7 +348,6 @@ class ReportGenerator:
         ))
         elements.append(Spacer(1, 10))
 
-        # API Risk Data (if available)
         api_risk = chromestats_analysis.get("api_risk_analysis", {})
         if api_risk.get("has_api_risk_data"):
             elements.append(Paragraph("<b>API Risk Assessment:</b>", self.styles['BodyTextCustom']))
@@ -387,12 +372,10 @@ class ReportGenerator:
             elements.append(stats_table)
             elements.append(Spacer(1, 10))
 
-        # Risk Indicators
         risk_indicators = chromestats_analysis.get("risk_indicators", [])
         if risk_indicators:
             elements.append(Paragraph("<b>Risk Indicators:</b>", self.styles['BodyTextCustom']))
-            for indicator in risk_indicators[:10]:  # Limit to 10 indicators
-                # Clean up indicator text for PDF
+            for indicator in risk_indicators[:10]:
                 clean_indicator = indicator.replace("[Critical]", "🔴").replace("[High]", "🟠").replace("[Medium]", "🟡").replace("[Low]", "🟢")
                 elements.append(Paragraph(f"  • {clean_indicator}", self.styles['SmallText']))
             
@@ -421,7 +404,6 @@ class ReportGenerator:
             ))
             return elements
 
-        # Findings table
         table_data = [["File", "Line", "Severity", "Rule"]]
         for finding in findings[:20]:
             severity = finding.get("risk_level", finding.get("severity", "medium"))
@@ -493,14 +475,12 @@ class ReportGenerator:
         Returns:
             PDF content as bytes
         """
-        # Extract data
         extension_name = scan_results.get("extension_name", scan_results.get("metadata", {}).get("title", "Unknown Extension"))
         extension_id = scan_results.get("extension_id", "Unknown")
         timestamp = scan_results.get("timestamp", datetime.now().isoformat())
         security_score = scan_results.get("overall_security_score", scan_results.get("security_score", 0))
         risk_level = scan_results.get("risk_level", scan_results.get("overall_risk", "unknown"))
 
-        # Get analysis sections
         permissions_analysis = scan_results.get("permissions_analysis", {})
         sast_results = scan_results.get("sast_results", scan_results.get("javascript_analysis", {}))
         vt_analysis = scan_results.get("virustotal_analysis", {})
@@ -508,7 +488,6 @@ class ReportGenerator:
         chromestats_analysis = scan_results.get("chromestats_analysis", {})
         summary = scan_results.get("summary", {})
 
-        # Create PDF buffer
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer,
@@ -519,7 +498,6 @@ class ReportGenerator:
             bottomMargin=0.75 * inch,
         )
 
-        # Build document elements
         elements = []
         elements.extend(self._create_header(extension_name, extension_id, timestamp))
         elements.extend(self._create_score_section(security_score, risk_level))
@@ -532,14 +510,11 @@ class ReportGenerator:
         elements.extend(self._create_recommendations_section(summary))
         elements.extend(self._create_footer())
 
-        # Build PDF
         doc.build(elements)
 
-        # Get PDF bytes
         pdf_bytes = buffer.getvalue()
         buffer.close()
 
-        # Save to file if path provided
         if output_path:
             with open(output_path, "wb") as f:
                 f.write(pdf_bytes)

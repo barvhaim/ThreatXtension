@@ -32,7 +32,6 @@ const SASTSignatureModal = ({
 
   useEffect(() => {
     if (isOpen && file) {
-      // Reset state when modal opens
       setGeneratedSignatures([]);
       setSelectedSignatureIndex(0);
       setError(null);
@@ -42,7 +41,6 @@ const SASTSignatureModal = ({
     }
   }, [isOpen, file]);
 
-  // Update form when signature selection changes
   useEffect(() => {
     if (
       generatedSignatures.length > 0 &&
@@ -65,21 +63,17 @@ const SASTSignatureModal = ({
     setError(null);
 
     try {
-      // Get file content
       const fileContent = await onGetFileContent(extensionId, file.path);
 
-      // Generate signature using AI
       const result = await onGenerateSignature(fileContent, file.name);
 
       if (result.success) {
-        // Handle both single signature and array of signatures
         const signatures = Array.isArray(result.data)
           ? result.data
           : [result.data];
         setGeneratedSignatures(signatures);
         setSelectedSignatureIndex(0);
 
-        // Pre-fill name and description from first signature
         if (signatures.length > 0) {
           setSignatureName(
             signatures[0].rule_id ||
@@ -97,7 +91,6 @@ const SASTSignatureModal = ({
       console.error("Signature generation error:", err);
       let errorMessage = err.message || "Failed to generate SAST signature";
 
-      // Check for specific error cases
       if (errorMessage.includes("cleaned up") || errorMessage.includes("410")) {
         errorMessage =
           "The extension files have been cleaned up after analysis. Please re-scan the extension to generate signatures from its files.";
@@ -135,21 +128,18 @@ const SASTSignatureModal = ({
     const currentSignature = generatedSignatures[selectedSignatureIndex];
     const signature = {
       ...currentSignature,
-      id: `${Date.now()}`, // Generate unique ID
+      id: `${Date.now()}`,
       rule_id: signatureName || currentSignature.rule_id,
       message: signatureDescription || currentSignature.message,
       created_at: new Date().toISOString(),
       source_file: file.path,
     };
 
-    // Load existing signatures from localStorage
     const stored = localStorage.getItem("sast_signatures");
     const existingSignatures = stored ? JSON.parse(stored) : [];
 
-    // Add new signature
     const allSignatures = [...existingSignatures, signature];
 
-    // Save to localStorage
     localStorage.setItem("sast_signatures", JSON.stringify(allSignatures));
 
     console.log("Saved signature to localStorage:", signature);
@@ -159,22 +149,18 @@ const SASTSignatureModal = ({
   const handleSaveAllSignatures = async () => {
     if (generatedSignatures.length === 0) return;
 
-    // Load existing signatures from localStorage
     const stored = localStorage.getItem("sast_signatures");
     const existingSignatures = stored ? JSON.parse(stored) : [];
 
-    // Prepare new signatures with metadata
     const newSignatures = generatedSignatures.map((sig, index) => ({
       ...sig,
-      id: `${Date.now()}-${index}`, // Generate unique ID
+      id: `${Date.now()}-${index}`,
       created_at: new Date().toISOString(),
       source_file: file.path,
     }));
 
-    // Merge with existing signatures
     const allSignatures = [...existingSignatures, ...newSignatures];
 
-    // Save to localStorage
     localStorage.setItem("sast_signatures", JSON.stringify(allSignatures));
 
     console.log(`Saved ${newSignatures.length} signatures to localStorage`);
@@ -218,7 +204,6 @@ const SASTSignatureModal = ({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* File Info */}
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">File Information</CardTitle>
@@ -249,7 +234,6 @@ const SASTSignatureModal = ({
             </CardContent>
           </Card>
 
-          {/* Generate Button */}
           {generatedSignatures.length === 0 && !isGenerating && (
             <div className="flex justify-center py-8">
               <Button onClick={handleGenerate} size="lg" className="gap-2">
@@ -259,7 +243,6 @@ const SASTSignatureModal = ({
             </div>
           )}
 
-          {/* Loading State */}
           {isGenerating && (
             <div className="flex flex-col items-center justify-center py-12 space-y-4">
               <Loader2 className="h-12 w-12 animate-spin text-purple-500" />
@@ -274,7 +257,6 @@ const SASTSignatureModal = ({
             </div>
           )}
 
-          {/* Error State */}
           {error && (
             <div className="p-4 bg-destructive/10 border border-destructive rounded-lg">
               <div className="flex items-start gap-3">
@@ -297,10 +279,8 @@ const SASTSignatureModal = ({
             </div>
           )}
 
-          {/* Generated Signatures */}
           {generatedSignatures.length > 0 && !isGenerating && (
             <div className="space-y-4">
-              {/* Signature Selector */}
               {generatedSignatures.length > 1 && (
                 <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
                   <span className="text-sm font-medium">Select Signature:</span>
@@ -354,7 +334,6 @@ const SASTSignatureModal = ({
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Editable Fields */}
                   <div className="space-y-3">
                     <div>
                       <label className="text-sm font-medium">Rule ID</label>
@@ -379,7 +358,6 @@ const SASTSignatureModal = ({
                     </div>
                   </div>
 
-                  {/* Pattern Preview */}
                   <div>
                     <label className="text-sm font-medium">Pattern</label>
                     <pre className="mt-1 p-3 bg-muted rounded-lg text-xs font-mono overflow-x-auto">
@@ -387,7 +365,6 @@ const SASTSignatureModal = ({
                     </pre>
                   </div>
 
-                  {/* Metadata */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-sm text-muted-foreground">
@@ -452,7 +429,6 @@ const SASTSignatureModal = ({
                     )}
                   </div>
 
-                  {/* Full YAML Preview */}
                   <div>
                     <label className="text-sm font-medium">
                       Complete YAML Rule
@@ -496,5 +472,3 @@ const SASTSignatureModal = ({
 };
 
 export default SASTSignatureModal;
-
-// Made with Bob

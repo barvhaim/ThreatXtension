@@ -7,6 +7,7 @@ from threatxtension.llm.clients.provider_type import LLMProviderType
 
 load_dotenv()
 
+# Resolved at import time: changing LLM_PROVIDER mid-process has no effect, restart instead.
 LLM_PROVIDER = LLMProviderType(os.getenv("LLM_PROVIDER", LLMProviderType.WATSONX.value))
 
 

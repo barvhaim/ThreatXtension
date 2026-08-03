@@ -2,6 +2,10 @@
 Workflow Node Implementations
 
 This module contains the node functions for the extension analysis workflow.
+
+Control flow lives here, not in the graph: `build_graph()` declares no edges, so each
+node names its own successor with `Command(goto=...)`. On failure a node routes to
+CLEANUP_NODE, which is why cleanup always runs without any `finally` block.
 """
 
 import logging
@@ -42,16 +46,13 @@ def extension_path_routing_node(state: WorkflowState) -> Command:
     if not chrome_extension_path:
         raise ValueError("No Chrome extension path provided in the workflow state.")
 
-    # Check if it's an extension ID (32-character string)
     if is_chrome_extension_id(chrome_extension_path):
         logger.info("Detected Chrome extension ID: %s", chrome_extension_path)
         return Command(goto="chromestats_downloader_node")
 
-    # Check if it's a Chrome Web Store URL
     if is_chrome_extension_store_url(chrome_extension_path):
         return Command(goto=EXTENSION_METADATA_NODE)
 
-    # Check if it's a local CRX/ZIP file
     if is_local_extension_crx_file(chrome_extension_path):
         return Command(goto=EXTENSION_DOWNLOADER_NODE)
 
@@ -85,7 +86,6 @@ def extension_metadata_node(state: WorkflowState) -> Command:
         metadata_extractor = ExtensionMetadata(extension_url=chrome_extension_url)
         metadata = metadata_extractor.fetch_metadata()
         
-        # Also fetch chrome-stats metadata if we have an extension ID
         if metadata and metadata.get("extension_id"):
             try:
                 logger.info("Fetching chrome-stats metadata for extension ID: %s", metadata["extension_id"])
@@ -93,7 +93,6 @@ def extension_metadata_node(state: WorkflowState) -> Command:
                 chromestats_details = chromestats._get_extension_details(metadata["extension_id"])
                 
                 if chromestats_details:
-                    # Add chrome_stats field to metadata
                     metadata["chrome_stats"] = chromestats_details
                     logger.info("Successfully fetched chrome-stats metadata")
                 else:
@@ -135,7 +134,6 @@ def chromestats_downloader_node(state: WorkflowState) -> Command:
         logger.info("Downloading extension from chrome-stats.com: %s", extension_id)
         downloader = ChromeStatsDownloader()
         
-        # Download extension (as ZIP for easier extraction)
         file_path, metadata = downloader.download_extension(
             extension_id=extension_id,
             file_format="ZIP"
@@ -147,7 +145,6 @@ def chromestats_downloader_node(state: WorkflowState) -> Command:
         logger.info("Successfully downloaded extension: %s", file_path)
         downloaded_crx_path = file_path
         
-        # Extract the downloaded file
         extension_dir = extract_extension_crx(file_path)
         if not extension_dir:
             raise RuntimeError("Failed to extract downloaded extension")
@@ -191,23 +188,22 @@ def extension_downloader_node(state: WorkflowState) -> Command:
     if not chrome_extension_path:
         raise ValueError("No Chrome extension path provided in the workflow state.")
 
-    downloaded_crx_path = None  # Track downloaded files for cleanup
+    downloaded_crx_path = None
 
     try:
         if is_local_extension_crx_file(chrome_extension_path):
-            # User-provided file - don't set downloaded_crx_path (don't delete)
+            # User-provided file: leave downloaded_crx_path unset so cleanup won't delete it
             logger.info("Processing local extension file: %s", chrome_extension_path)
             extension_dir = extract_extension_crx(chrome_extension_path)
             if not extension_dir:
                 raise RuntimeError("Failed to extract extension file.")
         else:
-            # Tool download - set downloaded_crx_path for cleanup
             downloader = ExtensionDownloader()
             extension_info = downloader.download_extension(extension_url=chrome_extension_path)
             if not extension_info or "file_path" not in extension_info:
                 raise RuntimeError("Extension download returned no file.")
 
-            downloaded_crx_path = extension_info["file_path"]  # Store for cleanup
+            downloaded_crx_path = extension_info["file_path"]
             extension_dir = extract_extension_crx(downloaded_crx_path)
             if not extension_dir:
                 raise RuntimeError("Failed to extract CRX file.")
@@ -364,7 +360,6 @@ def cleanup_node(state: WorkflowState) -> Command:
     """
     cleanup_errors = []
 
-    # Collect file list (if not already collected)
     extension_dir = state.get("extension_dir")
     extracted_files = state.get("extracted_files", [])
 
@@ -400,7 +395,7 @@ def cleanup_node(state: WorkflowState) -> Command:
                 )
                 cleanup_errors.append(f"Failed to cleanup extension directory: {exc}")
 
-    # Clean up downloaded CRX file (only if downloaded by the tool)
+    # Only CRX files the tool downloaded are removed; user-provided files are left alone.
     downloaded_crx_path = state.get("downloaded_crx_path")
     if downloaded_crx_path:
         try:
@@ -410,7 +405,7 @@ def cleanup_node(state: WorkflowState) -> Command:
             logger.warning("Failed to cleanup CRX file %s: %s", downloaded_crx_path, exc)
             cleanup_errors.append(f"Failed to cleanup CRX file: {exc}")
 
-    # Log warnings but don't fail the workflow
+    # Cleanup problems are logged, never fatal — the analysis itself already succeeded.
     if cleanup_errors:
         logger.warning("Cleanup completed with warnings: %s", "; ".join(cleanup_errors))
 

@@ -24,10 +24,8 @@ def analyze_chrome_extension(chrome_extension_url: str) -> str:
         str: JSON string containing complete analysis results including metadata, executive summary,
              permissions analysis, SAST findings, and webstore reputation analysis.
     """
-    # Build the workflow graph
     graph = build_graph()
 
-    # Create initial workflow state
     initial_state = {
         "workflow_id": str(uuid.uuid4()),
         "chrome_extension_path": chrome_extension_url,
@@ -43,10 +41,8 @@ def analyze_chrome_extension(chrome_extension_url: str) -> str:
         "error": None,
     }
 
-    # Execute workflow
     result = graph.invoke(initial_state)
 
-    # Check for errors
     if result.get("status") == WorkflowStatus.FAILED.value:
         return json.dumps(
             {
@@ -56,7 +52,6 @@ def analyze_chrome_extension(chrome_extension_url: str) -> str:
             indent=2,
         )
 
-    # Return executive summary and extension metadata only
     response = {
         "status": "success",
         "executive_summary": result.get("executive_summary", {}),

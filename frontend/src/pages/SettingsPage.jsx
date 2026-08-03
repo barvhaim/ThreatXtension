@@ -10,7 +10,6 @@ const SettingsPage = () => {
   });
   const [saved, setSaved] = useState(false);
 
-  // Load settings on mount
   useEffect(() => {
     const stored = localStorage.getItem("threat_settings");
     if (stored) {
@@ -49,7 +48,6 @@ const SettingsPage = () => {
         </div>
 
         <div className="space-y-6">
-          {/* Security Engine */}
           <div className="p-6 rounded-lg bg-surface/50 border border-border/50">
             <div className="flex items-start gap-4">
               <Shield className="w-6 h-6 text-success mt-1" />

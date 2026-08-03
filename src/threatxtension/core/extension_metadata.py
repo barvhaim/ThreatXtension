@@ -147,7 +147,6 @@ class ExtensionMetadata:
         """
         try:
             for elem in soup.find_all(["div", "span", "td"]):
-                # Use the visible text of the element and match against the label
                 label_text = elem.get_text(strip=True)
                 if re.match(r"^\s*Updated\s*$", label_text, re.IGNORECASE):
                     next_sibling = elem.find_next_sibling()
@@ -176,20 +175,17 @@ class ExtensionMetadata:
         # pylint: disable=too-many-nested-blocks
         try:
             text_content = soup.get_text()
-            # Method 1: Find "Version" label and get next element
+            # Method 1: "Version" label, then its sibling
             for elem in soup.find_all(string=re.compile(r"^\s*Version\s*:?\s*$", re.IGNORECASE)):
                 parent = elem.parent
                 if parent:
-                    # Look at siblings
                     for sibling in parent.next_siblings:
                         if sibling and hasattr(sibling, "text"):
                             text = sibling.text.strip()
-                            # Check if it looks like a version number
                             if re.match(r"^\d+\.\d+", text):
                                 logger.debug("Found version (sibling): %s", text)
                                 return text
 
-                    # Look at parent's next sibling
                     next_elem = parent.find_next_sibling()
                     if next_elem:
                         text = next_elem.text.strip()
@@ -221,15 +217,13 @@ class ExtensionMetadata:
         """
         try:
             text_content = soup.get_text()
-            # Method 1: Find "Size" label
+            # Method 1: "Size" label, then its sibling
             for elem in soup.find_all(string=re.compile(r"^\s*Size\s*:?\s*$", re.IGNORECASE)):
                 parent = elem.parent
                 if parent:
-                    # Look at next sibling
                     next_elem = parent.find_next_sibling()
                     if next_elem:
                         text = next_elem.text.strip()
-                        # Check if it looks like a size (has KiB, MiB, MB, etc.)
                         if re.search(r"\d+\.?\d*\s*(KiB|MiB|KB|MB|GB)", text, re.IGNORECASE):
                             logger.debug("Found size (element): %s", text)
                             return text
@@ -266,11 +260,10 @@ class ExtensionMetadata:
             for elem in soup.find_all(string=re.compile(r"^\s*Offered by\s*:?\s*$", re.IGNORECASE)):
                 parent = elem.parent
                 if parent:
-                    # Get next element
                     for next_elem in parent.find_all_next(limit=10):
                         if next_elem and next_elem.string:
                             text = next_elem.get_text(strip=True)
-                            # Developer name is usually one line, not too long
+                            # Developer name is usually one short line
                             if text and 2 < len(text) < 100:
                                 name = text.split("\n")[0].strip()
                                 logger.debug("Found developer name: %s", name)
@@ -309,10 +302,8 @@ class ExtensionMetadata:
         try:
             # Method 1: Look for email inside <details> element
             for details in soup.find_all("details"):
-                # Check if summary contains "Email"
                 summary = details.find("summary")
                 if summary and "email" in summary.get_text(strip=True).lower():
-                    # Get the div after summary (contains actual email)
                     email_div = summary.find_next_sibling("div")
                     if email_div:
                         email = email_div.get_text(strip=True)
@@ -324,12 +315,9 @@ class ExtensionMetadata:
             for elem in soup.find_all(string=re.compile(r"Email", re.IGNORECASE)):
                 parent = elem.parent
                 if parent:
-                    # Search in siblings and nearby elements
                     for next_elem in parent.find_all_next(limit=5):
                         text = next_elem.get_text(strip=True)
-                        # Check if it looks like an email
                         if "@" in text and "." in text:
-                            # Extract email with regex to be safe
                             match = re.search(
                                 r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", text
                             )
@@ -382,7 +370,6 @@ class ExtensionMetadata:
                 text = link.get_text(strip=True).lower()
                 href = link["href"]
 
-                # Check if link text contains "website"
                 if "website" in text and href.startswith("http"):
                     # Skip chrome web store URLs
                     if "chrome.google.com" not in href and "chromewebstore.google.com" not in href:
@@ -396,7 +383,6 @@ class ExtensionMetadata:
                 href = link["href"]
 
                 if any(keyword in text for keyword in keywords) and href.startswith("http"):
-                    # Skip chrome web store URLs
                     if "chrome.google.com" not in href and "chromewebstore.google.com" not in href:
                         logger.debug("Found website (keyword): %s", href)
                         return href
@@ -438,7 +424,6 @@ class ExtensionMetadata:
             str: All text from Privacy section or None
         """
         try:
-            # Find the section with "Privacy" header
             h2 = soup.find("h2", string="Privacy")
             section = h2.parent.parent
             if section:
@@ -549,7 +534,6 @@ class ExtensionMetadata:
         try:
             categories = []
 
-            # Find all category links in order
             for link in soup.find_all("a", href=re.compile(r"/category/")):
                 category_text = link.get_text(strip=True)
                 if category_text and category_text not in categories:
@@ -583,7 +567,6 @@ class ExtensionMetadata:
         try:
             metadata["title"] = self._extract_title(soup)
 
-            # Core metrics
             metadata["user_count"] = self._extract_user_count(soup)
             metadata["rating"] = self._extract_rating(soup)
             metadata["ratings_count"] = self.extract_ratings_count(soup)
@@ -591,13 +574,11 @@ class ExtensionMetadata:
             metadata["version"] = self._extract_version(soup)
             metadata["size"] = self._extract_size(soup)
 
-            # Developer info
             metadata["developer_name"] = self._extract_developer_name(soup)
             metadata["developer_email"] = self._extract_developer_email(soup)
             metadata["developer_website"] = self._extract_website(soup)
             metadata["privacy_policy"] = self._extract_privacy_policy(soup)
 
-            # Additional metadata
             metadata["follows_best_practices"] = self._extract_is_follows_best_practices(soup)
             metadata["is_featured"] = self._extract_is_featured(soup)
             metadata["category"] = self._extract_category(soup)

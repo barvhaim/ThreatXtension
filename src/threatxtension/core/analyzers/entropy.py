@@ -27,12 +27,10 @@ class EntropyAnalyzer(BaseAnalyzer):
     Obfuscated/packed code often has entropy > 7.0.
     """
 
-    # Entropy thresholds
     ENTROPY_NORMAL_MAX = 5.5
     ENTROPY_SUSPICIOUS_MIN = 6.5
     ENTROPY_HIGH_RISK_MIN = 7.5
 
-    # Common obfuscation patterns
     OBFUSCATION_PATTERNS = {
         "eval_usage": {
             "pattern": r"\beval\s*\(",
@@ -96,7 +94,6 @@ class EntropyAnalyzer(BaseAnalyzer):
         },
     }
 
-    # Files to skip (libraries, minified files)
     SKIP_PATTERNS = [
         r"\.min\.js$",
         r"node_modules",
@@ -127,11 +124,9 @@ class EntropyAnalyzer(BaseAnalyzer):
         if not data:
             return 0.0
 
-        # Count byte frequencies
         byte_counts = Counter(data)
         total_bytes = len(data)
 
-        # Calculate entropy
         entropy = 0.0
         for count in byte_counts.values():
             if count > 0:
@@ -221,27 +216,22 @@ class EntropyAnalyzer(BaseAnalyzer):
             Analysis results for the file
         """
         try:
-            # Read file content
             with open(file_path, "rb") as f:
                 raw_content = f.read()
 
             with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                 text_content = f.read()
 
-            # Calculate entropy
             byte_entropy = self.calculate_shannon_entropy(raw_content)
             char_entropy = self.calculate_string_entropy(text_content)
 
             # Use byte entropy as primary (more reliable for detecting packed content)
             primary_entropy = byte_entropy
 
-            # Detect obfuscation patterns
             patterns_detected = self._detect_obfuscation_patterns(text_content)
 
-            # Count high-risk patterns
             high_risk_patterns = [p for p in patterns_detected if p["risk"] == "high"]
 
-            # Determine overall risk
             entropy_risk = self._classify_entropy_risk(primary_entropy)
 
             # Combine entropy and pattern analysis for final risk
@@ -310,7 +300,6 @@ class EntropyAnalyzer(BaseAnalyzer):
 
         extension_path = Path(extension_dir)
 
-        # Find all JavaScript files
         js_files = list(extension_path.rglob("*.js"))
 
         logger.info("Entropy analysis: Found %d JavaScript files", len(js_files))
@@ -320,12 +309,10 @@ class EntropyAnalyzer(BaseAnalyzer):
         for js_file in js_files:
             file_path = str(js_file)
 
-            # Skip library files
             if self._should_skip_file(file_path):
                 results["files_skipped"] += 1
                 continue
 
-            # Analyze file
             file_result = self._analyze_file(file_path)
 
             # Make path relative for cleaner output
@@ -334,7 +321,6 @@ class EntropyAnalyzer(BaseAnalyzer):
             results["file_results"].append(file_result)
             results["files_analyzed"] += 1
 
-            # Track obfuscated/suspicious files
             risk = file_result.get("overall_risk", "normal")
             if risk == "high":
                 results["obfuscated_files"] += 1
@@ -348,7 +334,6 @@ class EntropyAnalyzer(BaseAnalyzer):
             elif risk == "medium":
                 results["suspicious_files"] += 1
 
-            # Aggregate patterns
             for pattern in file_result.get("obfuscation_patterns", []):
                 pattern_name = pattern["pattern_name"]
                 if pattern_name not in all_patterns:
@@ -363,7 +348,6 @@ class EntropyAnalyzer(BaseAnalyzer):
 
         results["summary"]["pattern_summary"] = all_patterns
 
-        # Determine overall risk and recommendation
         if results["obfuscated_files"] > 0:
             results["summary"]["overall_risk"] = "high"
             results["summary"]["obfuscation_detected"] = True

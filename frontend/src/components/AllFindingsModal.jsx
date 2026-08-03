@@ -23,7 +23,6 @@ const AllFindingsModal = ({
 
   if (!findings) return null;
 
-  // Filter findings based on search and severity
   const filteredFindings = findings.filter((finding) => {
     const matchesSearch =
       searchQuery === "" ||
@@ -37,7 +36,6 @@ const AllFindingsModal = ({
     return matchesSearch && matchesSeverity;
   });
 
-  // Group findings by severity
   const groupedFindings = {
     HIGH: filteredFindings.filter((f) => f.severity === "HIGH" || f.severity === "CRITICAL" || f.severity === "ERROR"),
     MEDIUM: filteredFindings.filter((f) => f.severity === "MEDIUM" || f.severity === "WARNING"),
@@ -68,7 +66,6 @@ const AllFindingsModal = ({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Search and Filter Controls */}
         <div className="space-y-3 pb-4 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -116,7 +113,6 @@ const AllFindingsModal = ({
           </div>
         </div>
 
-        {/* Findings List */}
         <div className="flex-1 overflow-y-auto space-y-3 pr-2">
           {filteredFindings.length === 0 ? (
             <div className="text-center text-muted-foreground py-12">
@@ -166,7 +162,6 @@ const AllFindingsModal = ({
           )}
         </div>
 
-        {/* Footer with summary */}
         <div className="pt-4 border-t flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
             Showing {filteredFindings.length} of {findings.length} findings
@@ -181,5 +176,3 @@ const AllFindingsModal = ({
 };
 
 export default AllFindingsModal;
-
-// Made with Bob

@@ -37,7 +37,6 @@ class SummaryGenerator:
         extension_description = manifest.get("description", "No description available")
         version = manifest.get("version", "Unknown")
 
-        # Handle None values - use empty dict if None
         permissions_analysis_data = analysis_results.get("permissions_analysis") or {}
         webstore_analysis_data = analysis_results.get("webstore_analysis") or {}
         javascript_analysis_data = analysis_results.get("javascript_analysis") or {}
@@ -54,7 +53,6 @@ class SummaryGenerator:
         )
         sast_analysis = javascript_analysis_data.get("sast_analysis", "No analysis available.")
 
-        # Format chrome-stats analysis for LLM
         chromestats_analysis = "No Chrome Stats analysis available."
         if chromestats_analysis_data.get("enabled"):
             api_risk = chromestats_analysis_data.get("api_risk_analysis", {})
@@ -135,7 +133,7 @@ Key Indicators:
             logger.warning("No manifest data provided for summary generation")
             return None
 
-        # Calculate security score using SecurityScorer
+        # The scorer owns the score and risk level; the LLM only writes prose.
         scorer = SecurityScorer()
         score_results = scorer.calculate_score(analysis_results)
 
@@ -162,7 +160,7 @@ Key Indicators:
             chain = prompt | llm | JsonOutputParser()
             summary = chain.invoke({})
 
-            # Add deterministic risk score to summary
+            # Deterministic score overwrites anything the LLM may have invented.
             summary["security_score"] = score_results["security_score"]
             summary["overall_risk_level"] = score_results["risk_level"]
             summary["risk_breakdown"] = score_results["risk_breakdown"]
@@ -173,7 +171,7 @@ Key Indicators:
             return summary
         except Exception as exc:
             logger.exception("Failed to generate executive summary: %s", exc)
-            # Return score results even if LLM summary fails
+            # LLM failed, but the deterministic score is still stamped onto the summary.
             return {
                 "security_score": score_results["security_score"],
                 "overall_risk_level": score_results["risk_level"],
@@ -216,7 +214,6 @@ Key Indicators:
             logger.warning("No manifest data provided for executive summary generation")
             return None
 
-        # Calculate security score using SecurityScorer
         scorer = SecurityScorer()
         score_results = scorer.calculate_score(analysis_results)
 
@@ -226,7 +223,6 @@ Key Indicators:
             score_results["risk_level"],
         )
 
-        # Get executive summary prompt template
         try:
             template_str = get_prompts("executive_summary")
             template_str = template_str.get("executive_summary")
@@ -238,7 +234,6 @@ Key Indicators:
             extension_description = manifest.get("description", "No description available")
             version = manifest.get("version", "Unknown")
 
-            # Handle None values - use empty dict if None
             permissions_analysis_data = analysis_results.get("permissions_analysis") or {}
             webstore_analysis_data = analysis_results.get("webstore_analysis") or {}
             javascript_analysis_data = analysis_results.get("javascript_analysis") or {}
@@ -255,7 +250,6 @@ Key Indicators:
             )
             sast_analysis = javascript_analysis_data.get("sast_analysis", "No analysis available.")
 
-            # Format chrome-stats analysis for LLM
             chromestats_analysis = "No Chrome Stats analysis available."
             if chromestats_analysis_data.get("enabled"):
                 api_risk = chromestats_analysis_data.get("api_risk_analysis", {})
@@ -282,7 +276,6 @@ This data comes from chrome-stats.com API and includes store removal status, per
 Key Indicators:
 {chr(10).join(f"  • {indicator}" for indicator in risk_indicators[:5])}"""
 
-            # Format risk breakdown for prompt
             risk_breakdown_str = "\n".join(
                 [
                     f"- {category}: {details['points']} points ({details['level']})"
@@ -333,7 +326,7 @@ Key Indicators:
             chain = template | llm | JsonOutputParser()
             executive_summary = chain.invoke({})
 
-            # Add risk score details to summary
+            # Deterministic score overwrites anything the LLM may have invented.
             executive_summary["security_score"] = score_results["security_score"]
             executive_summary["risk_breakdown"] = score_results["risk_breakdown"]
             executive_summary["risk_details"] = score_results["risk_details"]
@@ -344,7 +337,7 @@ Key Indicators:
 
         except Exception as exc:
             logger.exception("Failed to generate executive summary: %s", exc)
-            # Return basic summary with score results
+            # LLM failed, but the deterministic score is still stamped onto the summary.
             return {
                 "executive_overview": f"Security analysis completed with risk score: {score_results['security_score']}/100 (Risk: {score_results['risk_level']})",
                 "overall_risk_level": score_results["risk_level"],

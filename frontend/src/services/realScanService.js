@@ -5,13 +5,11 @@ class RealScanService {
     this.baseURL = import.meta.env.VITE_API_URL || "";
   }
 
-  // Extract extension ID from Chrome Web Store URL
   extractExtensionId(url) {
     const match = url.match(/\/detail\/(?:[^/]+\/)?([a-z]{32})/);
     return match ? match[1] : null;
   }
 
-  // Trigger a scan for an extension URL
   async triggerScan(url, force = false) {
     try {
       const response = await fetch(`${this.baseURL}/api/scan/trigger`, {
@@ -34,7 +32,6 @@ class RealScanService {
     }
   }
 
-  // Upload and scan a CRX/ZIP file
   async uploadAndScan(file) {
     try {
       const formData = new FormData();
@@ -58,10 +55,8 @@ class RealScanService {
     }
   }
 
-  // Get real scan results from CLI analysis
   async getRealScanResults(extensionId) {
     try {
-      // Try to read the analysis file that CLI creates
       const response = await fetch(
         `${this.baseURL}/api/scan/results/${extensionId}`,
       );
@@ -78,7 +73,6 @@ class RealScanService {
     }
   }
 
-  // Check scan status
   async checkScanStatus(extensionId) {
     try {
       const response = await fetch(
@@ -90,7 +84,6 @@ class RealScanService {
       return { scanned: false };
     } catch (error) {
       console.error("Failed to check scan status:", error);
-      // Determine if it's a network error (server down)
       if (
         error.message.includes("fetch") ||
         error.message.includes("network")
@@ -103,13 +96,10 @@ class RealScanService {
     }
   }
 
-  // Format real CLI results for web display
   formatRealResults(cliResults) {
     try {
-      // Extract the main analysis results
       const sastResults = cliResults.sast_results || {};
 
-      // Flatten SAST findings from object to array
       const sastFindings = [];
       if (sastResults.sast_findings) {
         for (const [filePath, findings] of Object.entries(
@@ -127,7 +117,6 @@ class RealScanService {
       }
 
       return {
-        // Map CLI fields to frontend fields
         securityScore:
           cliResults.overall_security_score ||
           sastResults.overall_security_score ||
@@ -144,18 +133,14 @@ class RealScanService {
         totalFiles: cliResults.extracted_files?.length || 0,
         totalFindings: cliResults.total_findings || sastFindings.length || 0,
 
-        // Files information
         files: this.formatFileResults(cliResults.extracted_files || []),
 
-        // SAST results from CLI analysis - use flattened findings
         sastResults: this.formatSASTResults(sastFindings),
 
-        // Additional CLI data
         extensionId: cliResults.extension_id,
         url: cliResults.url,
         downloadResult: cliResults.download_result,
 
-        // Metadata mapping
         name:
           cliResults.metadata?.title ||
           cliResults.manifest?.name ||
@@ -174,34 +159,26 @@ class RealScanService {
           "Unknown",
         lastUpdated: cliResults.metadata?.last_updated || "Unknown",
 
-        // Permissions mapping
         permissions: this.formatPermissions(
           cliResults.permissions_analysis || {},
         ),
 
-        // Recommendations mapping
         recommendations: this.formatRecommendations(cliResults.summary || {}),
 
-        // AI Summary
         executiveSummary: cliResults.summary?.summary || "No summary available",
 
-        // Risk distribution
         riskDistribution:
           cliResults.risk_distribution || sastResults.risk_distribution || {},
 
-        // Overall risk assessment
         overallRisk:
           cliResults.overall_risk || sastResults.overall_risk || "unknown",
         totalRiskScore:
           cliResults.total_risk_score || sastResults.total_risk_score || 0,
 
-        // VirusTotal threat intelligence
         virustotalAnalysis: cliResults.virustotal_analysis || null,
 
-        // Entropy/Obfuscation analysis
         entropyAnalysis: cliResults.entropy_analysis || null,
 
-        // Chrome Stats metadata (from chrome-stats.com API)
         chromeStatsMetadata: cliResults.chromeStatsMetadata || null,
       };
     } catch (error) {
@@ -240,21 +217,19 @@ class RealScanService {
     return "LOW";
   }
 
-  // Format file analysis results
   formatFileResults(files) {
     if (!Array.isArray(files)) {
       return [];
     }
 
     return files.map((file, index) => {
-      // Extract just the filename for display
       const fileName = file.split("/").pop();
 
       return {
         name: fileName,
-        path: file, // Keep full path for API calls
-        fullPath: file, // Store full path separately
-        size: "Unknown", // CLI doesn't provide file sizes
+        path: file,
+        fullPath: file,
+        size: "Unknown",
         type: this.getFileType(fileName),
         riskLevel: this.getFileRiskLevel(fileName),
         index: index,
@@ -262,7 +237,6 @@ class RealScanService {
     });
   }
 
-  // Get file type based on extension
   getFileType(filename) {
     if (filename.endsWith(".js")) return "JavaScript";
     if (filename.endsWith(".html")) return "HTML";
@@ -279,7 +253,6 @@ class RealScanService {
     return "Other";
   }
 
-  // Get file risk level based on type and name
   getFileRiskLevel(filename) {
     if (
       filename.includes("background") ||
@@ -294,25 +267,22 @@ class RealScanService {
     return "LOW";
   }
 
-  // Format SAST results
   formatSASTResults(sastResults) {
     if (!Array.isArray(sastResults)) {
       return [];
     }
 
     return sastResults.map((finding) => {
-      // Extract data from Semgrep format
       const extra = finding.extra || {};
       const start = finding.start || {};
       const metadata = extra.metadata || {};
 
-      // Get line number from multiple possible sources
       const lineNumber = start.line || finding.line_number || finding.line || 0;
 
       return {
         file: finding.file || finding.path || "Unknown",
         line: lineNumber,
-        line_number: lineNumber, // Add explicit line_number field for modal
+        line_number: lineNumber,
         title:
           finding.check_id ||
           finding.pattern_name ||
@@ -328,7 +298,6 @@ class RealScanService {
         context: finding.context || extra.lines || "",
         matched_text:
           finding.matched_text || finding.match_text || extra.lines || "",
-        // Additional Semgrep-specific fields
         check_id: finding.check_id,
         pattern_name: finding.pattern_name || finding.check_id,
         checkId: finding.check_id,
@@ -336,7 +305,6 @@ class RealScanService {
         mitre: metadata.mitre,
         cwe: metadata.cwe,
         owasp: metadata.owasp,
-        // Include extra metadata for modal
         extra: {
           ...extra,
           metadata: metadata,
@@ -345,7 +313,6 @@ class RealScanService {
     });
   }
 
-  // Map CLI risk levels to frontend severity levels
   mapRiskLevelToSeverity(riskLevel) {
     const level = riskLevel.toLowerCase();
     if (level === "high" || level === "malicious") return "HIGH";
@@ -354,7 +321,6 @@ class RealScanService {
     return "MEDIUM";
   }
 
-  // Get file content from extracted files
   async getFileContent(extensionId, filePath) {
     try {
       // Encode each path segment separately to preserve forward slashes
@@ -380,7 +346,6 @@ class RealScanService {
     }
   }
 
-  // Get file list from extracted directory
   async getFileList(extensionId) {
     try {
       const response = await fetch(
@@ -399,7 +364,6 @@ class RealScanService {
     }
   }
 
-  // Format permissions from CLI analysis
   formatPermissions(permissionsAnalysis) {
     if (!permissionsAnalysis || !permissionsAnalysis.permissions_details) {
       return [];
@@ -411,12 +375,11 @@ class RealScanService {
       return {
         name: name,
         description: info.justification_reasoning || "No details available",
-        risk: info.is_reasonable ? "LOW" : "HIGH", // Infer risk if not provided
+        risk: info.is_reasonable ? "LOW" : "HIGH",
       };
     });
   }
 
-  // Format recommendations from CLI summary
   formatRecommendations(summary) {
     if (!summary || !summary.recommendations) {
       return [];
@@ -424,7 +387,7 @@ class RealScanService {
 
     return summary.recommendations.map((rec) => ({
       title: rec,
-      priority: "MEDIUM", // Default priority
+      priority: "MEDIUM",
       description: "",
     }));
   }

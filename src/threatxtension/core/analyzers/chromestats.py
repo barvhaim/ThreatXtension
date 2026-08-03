@@ -31,7 +31,6 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
     - Similar malicious extensions
     """
 
-    # Risk thresholds
     NORMAL_UNINSTALL_RATE = 0.10  # 10%
     HIGH_UNINSTALL_RATE = 0.30    # 30%
     SUSPICIOUS_GROWTH_RATE = 5.0   # 500% increase
@@ -66,7 +65,6 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
         try:
             url = f"{self.api_base_url}/{endpoint}"
             
-            # Initialize params if None
             if params is None:
                 params = {}
             
@@ -105,14 +103,12 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
         risk_indicators = []
         risk_score = 0
         
-        # Check for suspicious growth
         if previous_installs > 0:
             growth_rate = (current_installs - previous_installs) / previous_installs
             if growth_rate > self.SUSPICIOUS_GROWTH_RATE:
                 risk_indicators.append(f"Suspicious install spike: {growth_rate*100:.0f}% increase")
                 risk_score += 5
         
-        # Check uninstall rate
         if uninstall_rate > self.HIGH_UNINSTALL_RATE:
             risk_indicators.append(f"High uninstall rate: {uninstall_rate*100:.0f}% (normal: <10%)")
             risk_score += 3
@@ -120,7 +116,6 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
             risk_indicators.append(f"Elevated uninstall rate: {uninstall_rate*100:.0f}%")
             risk_score += 1
         
-        # Check for declining user base
         if net_growth < 0:
             risk_indicators.append(f"Declining user base: {net_growth} users")
             risk_score += 2
@@ -153,24 +148,20 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
         risk_indicators = []
         risk_score = 0
         
-        # Check for rating drop
         if previous_rating > 0:
             rating_drop = previous_rating - current_rating
             if rating_drop >= self.MIN_RATING_DROP:
                 risk_indicators.append(f"Major rating drop: {previous_rating:.1f} → {current_rating:.1f}")
                 risk_score += 3
         
-        # Check for low rating
         if current_rating < 3.0:
             risk_indicators.append(f"Low rating: {current_rating:.1f}/5.0")
             risk_score += 2
         
-        # Check for fake reviews
         if fake_review_probability > 0.5:
             risk_indicators.append(f"High fake review probability: {fake_review_probability*100:.0f}%")
             risk_score += 2
         
-        # Analyze recent review sentiment
         negative_count = sum(1 for r in recent_reviews if r.get('rating', 5) <= 2)
         if recent_reviews and negative_count / len(recent_reviews) > 0.7:
             risk_indicators.append(f"Mostly negative recent reviews: {negative_count}/{len(recent_reviews)}")
@@ -205,17 +196,14 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
         risk_indicators = []
         risk_score = 0
         
-        # Check account age
         if account_age_days < self.NEW_DEVELOPER_DAYS:
             risk_indicators.append(f"New developer account: {account_age_days} days old")
             risk_score += 2
         
-        # Check for removed extensions
         if removed_extensions > 0:
             risk_indicators.append(f"{removed_extensions} extensions removed for violations")
             risk_score += 5
         
-        # Check policy violations
         if policy_violations:
             violation_types = [v.get('type', 'Unknown') for v in policy_violations]
             risk_indicators.append(f"Policy violations: {', '.join(violation_types)}")
@@ -250,7 +238,6 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
         risk_indicators = []
         risk_score = 0
         
-        # Calculate percentage from high-risk regions
         total_installs = sum(country_distribution.values())
         high_risk_installs = sum(
             count for country, count in country_distribution.items()
@@ -267,7 +254,6 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
                 risk_indicators.append(f"{high_risk_percentage*100:.0f}% installs from high-risk regions")
                 risk_score += 2
         
-        # Check for unusual concentration
         if country_distribution:
             top_country_percentage = max(country_distribution.values()) / total_installs if total_installs > 0 else 0
             if top_country_percentage > 0.8:
@@ -354,10 +340,8 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
             description = reason.get('description', '')
             reason_risk = reason.get('risk', 0)
             
-            # Add to indicators
             risk_indicators.append(f"[{severity}] {description}")
-            
-            # Map severity to risk points
+
             if severity == 'Critical':
                 risk_score += min(10, reason_risk // 2)  # Scale down API risk to our scoring
             elif severity == 'High':
@@ -375,7 +359,6 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
             # Likelihood reasons are MORE important for security scoring
             risk_indicators.append(f"[{severity}] {description}")
             
-            # Special handling for critical likelihood indicators
             if reason_text == 'removed-from-store':
                 risk_score += 15  # CRITICAL: Extension was removed from store
             elif severity == 'Critical':
@@ -385,7 +368,6 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
             elif severity == 'Medium':
                 risk_score += min(4, abs(reason_risk))
         
-        # Determine risk level
         if risk_score >= 15 or risk_likelihood >= 3:
             risk_level = 'critical'
         elif risk_score >= 10 or risk_likelihood >= 2:
@@ -436,7 +418,6 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
         extension_id = metadata['extension_id']
         logger.info("Chrome Stats: Analyzing extension %s", extension_id)
         
-        # Fetch extension details from Chrome Stats API
         # API endpoint: /api/detail?id={extension_id}
         extension_data = self._make_api_request("api/detail", params={'id': extension_id})
         
@@ -446,19 +427,17 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
                 'error': 'Failed to fetch Chrome Stats data',
             }
         
-        # Analyze API-provided risk data (NEW - highest priority)
         api_risk_analysis = self._analyze_api_risk_data(extension_data)
-        
-        # Perform behavioral analyses using the single API response
+
+        # All behavioral analyses read the same single API response
         install_analysis = self._analyze_install_trends(extension_data)
         rating_analysis = self._analyze_rating_patterns(extension_data)
         developer_analysis = self._analyze_developer_reputation(extension_data)
         geo_analysis = self._analyze_geographic_distribution(extension_data)
         similar_analysis = self._analyze_similar_extensions(extension_data)
         
-        # Calculate overall risk (prioritize API risk data)
         total_risk_score = (
-            api_risk_analysis['risk_score'] +  # NEW: API risk data (max 20 points)
+            api_risk_analysis['risk_score'] +  # max 20 points
             install_analysis['risk_score'] +
             rating_analysis['risk_score'] +
             developer_analysis['risk_score'] +
@@ -466,9 +445,8 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
             similar_analysis['risk_score']
         )
         
-        # Collect all risk indicators (API indicators first)
         all_risk_indicators = (
-            api_risk_analysis['risk_indicators'] +  # NEW: API risk indicators
+            api_risk_analysis['risk_indicators'] +
             install_analysis['risk_indicators'] +
             rating_analysis['risk_indicators'] +
             developer_analysis['risk_indicators'] +
@@ -476,7 +454,6 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
             similar_analysis['risk_indicators']
         )
         
-        # Determine overall risk level (consider API risk level)
         if total_risk_score >= 20 or api_risk_analysis['risk_level'] == 'critical':
             overall_risk = 'critical'
         elif total_risk_score >= 15:
@@ -492,7 +469,7 @@ class ChromeStatsAnalyzer(BaseAnalyzer):
             'overall_risk_level': overall_risk,
             'total_risk_score': total_risk_score,
             'risk_indicators': all_risk_indicators,
-            'api_risk_analysis': api_risk_analysis,  # NEW: Include API risk data
+            'api_risk_analysis': api_risk_analysis,
             'install_trends': install_analysis,
             'rating_patterns': rating_analysis,
             'developer_reputation': developer_analysis,

@@ -7,21 +7,11 @@ class CLIService {
     this.isLocalMode = true; // For now, we'll simulate CLI calls
   }
 
-  /**
-   * Extract extension ID from Chrome Web Store URL
-   * @param {string} url - Chrome Web Store URL
-   * @returns {string} Extension ID
-   */
   extractExtensionId(url) {
     const match = url.match(/\/detail\/(?:[^/]+\/)?([a-zA-Z0-9]+)/);
     return match ? match[1] : null;
   }
 
-  /**
-   * Validate Chrome Web Store URL
-   * @param {string} url - URL to validate
-   * @returns {boolean} Is valid URL
-   */
   validateUrl(url) {
     if (!url) return false;
 
@@ -40,7 +30,6 @@ class CLIService {
       throw new Error('Invalid Chrome Web Store URL');
     }
 
-    // Simulate the actual CLI process steps
     const scanSteps = [
       {
         phase: 'Initialization',
@@ -177,10 +166,6 @@ class CLIService {
     window.URL.revokeObjectURL(url);
   }
 
-  /**
-   * Get system status
-   * @returns {Promise<Object>} System status information
-   */
   async getSystemStatus() {
     return {
       sastEngine: { status: 'active', version: '1.0.0' },
@@ -191,5 +176,4 @@ class CLIService {
   }
 }
 
-// Export singleton instance
 export default new CLIService();

@@ -30,8 +30,7 @@ class ManifestParser:
         """
         permissions = manifest.get("permissions", [])
 
-        # Manifest V2 sometimes includes host permissions in permissions array
-        # Filter out URL patterns (they should be in host_permissions)
+        # V3 keeps host patterns in host_permissions, so drop any that leaked in here
         if manifest.get("manifest_version") == 3:
             permissions = [p for p in permissions if not self._is_url_pattern(p)]
 
@@ -46,7 +45,6 @@ class ManifestParser:
         """
         if manifest.get("manifest_version") == 3:
             return manifest.get("host_permissions", [])
-        # V2: Extract URL patterns from permissions
         permissions = manifest.get("permissions", [])
         return [p for p in permissions if self._is_url_pattern(p)]
 
@@ -102,13 +100,11 @@ class ManifestParser:
             return None
 
         if manifest.get("manifest_version") == 3:
-            # V3: Service worker
             return {
                 "type": "service_worker",
                 "service_worker": background.get("service_worker"),
                 "type_module": background.get("type") == "module",
             }
-        # V2: Scripts or page
         return {
             "type": "scripts" if "scripts" in background else "page",
             "scripts": background.get("scripts", []),
@@ -129,10 +125,9 @@ class ManifestParser:
         if not war:
             return []
 
-        # V3 format: array of objects
+        # V3 uses objects (resources + matches); V2 uses plain strings
         if manifest.get("manifest_version") == 3 and war and isinstance(war[0], dict):
             return war
-        # V2 format: array of strings
         return war
 
     @staticmethod
@@ -148,11 +143,9 @@ class ManifestParser:
         if not csp:
             return None
 
-        # V3: Object
         if isinstance(csp, dict):
             return csp.get("extension_pages", "")
 
-        # V2: String
         return csp
 
     @staticmethod
@@ -168,11 +161,9 @@ class ManifestParser:
         """
         js_files = []
 
-        # Content scripts
         for script in manifest_data.get("content_scripts", []):
             js_files.extend(script.get("js", []))
 
-        # Background scripts
         background = manifest_data.get("background")
         if background:
             if background.get("type") == "service_worker":
@@ -180,11 +171,9 @@ class ManifestParser:
             else:
                 js_files.extend(background.get("scripts", []))
 
-        # Action popup
         action = manifest_data.get("action")
         if action and action.get("default_popup"):
-            # Note: Popup is HTML, need to parse it to find JS
-            # For now, just note the HTML file
+            # TODO: the popup is HTML; parse it to discover the JS it loads
             pass
 
         return js_files
@@ -202,7 +191,6 @@ class ManifestParser:
             "host_permissions", []
         )
 
-        # Known dangerous permissions
         dangerous_list = [
             "cookies",  # Can steal session cookies
             "webRequest",  # Can intercept/modify requests
@@ -250,32 +238,25 @@ class ManifestParser:
             with open(manifest_path, "r", encoding="utf-8") as f:
                 raw_manifest = json.load(f)
 
-            # Extract and structure data
             parsed = {
-                # Basic info
                 "name": raw_manifest.get("name", "Unknown"),
                 "version": raw_manifest.get("version", "Unknown"),
                 "manifest_version": raw_manifest.get("manifest_version", 2),
                 "description": raw_manifest.get("description", ""),
-                # Permissions (CRITICAL for risk scoring)
                 "permissions": self._extract_permissions(raw_manifest),
                 "host_permissions": self._extract_host_permissions(raw_manifest),
                 "optional_permissions": raw_manifest.get("optional_permissions", []),
-                # Scripts
                 "content_scripts": self._extract_content_scripts(raw_manifest),
                 "background": self._extract_background(raw_manifest),
-                # UI Components
                 "action": raw_manifest.get("action")
                 or raw_manifest.get("browser_action")
                 or raw_manifest.get("page_action"),
                 "options_page": raw_manifest.get("options_page")
                 or raw_manifest.get("options_ui", {}).get("page"),
-                # Security-relevant fields
                 "web_accessible_resources": self._extract_web_accessible_resources(raw_manifest),
                 "externally_connectable": raw_manifest.get("externally_connectable"),
                 "content_security_policy": self._extract_csp(raw_manifest),
                 "update_url": raw_manifest.get("update_url"),
-                # Additional
                 "icons": raw_manifest.get("icons", {}),
                 "homepage_url": raw_manifest.get("homepage_url"),
                 "author": raw_manifest.get("author"),

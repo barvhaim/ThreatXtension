@@ -29,18 +29,14 @@ def _safe_extract_zip(zip_ref: zipfile.ZipFile, extract_dir: str) -> None:
 def extract_extension_id_by_url(url):
     """Extract extension ID from Chrome Web Store URL"""
     try:
-        # Handle different URL formats
         if "/detail/" in url:
             # Format: https://chromewebstore.google.com/detail/name/id or
             # https://chromewebstore.google.com/detail/id
             parts = url.split("/detail/")
             if len(parts) > 1:
                 extension_part = parts[1]
-                # Split by '/' and take the last part (the ID)
                 extension_id = extension_part.split("/")[-1]
-                # Remove query parameters (e.g., ?utm_source=...)
                 extension_id = extension_id.split("?")[0]
-                # Remove any trailing slashes
                 extension_id = extension_id.rstrip("/")
                 return extension_id
         elif "id=" in url:
@@ -73,13 +69,10 @@ def calculate_file_hash(file_path: str) -> Optional[str]:
 def extract_extension_crx(file_path: str) -> Optional[str]:
     """Extract .crx file to a persistent directory for file viewing"""
 
-    # Use persistent storage directory instead of /tmp
     try:
-        # Get storage path from environment or use default
         storage_path = os.environ.get("EXTENSION_STORAGE_PATH", "extensions_storage")
         os.makedirs(storage_path, exist_ok=True)
         
-        # Create extraction directory with unique name
         base_name = os.path.basename(file_path)
         extract_dir_name = f"extracted_{base_name}_{os.getpid()}"
         extract_dir = os.path.join(storage_path, extract_dir_name)
@@ -91,9 +84,8 @@ def extract_extension_crx(file_path: str) -> Optional[str]:
             # CRX files are ZIP files with a different header
             # We need to skip the first few bytes
             with open(file_path, "rb") as f:
-                # Skip CRX header (first 4 bytes)
+                # Skip the CRX header to expose the ZIP payload underneath
                 f.seek(4)
-                # Read the ZIP content
                 zip_data = f.read()
 
             temp_zip = os.path.join(extract_dir, "temp.zip")
@@ -106,7 +98,6 @@ def extract_extension_crx(file_path: str) -> Optional[str]:
             os.remove(temp_zip)
 
         elif file_path.endswith(".zip"):
-            # Direct ZIP extraction
             with zipfile.ZipFile(file_path, "r") as zip_ref:
                 _safe_extract_zip(zip_ref, extract_dir)
 

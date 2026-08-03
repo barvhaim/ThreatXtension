@@ -175,7 +175,6 @@ class PermissionsAnalyzer(BaseAnalyzer):
         """
         import re
 
-        # Skip special patterns
         if permission in ["<all_urls>", "*://*/*", "http://*/*", "https://*/*", "file:///*"]:
             return None
 
@@ -202,7 +201,6 @@ class PermissionsAnalyzer(BaseAnalyzer):
         if permission_domain == sensitive_domain:
             return True
 
-        # Check if it's a subdomain (ends with .sensitive_domain)
         if permission_domain.endswith(f".{sensitive_domain}"):
             return True
 
@@ -223,7 +221,6 @@ class PermissionsAnalyzer(BaseAnalyzer):
             if not permission_domain:
                 continue
 
-            # Check against all enabled categories
             for category_key, category_config in self.sensitive_domains_config.items():
                 if not category_config.get("enabled", False):
                     continue
@@ -247,7 +244,6 @@ class PermissionsAnalyzer(BaseAnalyzer):
         """
         result_parts = []
 
-        # Check for critical patterns
         critical_patterns = {
             "<all_urls>": "Access to ALL websites and local files",
             "*://*/*": "Access to all HTTP/HTTPS websites",
@@ -279,7 +275,6 @@ class PermissionsAnalyzer(BaseAnalyzer):
         if not critical_found:
             result_parts.append("✅ No critical host permissions detected.")
 
-        # Check for sensitive domain access
         sensitive_matches = self._detect_sensitive_domains(host_permissions)
 
         if sensitive_matches:

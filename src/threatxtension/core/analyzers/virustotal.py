@@ -16,7 +16,6 @@ from dotenv import load_dotenv
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-# Check if vt-py is available
 try:
     import vt
 
@@ -46,7 +45,6 @@ class VirusTotalAnalyzer(BaseAnalyzer):
         "popup.js",
     ]
 
-    # File extensions to scan
     SCANNABLE_EXTENSIONS = {".js", ".html", ".json"}
 
     def __init__(self):
@@ -143,11 +141,9 @@ class VirusTotalAnalyzer(BaseAnalyzer):
             for file_path in extension_path.rglob(f"*{ext}"):
                 if file_path.is_file():
                     file_info = {"path": str(file_path), "name": file_path.name, "priority": False}
-                    # Avoid duplicates
                     if not any(f["path"] == file_info["path"] for f in files_to_scan):
                         files_to_scan.append(file_info)
 
-        # Limit to max files
         max_files = self.config.get("max_files_to_scan", 10)
         return files_to_scan[:max_files]
 
@@ -168,7 +164,6 @@ class VirusTotalAnalyzer(BaseAnalyzer):
             async with vt.Client(self.api_key) as client:
                 file_report = await client.get_object_async(f"/files/{file_hash}")
 
-                # Extract relevant information
                 stats = file_report.last_analysis_stats
                 results = {
                     "found": True,
@@ -194,7 +189,6 @@ class VirusTotalAnalyzer(BaseAnalyzer):
                     "tags": getattr(file_report, "tags", []),
                 }
 
-                # Extract malware family names from detections
                 if hasattr(file_report, "last_analysis_results"):
                     malware_families = set()
                     for engine, result in file_report.last_analysis_results.items():
@@ -234,7 +228,6 @@ class VirusTotalAnalyzer(BaseAnalyzer):
             with vt.Client(self.api_key) as client:
                 file_report = client.get_object(f"/files/{file_hash}")
 
-                # Extract relevant information
                 stats = file_report.last_analysis_stats
                 results = {
                     "found": True,
@@ -260,7 +253,6 @@ class VirusTotalAnalyzer(BaseAnalyzer):
                     "tags": getattr(file_report, "tags", []),
                 }
 
-                # Extract malware family names from detections
                 if hasattr(file_report, "last_analysis_results"):
                     malware_families = set()
                     for engine, result in file_report.last_analysis_results.items():
@@ -325,7 +317,6 @@ class VirusTotalAnalyzer(BaseAnalyzer):
                 file_path = file_info["path"]
                 hashes = self.compute_all_hashes(file_path)
 
-                # Check hash against VirusTotal
                 vt_result = self._check_hash_virustotal_sync(hashes["sha256"])
 
                 file_result = {
@@ -339,7 +330,6 @@ class VirusTotalAnalyzer(BaseAnalyzer):
                 results["file_results"].append(file_result)
                 results["files_analyzed"] += 1
 
-                # Track detections
                 if vt_result and vt_result.get("found"):
                     stats = vt_result.get("detection_stats", {})
                     malicious = stats.get("malicious", 0)
@@ -350,7 +340,6 @@ class VirusTotalAnalyzer(BaseAnalyzer):
                         results["total_malicious"] += malicious
                         results["total_suspicious"] += suspicious
 
-                        # Collect malware families
                         families = vt_result.get("malware_families", [])
                         results["summary"]["detected_families"].extend(families)
 
@@ -363,12 +352,10 @@ class VirusTotalAnalyzer(BaseAnalyzer):
                     }
                 )
 
-        # Deduplicate malware families
         results["summary"]["detected_families"] = list(
             set(results["summary"]["detected_families"])
         )[:15]
 
-        # Determine overall threat level
         if results["total_malicious"] > 0:
             results["summary"]["threat_level"] = "malicious"
             results["summary"]["recommendation"] = (

@@ -2,6 +2,9 @@
 Workflow Graph Builder
 
 This module constructs the LangGraph workflow for extension analysis.
+
+No edges are declared on purpose: every node returns `Command(goto=...)` naming its own
+successor (see workflow/nodes.py), so adding edges here would have no effect.
 """
 
 from langgraph.graph import StateGraph

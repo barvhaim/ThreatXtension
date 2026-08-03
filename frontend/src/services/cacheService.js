@@ -4,7 +4,6 @@ class CacheService {
     this.maxCacheAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
   }
 
-  // Store scan results in cache
   cacheScanResult(extensionId, scanData) {
     try {
       const cache = this.getCache();
@@ -27,7 +26,6 @@ class CacheService {
     }
   }
 
-  // Get cached scan result
   getCachedResult(extensionId) {
     try {
       const cache = this.getCache();
@@ -35,7 +33,6 @@ class CacheService {
 
       if (!cached) return null;
 
-      // Check if cache is still valid
       const age = Date.now() - cached.timestamp;
       if (age > this.maxCacheAge) {
         this.removeCachedResult(extensionId);
@@ -49,7 +46,6 @@ class CacheService {
     }
   }
 
-  // Check if extension has been scanned recently
   hasRecentScan(extensionId) {
     const cached = this.getCachedResult(extensionId);
     if (!cached) return false;
@@ -58,7 +54,6 @@ class CacheService {
     return age <= this.maxCacheAge;
   }
 
-  // Remove cached result
   removeCachedResult(extensionId) {
     try {
       const cache = this.getCache();
@@ -71,7 +66,6 @@ class CacheService {
     }
   }
 
-  // Clear all cache
   clearCache() {
     try {
       localStorage.removeItem(this.cacheKey);
@@ -82,13 +76,11 @@ class CacheService {
     }
   }
 
-  // Get scan history for dashboard
   getScanHistory() {
     try {
       const cache = this.getCache();
       const entries = Object.values(cache);
 
-      // Sort by timestamp (most recent first)
       return entries
         .sort((a, b) => b.timestamp - a.timestamp)
         .map((entry) => ({
@@ -107,7 +99,6 @@ class CacheService {
     }
   }
 
-  // Get cache statistics
   getCacheStats() {
     try {
       const cache = this.getCache();
@@ -130,7 +121,6 @@ class CacheService {
     }
   }
 
-  // Private method to get cache from localStorage
   getCache() {
     try {
       const cached = localStorage.getItem(this.cacheKey);

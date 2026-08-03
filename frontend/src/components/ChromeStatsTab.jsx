@@ -4,10 +4,6 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { ChevronDown, ChevronUp, ExternalLink, Star, Users, TrendingUp, Shield, AlertTriangle } from "lucide-react";
 
-/**
- * Chrome Stats Tab Component
- * Displays comprehensive metadata from chrome-stats.com API
- */
 const ChromeStatsTab = ({ metadata, toggleSection, isSectionCollapsed }) => {
   if (!metadata) {
     return (
@@ -30,7 +26,6 @@ const ChromeStatsTab = ({ metadata, toggleSection, isSectionCollapsed }) => {
 
   return (
     <div className="space-y-4">
-      {/* Basic Information */}
       <Card className="border-l-4 border-l-blue-500">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -91,7 +86,6 @@ const ChromeStatsTab = ({ metadata, toggleSection, isSectionCollapsed }) => {
         )}
       </Card>
 
-      {/* User Metrics */}
       <Card className="border-l-4 border-l-green-500">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -134,7 +128,6 @@ const ChromeStatsTab = ({ metadata, toggleSection, isSectionCollapsed }) => {
               </div>
             </div>
 
-            {/* Deltas */}
             {(metadata.one_day_delta || metadata.one_week_delta) && (
               <div className="mt-4 grid grid-cols-2 gap-4">
                 {metadata.one_day_delta && (
@@ -169,7 +162,6 @@ const ChromeStatsTab = ({ metadata, toggleSection, isSectionCollapsed }) => {
         )}
       </Card>
 
-      {/* Publisher Information */}
       <Card className="border-l-4 border-l-purple-500">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -234,7 +226,6 @@ const ChromeStatsTab = ({ metadata, toggleSection, isSectionCollapsed }) => {
         )}
       </Card>
 
-      {/* Risk Assessment */}
       {metadata.risk && (
         <Card className="border-l-4 border-l-red-500">
           <CardHeader>
@@ -307,7 +298,6 @@ const ChromeStatsTab = ({ metadata, toggleSection, isSectionCollapsed }) => {
         </Card>
       )}
 
-      {/* Reviews Summary */}
       {metadata.review_summary && (
         <Card className="border-l-4 border-l-yellow-500">
           <CardHeader>
@@ -363,7 +353,6 @@ const ChromeStatsTab = ({ metadata, toggleSection, isSectionCollapsed }) => {
         </Card>
       )}
 
-      {/* Dates */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -397,7 +386,6 @@ const ChromeStatsTab = ({ metadata, toggleSection, isSectionCollapsed }) => {
         )}
       </Card>
 
-      {/* Manifest Summary */}
       {metadata.manifest_summary && (
         <Card>
           <CardHeader>
@@ -451,7 +439,6 @@ const ChromeStatsTab = ({ metadata, toggleSection, isSectionCollapsed }) => {
         </Card>
       )}
 
-      {/* Additional Info */}
       {metadata.supported_languages && metadata.supported_languages.length > 0 && (
         <Card>
           <CardHeader>
@@ -474,5 +461,3 @@ const ChromeStatsTab = ({ metadata, toggleSection, isSectionCollapsed }) => {
 };
 
 export default ChromeStatsTab;
-
-// Made with Bob

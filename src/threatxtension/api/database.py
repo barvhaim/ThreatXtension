@@ -26,7 +26,6 @@ class Database:
         if db_path is None:
             db_path = os.environ.get("DATABASE_PATH", "threatxtension.db")
         self.db_path = Path(db_path)
-        # Ensure parent directory exists
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.init_database()
 
@@ -55,7 +54,6 @@ class Database:
         with self.get_connection() as conn:
             cursor = conn.cursor()
 
-            # Scan results table
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS scan_results (
@@ -87,7 +85,6 @@ class Database:
             """
             )
 
-            # Statistics table for aggregated metrics
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS statistics (
@@ -99,7 +96,6 @@ class Database:
             """
             )
 
-            # Initialize default statistics
             cursor.execute(
                 """
                 INSERT OR IGNORE INTO statistics (metric_name, metric_value)
@@ -111,7 +107,6 @@ class Database:
             """
             )
 
-            # Batch scans table
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS batch_scans (
@@ -146,7 +141,6 @@ class Database:
 
             self._migrate_risk_score_direction(cursor)
 
-            # Create indexes for better query performance
             cursor.execute(
                 """
                 CREATE INDEX IF NOT EXISTS idx_extension_id
@@ -249,10 +243,8 @@ class Database:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
 
-                # Extract metadata
                 extension_id = result.get("extension_id")
                 metadata = result.get("metadata", {}) or {}
-                # Get extension_name from top-level first, then try metadata fields
                 extension_name = (
                     result.get("extension_name")
                     or metadata.get("title")
@@ -260,7 +252,6 @@ class Database:
                     or extension_id
                 )
 
-                # Calculate risk distribution
                 risk_dist = result.get("risk_distribution", {})
 
                 cursor.execute(
@@ -358,11 +349,9 @@ class Database:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
 
-                # Get basic stats from statistics table
                 cursor.execute("SELECT metric_name, metric_value FROM statistics")
                 stats = {row["metric_name"]: row["metric_value"] for row in cursor.fetchall()}
 
-                # Get additional computed stats
                 cursor.execute(
                     """
                     SELECT 
@@ -538,7 +527,6 @@ class Database:
         """Convert database row to dictionary with JSON parsing."""
         result = dict(row)
 
-        # Parse JSON fields
         json_fields = [
             "metadata",
             "manifest",
@@ -559,5 +547,4 @@ class Database:
         return result
 
 
-# Global database instance
 db = Database()

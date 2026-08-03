@@ -16,9 +16,6 @@ class GPTOSSService {
     };
   }
 
-  /**
-   * Check backend health and available providers
-   */
   async checkBackendHealth() {
     try {
       const response = await fetch(`${this.baseURL}/health`);
@@ -29,7 +26,6 @@ class GPTOSSService {
       const health = await response.json();
       console.log("Backend health:", health);
 
-      // Get provider status
       const providers = await this.getProviderStatus();
       console.log("Available providers:", providers);
 
@@ -47,9 +43,6 @@ class GPTOSSService {
     }
   }
 
-  /**
-   * Get status of all LLM providers
-   */
   async getProviderStatus() {
     try {
       const response = await fetch(`${this.baseURL}/api/providers/status`);
@@ -67,23 +60,18 @@ class GPTOSSService {
     }
   }
 
-  /**
-   * Analyze file content using the best available provider
-   */
   async analyzeFileContent(fileContent, fileName, fileType, provider = "auto") {
     try {
       console.log(
         `Starting file analysis: ${fileName} (${fileType}) using ${provider}`,
       );
 
-      // Create form data
       const formData = new FormData();
       formData.append("file_content", fileContent);
       formData.append("file_name", fileName);
       formData.append("file_type", fileType);
       formData.append("provider", provider);
 
-      // Make request to backend
       const response = await fetch(`${this.baseURL}/api/analyze/file`, {
         method: "POST",
         body: formData,
@@ -114,21 +102,16 @@ class GPTOSSService {
     }
   }
 
-  /**
-   * Upload and analyze a file
-   */
   async uploadAndAnalyzeFile(file, provider = "auto") {
     try {
       console.log(
         `Uploading file for analysis: ${file.name} using ${provider}`,
       );
 
-      // Create form data
       const formData = new FormData();
       formData.append("file", file);
       formData.append("provider", provider);
 
-      // Make request to backend
       const response = await fetch(`${this.baseURL}/api/upload/file`, {
         method: "POST",
         body: formData,
@@ -195,9 +178,6 @@ class GPTOSSService {
     };
   }
 
-  /**
-   * Get backend configuration
-   */
   async getBackendConfig() {
     try {
       const response = await fetch(`${this.baseURL}/api/config`);
@@ -212,13 +192,9 @@ class GPTOSSService {
     }
   }
 
-  /**
-   * Simulate analysis for development/testing
-   */
   simulateAnalysis(fileContent, fileName, fileType) {
     console.log("Simulating GPT-OSS analysis...");
 
-    // Simulate processing time
     return new Promise((resolve) => {
       setTimeout(() => {
         const analysis = this._generateMockAnalysis(
@@ -235,9 +211,6 @@ class GPTOSSService {
     });
   }
 
-  /**
-   * Generate mock analysis results for development
-   */
   _generateMockAnalysis(fileContent, fileName, fileType) {
     const riskScore = this._calculateMockRiskScore(fileContent);
     const severity = this._getSeverityFromScore(riskScore);
@@ -268,9 +241,6 @@ class GPTOSSService {
     };
   }
 
-  /**
-   * Calculate mock risk score based on file content
-   */
   _calculateMockRiskScore(content) {
     let score = 3; // Base score
 
@@ -296,18 +266,12 @@ class GPTOSSService {
     return Math.min(10, Math.max(1, score));
   }
 
-  /**
-   * Get severity from risk score
-   */
   _getSeverityFromScore(score) {
     if (score >= 8) return "High";
     if (score >= 5) return "Medium";
     return "Low";
   }
 
-  /**
-   * Generate mock findings based on severity
-   */
   _generateMockFindings(content, severity) {
     const findings = [];
 
@@ -325,9 +289,6 @@ class GPTOSSService {
     return findings;
   }
 
-  /**
-   * Generate mock recommendations
-   */
   _generateMockRecommendations(severity) {
     if (severity === "High") {
       return [
@@ -350,9 +311,6 @@ class GPTOSSService {
     }
   }
 
-  /**
-   * Generate mock analysis text
-   */
   _generateMockAnalysisText(content, fileName, fileType, riskScore) {
     return `## Security Analysis Report for ${fileName}
 
@@ -377,5 +335,4 @@ This ${fileType} file has been analyzed using simulated GPT-OSS-20B analysis. Th
   }
 }
 
-// Export service instance
 export default new GPTOSSService();

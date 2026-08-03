@@ -12,9 +12,6 @@ class DatabaseService {
     this.baseURL = import.meta.env.VITE_API_URL || "";
     this.API_BASE_URL = `${this.baseURL}/api`;
   }
-  /**
-   * Get statistics from the database
-   */
   async getStatistics() {
     try {
       const response = await fetch(`${this.API_BASE_URL}/statistics`);
@@ -35,9 +32,6 @@ class DatabaseService {
     }
   }
 
-  /**
-   * Get scan history from the database
-   */
   async getScanHistory(limit = 50) {
     try {
       const response = await fetch(`${this.API_BASE_URL}/history?limit=${limit}`);
@@ -52,9 +46,6 @@ class DatabaseService {
     }
   }
 
-  /**
-   * Get recent scans from the database
-   */
   async getRecentScans(limit = 10) {
     try {
       const response = await fetch(`${this.API_BASE_URL}/recent?limit=${limit}`);
@@ -69,9 +60,6 @@ class DatabaseService {
     }
   }
 
-  /**
-   * Get scan result by extension ID
-   */
   async getScanResult(extensionId) {
     try {
       const response = await fetch(`${this.API_BASE_URL}/scan/results/${extensionId}`);
@@ -88,9 +76,6 @@ class DatabaseService {
     }
   }
 
-  /**
-   * Delete a scan result
-   */
   async deleteScanResult(extensionId) {
     try {
       const response = await fetch(`${this.API_BASE_URL}/scan/${extensionId}`, {
@@ -106,9 +91,6 @@ class DatabaseService {
     }
   }
 
-  /**
-   * Clear all scan results
-   */
   async clearAllResults() {
     try {
       const response = await fetch(`${this.API_BASE_URL}/clear`, {
@@ -124,17 +106,11 @@ class DatabaseService {
     }
   }
 
-  /**
-   * Check if a scan result exists in the database
-   */
   async hasScanResult(extensionId) {
     const result = await this.getScanResult(extensionId);
     return result !== null;
   }
 
-  /**
-   * Get scan statistics for a specific extension
-   */
   async getExtensionStats(extensionId) {
     const result = await this.getScanResult(extensionId);
     if (!result) return null;
@@ -153,9 +129,6 @@ class DatabaseService {
     };
   }
 
-  /**
-   * Get URLs from recent scans for autocomplete
-   */
   async getRecentUrls(limit = 5) {
     const history = await this.getScanHistory(limit);
     return history
@@ -163,17 +136,11 @@ class DatabaseService {
       .filter(url => url && url.trim() !== "");
   }
 
-  /**
-   * Get risk distribution across all scans
-   */
   async getRiskDistribution() {
     const stats = await this.getStatistics();
     return stats.risk_distribution || { critical: 0, high: 0, medium: 0, low: 0 };
   }
 
-  /**
-   * Get aggregated metrics for dashboard widgets
-   */
   async getDashboardMetrics() {
     const stats = await this.getStatistics();
     const history = await this.getScanHistory(20);
@@ -181,7 +148,6 @@ class DatabaseService {
     // Get last 7 scans for sparkline (most recent first, then reverse for chronological order)
     const recentScans = history.slice(0, 7).reverse();
     
-    // If no scans, return zeros
     if (recentScans.length === 0) {
       return {
         totalScans: { value: 0, sparkline: [0] },
@@ -193,7 +159,6 @@ class DatabaseService {
       };
     }
 
-    // Calculate actual data points (not cumulative) for sparklines
     const scanCountSparkline = recentScans.map((_, idx) => idx + 1);
     
     // High risk count at each point in time (cumulative makes sense here)
@@ -206,10 +171,8 @@ class DatabaseService {
       highRiskSparkline.push(highRiskRunning);
     });
     
-    // Files per scan (actual values, not cumulative)
     const filesSparkline = recentScans.map(scan => scan.total_files || 0);
     
-    // Findings per scan (actual values, not cumulative)
     const findingsSparkline = recentScans.map(scan => scan.total_findings || 0);
 
     return {

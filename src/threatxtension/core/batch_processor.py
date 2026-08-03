@@ -78,7 +78,6 @@ class BatchProcessor:
             "results": [],
         }
 
-        # Save initial batch state
         self._save_batch_state(batch_id, batch_state)
 
         if parallel:
@@ -86,17 +85,14 @@ class BatchProcessor:
         else:
             results = self._process_sequential(extension_list, batch_id)
 
-        # Update batch state with results
         batch_state["results"] = results
         batch_state["completed"] = sum(1 for r in results if r["status"] == "completed")
         batch_state["failed"] = sum(1 for r in results if r["status"] == "failed")
         batch_state["end_time"] = datetime.utcnow().isoformat()
         batch_state["status"] = "completed"
 
-        # Save final batch state
         self._save_batch_state(batch_id, batch_state)
 
-        # Generate batch report
         report_path = self.generate_batch_report(batch_state, batch_id)
         batch_state["report_path"] = str(report_path)
 
@@ -130,12 +126,10 @@ class BatchProcessor:
         if not input_path.exists():
             raise FileNotFoundError(f"Input file not found: {input_file}")
 
-        # Determine file format and load extensions
         extension_list = self._load_extensions_from_file(input_path)
 
         logger.info("Loaded %d extensions from %s", len(extension_list), input_file)
 
-        # Generate batch ID from filename
         batch_id = f"batch_{input_path.stem}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
 
         return self.process_batch(
@@ -158,13 +152,11 @@ class BatchProcessor:
             with open(input_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 if isinstance(data, list):
-                    # Handle array of strings or objects
                     extensions = []
                     for item in data:
                         if isinstance(item, str):
                             extensions.append(item)
                         elif isinstance(item, dict):
-                            # Try common field names
                             ext = item.get("url") or item.get("id") or item.get("path")
                             if ext:
                                 extensions.append(ext)
@@ -177,7 +169,6 @@ class BatchProcessor:
             with open(input_path, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
-                    # Try common column names
                     ext = row.get("url") or row.get("id") or row.get("path") or row.get("extension")
                     if ext:
                         extensions.append(ext.strip())
@@ -232,7 +223,6 @@ class BatchProcessor:
             )
 
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                # Submit all tasks
                 future_to_ext = {
                     executor.submit(self._analyze_single_extension, ext_path, batch_id, idx): (
                         idx,
@@ -241,7 +231,6 @@ class BatchProcessor:
                     for idx, ext_path in enumerate(extension_list, 1)
                 }
 
-                # Collect results as they complete
                 for future in as_completed(future_to_ext):
                     idx, ext_path = future_to_ext[future]
                     try:
@@ -261,7 +250,7 @@ class BatchProcessor:
                         )
                         progress.advance(task)
 
-        # Sort results by index to maintain order
+        # as_completed() yields out of order; restore the input ordering
         results.sort(key=lambda x: x.get("index", 0))
         return results
 
@@ -280,7 +269,6 @@ class BatchProcessor:
         workflow_id = f"{batch_id}_ext_{index}"
 
         try:
-            # Initialize workflow state
             initial_state: WorkflowState = {
                 "workflow_id": workflow_id,
                 "chrome_extension_path": extension_path,
@@ -297,10 +285,8 @@ class BatchProcessor:
                 "error": None,
             }
 
-            # Run workflow
             final_state = self.workflow_graph.invoke(initial_state)
 
-            # Extract relevant results
             result = {
                 "extension_path": extension_path,
                 "workflow_id": workflow_id,
@@ -348,13 +334,11 @@ class BatchProcessor:
         """
         report_path = self.output_dir / f"{batch_id}_report.json"
 
-        # Calculate statistics
         total = results.get("total_extensions", 0)
         completed = results.get("completed", 0)
         failed = results.get("failed", 0)
         success_rate = (completed / total * 100) if total > 0 else 0
 
-        # Aggregate findings
         all_findings = []
         high_risk_extensions = []
         critical_findings_count = 0
@@ -364,7 +348,6 @@ class BatchProcessor:
                 analysis = result.get("analysis_results", {})
                 ext_path = result.get("extension_path", "unknown")
 
-                # Collect SAST findings
                 sast = analysis.get("javascript_analysis", {})
                 if sast and sast.get("findings"):
                     for finding in sast["findings"]:
@@ -373,7 +356,6 @@ class BatchProcessor:
                         if finding.get("severity") == "CRITICAL":
                             critical_findings_count += 1
 
-                # Identify high-risk extensions
                 summary = result.get("executive_summary", {})
                 if summary and summary.get("overall_risk_level") in ["HIGH", "CRITICAL"]:
                     high_risk_extensions.append(
@@ -384,7 +366,6 @@ class BatchProcessor:
                         }
                     )
 
-        # Build comprehensive report
         report = {
             "batch_id": batch_id,
             "generated_at": datetime.utcnow().isoformat(),
@@ -403,7 +384,6 @@ class BatchProcessor:
             "detailed_results": results.get("results", []),
         }
 
-        # Save report
         with open(report_path, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2, default=str)
 
@@ -462,6 +442,3 @@ class BatchProcessor:
 
         with open(report_file, "r", encoding="utf-8") as f:
             return json.load(f)
-
-
-# Made with Bob

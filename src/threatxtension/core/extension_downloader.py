@@ -57,7 +57,6 @@ class ExtensionDownloader:
             file_path = os.path.join(self.extension_storage_path, filename)
             os.makedirs(self.extension_storage_path, exist_ok=True)
 
-            # Download the file
             response = requests.get(download_url, stream=True, timeout=120)
             response.raise_for_status()
 
@@ -69,7 +68,6 @@ class ExtensionDownloader:
                 logger.warning("Unexpected content type: %s", content_type)
                 return None
 
-            # Save the file
             with open(file_path, "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
@@ -130,7 +128,6 @@ class ExtensionDownloader:
 
 
 if __name__ == "__main__":
-    # Test the downloader
     test_downloader = ExtensionDownloader()
 
     EXTENSION_URL = "https://chromewebstore.google.com/detail/2048/ijkmjnaahlnmdjjlbhbjbhlnmadmmlgg"

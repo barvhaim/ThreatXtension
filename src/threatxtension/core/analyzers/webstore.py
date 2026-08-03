@@ -35,7 +35,6 @@ class WebstoreAnalyzer(BaseAnalyzer):
         rating = metadata.get("rating")
         ratings_count = metadata.get("ratings_count")
 
-        # Convert None to 0 for calculations
         if user_count is None:
             user_count = 0
         if ratings_count is None:
@@ -49,19 +48,15 @@ class WebstoreAnalyzer(BaseAnalyzer):
             if review_ratio < 0.01:
                 flags.append(f"Review ratio lower than 1%. ({review_ratio:.4f} < 0.01)")
 
-        # Low user count (< 1,000 users)
         if user_count < 1000:
             flags.append(f"Low user count: {user_count} users (< 1,000)")
 
-        # Low ratings count (< 50 ratings)
         if 0 < ratings_count < 50:
             flags.append(f"Low ratings count: {ratings_count} ratings (< 50)")
 
-        # No ratings at all
         if ratings_count == 0:
             flags.append("No ratings at all")
 
-        # Low average rating (< 3.5)
         if 0 < rating < 3.5:
             flags.append(f"Low average rating: {rating} (< 3.5)")
 
@@ -76,7 +71,6 @@ class WebstoreAnalyzer(BaseAnalyzer):
         developer_email = metadata.get("developer_email") or ""
         developer_name = metadata.get("developer_name") or ""
 
-        # Missing developer website
         if not developer_website:
             flags.append("Developer website not provided")
 
@@ -94,11 +88,9 @@ class WebstoreAnalyzer(BaseAnalyzer):
         ):
             flags.append(f"Personal email domain used: {developer_email}")
 
-        # Unusual developer name
         if developer_name and len(developer_name) < 3:
             flags.append(f"Unusually short developer name: {developer_name}")
 
-        # No privacy policy
         if not metadata.get("privacy_policy"):
             flags.append("No privacy policy provided")
 
@@ -117,7 +109,6 @@ class WebstoreAnalyzer(BaseAnalyzer):
             last_updated = parse_date(last_updated_str, fuzzy=True)
             now = datetime.now()
 
-            # Abandoned: Not updated in over 1 year
             one_year_ago = now - relativedelta(years=1)
             if last_updated < one_year_ago:
                 flags.append(
@@ -134,11 +125,9 @@ class WebstoreAnalyzer(BaseAnalyzer):
         """Check quality indicators and badges."""
         flags = []
 
-        # Missing best practices badge
         if not metadata.get("follows_best_practices", False):
             flags.append("Not following best practices")
 
-        # Not featured
         if not metadata.get("is_featured", False):
             flags.append("Not featured extension")
 
@@ -251,11 +240,9 @@ class WebstoreAnalyzer(BaseAnalyzer):
 
         logger.info("Analyzing webstore information")
 
-        # Rule-based suspicion flag calculation
         red_flags = self._calculate_suspicion_flags(metadata)
         logger.info("Detected %d suspicious flags", len(red_flags))
 
-        # LLM-based risk assessment
         webstore_analysis = self._llm_analysis_risk_assessment(metadata, red_flags)
 
         return {

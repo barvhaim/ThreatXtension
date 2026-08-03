@@ -38,7 +38,6 @@ const DashboardPage = () => {
   const [scanHistory, setScanHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [forceRescan, setForceRescan] = useState(false);
-  // const [showSampleModal, setShowSampleModal] = useState(false);
   const [fileViewerModal, setFileViewerModal] = useState({
     isOpen: false,
     file: null,
@@ -68,7 +67,6 @@ const DashboardPage = () => {
       const history = await databaseService.getScanHistory(50);
       setScanHistory(history);
       
-      // Initially show history if there is any
       if (history.length > 0) {
         setShowHistory(true);
       }
@@ -114,7 +112,6 @@ const DashboardPage = () => {
     try {
       setError("📤 Uploading file... This may take a moment.");
       
-      // Upload the file
       const uploadResult = await realScanService.uploadAndScan(file);
       
       if (!uploadResult || !uploadResult.extension_id) {
@@ -124,15 +121,12 @@ const DashboardPage = () => {
       const extensionId = uploadResult.extension_id;
       setError(`🔄 File uploaded successfully! Starting analysis...`);
 
-      // Wait for scan completion
       await waitForScanCompletion(extensionId);
 
-      // Get results
       const results = await realScanService.getRealScanResults(extensionId);
       setScanResults(results);
       setError("");
       
-      // Refresh history and stats
       await loadScanHistory();
       await loadDashboardStats();
     } catch (err) {
@@ -144,14 +138,6 @@ const DashboardPage = () => {
 
 
 
-  // const handleScanSampleExtension = () => {
-  //   const sampleUrl = "https://chromewebstore.google.com/detail/adblock/gighmmpiobklfepjocnamgkkbiglidom";
-  //   setUrl(sampleUrl);
-  //   setShowSampleModal(false);
-  //   setTimeout(() => {
-  //     handleScanClick();
-  //   }, 500);
-  // };
 
   const startScan = async () => {
     setIsScanning(true);
@@ -159,15 +145,12 @@ const DashboardPage = () => {
     setScanResults(null);
 
     try {
-      // Check if input is already an extension ID (32 lowercase letters a-p)
       const isExtensionId = /^[a-p]{32}$/.test(url.trim().toLowerCase());
       
       let extId;
       if (isExtensionId) {
-        // Input is already an extension ID
         extId = url.trim().toLowerCase();
       } else {
-        // Try to extract ID from URL
         extId = extractExtensionId(url);
         if (!extId) {
           throw new Error("Invalid input. Please enter a Chrome Web Store URL or extension ID (32-character string)");
@@ -180,7 +163,6 @@ const DashboardPage = () => {
         setError(forceRescan ? "🔄 Force re-scanning extension..." : "🔄 Starting security scan... This may take a few minutes for large extensions.");
         const scanTrigger = await realScanService.triggerScan(url, forceRescan);
 
-        // Check for success based on running status available in the response
         if (scanTrigger.status !== "running") {
           throw new Error(scanTrigger.error || "Failed to start scan");
         }
@@ -227,15 +209,12 @@ const DashboardPage = () => {
 
   const loadScanFromHistory = async (extId) => {
     try {
-      // Try database first
       let results = await databaseService.getScanResult(extId);
       
-      // Fallback to API if not in database
       if (!results) {
         results = await realScanService.getRealScanResults(extId);
       }
       
-      // Format the results if they're raw from database
       if (results && !results.files) {
         results = realScanService.formatRealResults(results);
       }
@@ -257,7 +236,6 @@ const DashboardPage = () => {
   };
 
   const handleAnalyzeWithAI = async (file) => {
-    // Open modal and start analysis
     setAiAnalysisModal({
       isOpen: true,
       file: file,
@@ -267,21 +245,18 @@ const DashboardPage = () => {
     });
 
     try {
-      // Get file content
       const fileContent = await realScanService.getFileContent(
         scanResults.extensionId,
         file.path
       );
 
-      // Determine file type
       const fileType = file.type || file.name.split('.').pop() || 'unknown';
 
-      // Analyze with GPT-OSS
       const analysisResult = await gptOssService.analyzeFileContent(
         fileContent,
         file.name,
         fileType,
-        'auto' // Use auto provider selection
+        'auto'
       );
 
       if (analysisResult.success) {
@@ -328,7 +303,6 @@ const DashboardPage = () => {
 
   return (
     <div className="dashboard-page">
-      {/* Console Hero */}
       <section className="dashboard-hero">
         <div className="hero-meta">
           <span className="hero-tag">
@@ -344,7 +318,6 @@ const DashboardPage = () => {
           <span className="text-gradient">before you trust it.</span>
         </h1>
 
-        {/* Terminal scan console */}
         <div className="scan-console panel panel-ticks">
           <div className="scan-console__bar">
             <span className="scan-console__dots">
@@ -389,7 +362,6 @@ const DashboardPage = () => {
         </p>
       </section>
 
-      {/* Stats Overview */}
       <div className="dashboard-content-wrapper">
         <div className="section-header-row">
           <h2 className="section-title">
@@ -455,7 +427,6 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Recent Activity / History */}
       {showHistory && scanHistory.length > 0 && (
         <div className="dashboard-content-wrapper mt-8">
           <h3 className="section-title mb-4">
@@ -523,7 +494,6 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {/* Status & Loading */}
       {error && (
         <StatusMessage
           type={error.includes("✅") ? "success" : error.includes("🔄") ? "loading" : "error"}
@@ -557,7 +527,6 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {/* Results Panel */}
       {scanResults && (
         <div className="mt-8">
           <TabbedResultsPanel
@@ -570,7 +539,6 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {/* Modals */}
       <FileViewerModal
         isOpen={fileViewerModal.isOpen}
         onClose={() => setFileViewerModal({ isOpen: false, file: null })}
@@ -594,7 +562,6 @@ const DashboardPage = () => {
         onViewFindingDetails={handleViewFindingDetails}
       />
 
-      {/* AI Analysis Modal */}
       <Dialog open={aiAnalysisModal.isOpen} onOpenChange={closeAiAnalysisModal}>
         <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -637,7 +604,6 @@ const DashboardPage = () => {
 
             {aiAnalysisModal.result && !aiAnalysisModal.isAnalyzing && (
               <div className="space-y-4">
-                {/* Analysis Summary */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base">Analysis Summary</CardTitle>
@@ -677,7 +643,6 @@ const DashboardPage = () => {
                   </CardContent>
                 </Card>
 
-                {/* Detailed Analysis */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base">Detailed Analysis</CardTitle>
@@ -691,7 +656,6 @@ const DashboardPage = () => {
                   </CardContent>
                 </Card>
 
-                {/* Findings */}
                 {aiAnalysisModal.result.findings && aiAnalysisModal.result.findings.length > 0 && (
                   <Card>
                     <CardHeader>
@@ -710,7 +674,6 @@ const DashboardPage = () => {
                   </Card>
                 )}
 
-                {/* Recommendations */}
                 {aiAnalysisModal.result.recommendations && aiAnalysisModal.result.recommendations.length > 0 && (
                   <Card>
                     <CardHeader>
@@ -729,7 +692,6 @@ const DashboardPage = () => {
                   </Card>
                 )}
 
-                {/* Metadata */}
                 {aiAnalysisModal.result.metadata && (
                   <Card>
                     <CardHeader>

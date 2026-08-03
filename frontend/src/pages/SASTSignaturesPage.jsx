@@ -58,7 +58,6 @@ const SASTSignaturesPage = () => {
     if (stored) {
       setSignatures(JSON.parse(stored));
     } else {
-      // Load default signatures
       setSignatures(getDefaultSignatures());
     }
   };
@@ -147,7 +146,6 @@ const SASTSignaturesPage = () => {
     };
 
     if (selectedSignature) {
-      // Update existing
       const newSignatures = signatures.map((s) =>
         s.id === selectedSignature.id
           ? { ...s, ...signatureData, updated_at: new Date().toISOString() }
@@ -155,7 +153,6 @@ const SASTSignaturesPage = () => {
       );
       saveSignatures(newSignatures);
     } else {
-      // Create new
       const newSignature = {
         id: Date.now().toString(),
         ...signatureData,
@@ -222,7 +219,6 @@ const SASTSignaturesPage = () => {
         </Button>
       </div>
 
-      {/* Search Bar */}
       <div className="glass-card mb-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -235,7 +231,6 @@ const SASTSignaturesPage = () => {
         </div>
       </div>
 
-      {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader className="pb-3">
@@ -283,7 +278,6 @@ const SASTSignaturesPage = () => {
         </Card>
       </div>
 
-      {/* Signatures List */}
       <div className="space-y-4">
         {filteredSignatures.length === 0 ? (
           <Card>
@@ -399,7 +393,6 @@ const SASTSignaturesPage = () => {
         )}
       </div>
 
-      {/* Edit/Create Modal */}
       <Dialog
         open={isEditModalOpen || isCreateModalOpen}
         onOpenChange={(open) => {
@@ -534,7 +527,6 @@ const SASTSignaturesPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Modal */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <DialogContent>
           <DialogHeader>
@@ -575,5 +567,3 @@ const SASTSignaturesPage = () => {
 };
 
 export default SASTSignaturesPage;
-
-// Made with Bob

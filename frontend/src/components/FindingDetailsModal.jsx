@@ -48,10 +48,8 @@ const FindingDetailsModal = ({
     }
   };
 
-  // Prettify JavaScript code
   const prettifyCode = (code) => {
     try {
-      // Simple JavaScript beautifier
       let indent = 0;
       const indentStr = "  ";
       const lines = [];
@@ -63,16 +61,13 @@ const FindingDetailsModal = ({
 
         currentLine += char;
 
-        // Handle opening braces
         if (char === "{" || char === "[") {
           indent++;
           if (nextChar && nextChar !== "}" && nextChar !== "]") {
             lines.push(currentLine.trim());
             currentLine = indentStr.repeat(indent);
           }
-        }
-        // Handle closing braces
-        else if (char === "}" || char === "]") {
+        } else if (char === "}" || char === "]") {
           indent = Math.max(0, indent - 1);
           if (currentLine.trim() !== char) {
             lines.push(currentLine.slice(0, -1).trim());
@@ -89,16 +84,12 @@ const FindingDetailsModal = ({
             lines.push(currentLine.trim());
             currentLine = indentStr.repeat(indent);
           }
-        }
-        // Handle semicolons
-        else if (char === ";") {
+        } else if (char === ";") {
           if (nextChar && nextChar !== "}" && nextChar !== ")") {
             lines.push(currentLine.trim());
             currentLine = indentStr.repeat(indent);
           }
-        }
-        // Handle commas in objects/arrays
-        else if (
+        } else if (
           char === "," &&
           (code.substring(Math.max(0, i - 20), i).includes("{") ||
             code.substring(Math.max(0, i - 20), i).includes("["))
@@ -150,14 +141,12 @@ const FindingDetailsModal = ({
     const contextEnd = Math.min(lines.length, targetLine + 5);
     const contextLines = lines.slice(contextStart, contextEnd);
 
-    // Extract the specific code snippet that triggered the finding
     const getHighlightedSnippet = (line) => {
       // Priority 1: Use backend-provided matched_text (most accurate)
       const matchedText =
         finding.matched_text || finding.extra?.metadata?.matched_text;
 
       if (matchedText) {
-        // Try exact match first
         if (line.includes(matchedText)) {
           const matchIndex = line.indexOf(matchedText);
           const start = Math.max(0, matchIndex - 30);
@@ -173,7 +162,6 @@ const FindingDetailsModal = ({
           };
         }
 
-        // Try case-insensitive match
         const lowerLine = line.toLowerCase();
         const lowerMatched = matchedText.toLowerCase();
         if (lowerLine.includes(lowerMatched)) {
@@ -215,7 +203,6 @@ const FindingDetailsModal = ({
         websocket: /WebSocket\s*\(/gi,
       };
 
-      // Find the matching pattern based on check_id
       for (const [key, pattern] of Object.entries(checkIdPatterns)) {
         if (checkId.includes(key)) {
           const match = line.match(pattern);
@@ -408,7 +395,6 @@ const FindingDetailsModal = ({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Description */}
           <div className="bg-muted/50 rounded-lg p-4">
             <h4 className="font-semibold mb-2">Description</h4>
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">
@@ -416,7 +402,6 @@ const FindingDetailsModal = ({
             </p>
           </div>
 
-          {/* Additional Details */}
           {(finding.message ||
             finding.check_id ||
             finding.cwe ||
@@ -462,7 +447,6 @@ const FindingDetailsModal = ({
             </div>
           )}
 
-          {/* Code Display */}
           {isLoading && (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />

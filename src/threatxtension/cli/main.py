@@ -110,7 +110,6 @@ def build_metadata_table(metadata: dict) -> Table:
     table.add_column("Field", style="cyan", width=25)
     table.add_column("Value", style="white")
 
-    # Display all available metadata fields
     field_mapping = {
         "title": "Name",
         "version": "Version",
@@ -130,7 +129,6 @@ def build_metadata_table(metadata: dict) -> Table:
     for key, label in field_mapping.items():
         value = metadata.get(key)
         if value is not None:
-            # Format specific fields
             if key == "rating":
                 table.add_row(label, f"{value} / 5")
             elif key == "user_count":
@@ -142,7 +140,6 @@ def build_metadata_table(metadata: dict) -> Table:
             else:
                 table.add_row(label, str(value))
 
-    # Display privacy policy (truncated if too long)
     privacy_policy = metadata.get("privacy_policy")
     if privacy_policy:
         privacy_text = str(privacy_policy)
@@ -240,7 +237,6 @@ def build_entropy_table(entropy_results: dict) -> Table:
     obf_status = "[red]Yes[/red]" if obf_detected else "[green]No[/green]"
     table.add_row("Obfuscation Detected", obf_status)
 
-    # Show high entropy files if any
     high_entropy_files = summary.get("high_entropy_files", [])
     if high_entropy_files:
         files_str = ", ".join([f["file"] for f in high_entropy_files[:3]])
@@ -257,7 +253,6 @@ def print_results(result: dict):
     """
     console.print("\n")
 
-    # Status and basic info
     status = result.get("status", "unknown")
     status_color = {"completed": "green", "failed": "red"}.get(status, "yellow")
     console.print(f"Status: [{status_color}]{status.upper()}[/{status_color}]")
@@ -266,69 +261,57 @@ def print_results(result: dict):
         console.print(f"\n[red]Error: {result['error']}[/red]\n")
         return
 
-    # Duration
     if result.get("end_time"):
         duration = calculate_duration(result["start_time"], result["end_time"])
         console.print(f"Duration: [cyan]{duration:.2f}[/cyan] seconds")
 
-    # Extension metadata
     if result.get("extension_metadata"):
         console.print("\n")
         metadata_table = build_metadata_table(result["extension_metadata"])
         console.print(metadata_table)
 
-    # Analysis results section
     analysis_results = result.get("analysis_results", {})
 
-    # VirusTotal results
     if analysis_results.get("virustotal_analysis"):
         console.print("\n")
         vt_table = build_virustotal_table(analysis_results["virustotal_analysis"])
         console.print(vt_table)
 
-        # Print recommendation if available
         vt_summary = analysis_results["virustotal_analysis"].get("summary", {})
         if vt_summary.get("recommendation"):
             console.print(f"\n[dim]{vt_summary['recommendation']}[/dim]")
 
-    # Entropy results
     if analysis_results.get("entropy_analysis"):
         console.print("\n")
         entropy_table = build_entropy_table(analysis_results["entropy_analysis"])
         console.print(entropy_table)
 
-        # Print recommendation if available
         entropy_summary = analysis_results["entropy_analysis"].get("summary", {})
         if entropy_summary.get("recommendation"):
             console.print(f"\n[dim]{entropy_summary['recommendation']}[/dim]")
 
-    # Executive summary
     if result.get("executive_summary"):
         console.print("\n")
         console.print(Panel.fit("[bold cyan]Executive Summary[/bold cyan]", border_style="cyan"))
 
         summary = result["executive_summary"]
 
-        # Risk level with color coding
         risk_level = summary.get("overall_risk_level", "unknown")
         risk_color = {"low": "green", "medium": "yellow", "high": "red"}.get(risk_level, "white")
         console.print(
             f"\n[bold]Risk Level:[/bold] [{risk_color}]{risk_level.upper()}[/{risk_color}]\n"
         )
 
-        # Summary
         if summary.get("summary"):
             console.print("[bold]Summary:[/bold]")
             console.print(f"{summary['summary']}\n")
 
-        # Key findings
         if summary.get("key_findings"):
             console.print("[bold]Key Findings:[/bold]")
             for i, finding in enumerate(summary["key_findings"], 1):
                 console.print(f"  {i}. {finding}")
             console.print()
 
-        # Recommendations
         if summary.get("recommendations"):
             console.print("[bold]Recommendations:[/bold]")
             for i, rec in enumerate(summary["recommendations"], 1):
@@ -409,7 +392,6 @@ def analyze(
         threatxtension analyze --file /path/to/extension.crx
         threatxtension analyze --file /path/to/extension.zip
     """
-    # Validate input
     input_count = sum([bool(url), bool(extension_id), bool(file)])
     if input_count == 0:
         raise click.UsageError("One of --url, --id, or --file must be provided")
@@ -420,7 +402,6 @@ def analyze(
     configure_logging(verbose)
     print_header()
 
-    # Determine which input was provided
     if file:
         chrome_extension_path = file
         input_type = "Local file"
@@ -438,15 +419,12 @@ def analyze(
     console.print(f"\n[bold]Analyzing:[/bold] [blue]{chrome_extension_path}[/blue]")
     console.print(f"[dim]Input type: {input_type}[/dim]\n")
 
-    # Build workflow graph
     graph = build_graph()
 
-    # Create initial state
     initial_state = create_initial_state(
         chrome_extension_path=chrome_extension_path, keep_extracted=keep_extracted
     )
 
-    # Execute workflow with spinner
     try:
         with console.status("[bold green]Running analysis...", spinner="dots"):
             result = graph.invoke(initial_state)
@@ -455,10 +433,8 @@ def analyze(
         logger.exception("Workflow execution failed")
         raise click.Abort()
 
-    # Print results
     print_results(result)
 
-    # Save to file if requested
     if output:
         output_path = Path(output)
         save_results_json(result, output_path)
@@ -489,8 +465,6 @@ def serve(host: str, port: int, reload: bool):
         threatxtension serve --port 8080 --reload
     """
     import uvicorn
-
-    # from threatxtension.api.main import app  # Unused import
 
     console.print(
         Panel.fit(
@@ -566,10 +540,8 @@ def batch(input: str, output: str, parallel: bool, workers: int, verbose: bool):
         console.print(f"[dim]Workers: {workers}[/dim]")
     console.print()
 
-    # Initialize batch processor
     processor = BatchProcessor(output_dir=output)
 
-    # Process batch
     try:
         with console.status("[bold green]Processing batch...", spinner="dots"):
             result = processor.process_from_file(
@@ -580,7 +552,6 @@ def batch(input: str, output: str, parallel: bool, workers: int, verbose: bool):
         logger.exception("Batch processing failed")
         raise click.Abort()
 
-    # Display results summary
     console.print("\n")
     console.print(
         Panel.fit("[bold cyan]Batch Processing Complete[/bold cyan]", border_style="cyan")
@@ -602,7 +573,6 @@ def batch(input: str, output: str, parallel: bool, workers: int, verbose: bool):
     )
     summary_table.add_row("Success Rate", f"{success_rate:.1f}%")
 
-    # Calculate duration
     if result.get("start_time") and result.get("end_time"):
         duration = calculate_duration(result["start_time"], result["end_time"])
         summary_table.add_row("Duration", f"{duration:.2f} seconds")
@@ -610,7 +580,6 @@ def batch(input: str, output: str, parallel: bool, workers: int, verbose: bool):
     console.print("\n")
     console.print(summary_table)
 
-    # Display report path
     if result.get("report_path"):
         console.print(f"\n[green]Batch report saved to:[/green] {result['report_path']}")
 

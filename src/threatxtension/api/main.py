@@ -9,8 +9,6 @@ import os
 import json
 import logging
 import re
-
-# import asyncio  # Unused import
 from pathlib import Path
 from typing import Optional, Dict, Any
 from datetime import datetime
@@ -31,12 +29,11 @@ from threatxtension.api.database import db
 logger = logging.getLogger(__name__)
 
 
-# Pydantic models for request/response
 class ScanRequest(BaseModel):
     """Request model for triggering a scan."""
 
     url: str
-    force: bool = False  # Force re-scan even if cached
+    force: bool = False
 
 
 class ScanStatusResponse(BaseModel):
@@ -61,35 +58,30 @@ class FileListResponse(BaseModel):
     files: list[str]
 
 
-# Initialize FastAPI app
 app = FastAPI(
     title="ThreatXtension API",
     description="REST API for Chrome extension security analysis",
     version="1.0.0",
 )
 
-# Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",  # Vite dev server
-        "http://localhost:3000",  # Alternative dev port
-        "http://localhost:8007",  # Same-origin in container
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://localhost:8007",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Static files directory for React frontend (in container)
 STATIC_DIR = Path(__file__).parent.parent.parent.parent / "static"
 
-# Storage for scan results (in-memory cache + database persistence)
 scan_results: Dict[str, Dict[str, Any]] = {}
 scan_status: Dict[str, str] = {}
 
 
-# Load existing results from database on startup
 def load_existing_results():
     """Load existing scan results from database into memory cache."""
     history = db.get_scan_history(limit=100)
@@ -101,7 +93,6 @@ def load_existing_results():
 
 load_existing_results()
 
-# Directory for storing analysis results
 RESULTS_DIR = Path("extensions_storage")
 RESULTS_DIR.mkdir(exist_ok=True)
 
@@ -120,7 +111,6 @@ def extract_extension_id(url: str) -> Optional[str]:
     if re.match(r"^[a-p]{32}$", url.strip().lower()):
         return url.strip().lower()
 
-    # Try to extract from URL
     match = re.search(r"/detail/(?:[^/]+/)?([a-z]{32})", url)
     return match.group(1) if match else None
 
@@ -128,10 +118,8 @@ def extract_extension_id(url: str) -> Optional[str]:
 async def run_analysis_workflow(url: str, extension_id: str):
     """Run the analysis workflow in the background."""
     try:
-        # Update status
         scan_status[extension_id] = "running"
 
-        # Build and run workflow
         graph = build_graph()
 
         initial_state: WorkflowState = {
@@ -152,17 +140,14 @@ async def run_analysis_workflow(url: str, extension_id: str):
             "error": None,
         }
 
-        # Run workflow
         final_state = await graph.ainvoke(initial_state)
 
-        # Store results
         if (
             final_state["status"] == WorkflowStatus.COMPLETED
             or final_state["status"] == "completed"
         ):
             analysis_results = final_state.get("analysis_results", {}) or {}
 
-            # Extract extension name from metadata or manifest
             metadata = final_state.get("extension_metadata") or {}
             manifest = final_state.get("manifest_data") or {}
             extension_name = (
@@ -172,7 +157,6 @@ async def run_analysis_workflow(url: str, extension_id: str):
                 or extension_id
             )
 
-            # Ensure all values are not None
             extracted_files = final_state.get("extracted_files")
             if extracted_files is None:
                 extracted_files = []
@@ -204,28 +188,16 @@ async def run_analysis_workflow(url: str, extension_id: str):
                 "summary": final_state.get("executive_summary") or {},
                 "extracted_path": final_state.get("extension_dir"),
                 "extracted_files": extracted_files,
-                "overall_security_score": calculate_security_score(
-                    final_state
-                ),  # This helper also needs update or a wrapper
-                "total_findings": count_total_findings(
-                    final_state
-                ),  # This helper also needs update or a wrapper
-                "risk_distribution": calculate_risk_distribution(
-                    final_state
-                ),  # This helper also needs update or a wrapper
-                "overall_risk": determine_overall_risk(
-                    final_state
-                ),  # This helper also needs update or a wrapper
-                "total_risk_score": calculate_total_risk_score(
-                    final_state
-                ),  # This helper also needs update or a wrapper
+                "overall_security_score": calculate_security_score(final_state),
+                "total_findings": count_total_findings(final_state),
+                "risk_distribution": calculate_risk_distribution(final_state),
+                "overall_risk": determine_overall_risk(final_state),
+                "total_risk_score": calculate_total_risk_score(final_state),
             }
             scan_status[extension_id] = "completed"
 
-            # Save to database
             db.save_scan_result(scan_results[extension_id])
 
-            # Save to file (backup)
             result_file = RESULTS_DIR / f"{extension_id}_results.json"
             with open(result_file, "w", encoding="utf-8") as f:
                 json.dump(scan_results[extension_id], f, indent=2)
@@ -257,7 +229,6 @@ def get_extracted_files(extracted_path: Optional[str]) -> list[str]:
     for root, _, filenames in os.walk(extracted_path):
         for filename in filenames:
             file_path = os.path.join(root, filename)
-            # Store relative path from extracted_path
             rel_path = os.path.relpath(file_path, extracted_path)
             files.append(rel_path)
 
@@ -321,7 +292,7 @@ def calculate_security_score(state: WorkflowState) -> int:
         return scored
 
     # Component 1: SAST Analysis (50 points max risk) - INCREASED from 40
-    sast_score = 0  # Start at 0 risk
+    sast_score = 0
     javascript_analysis = analysis_results.get("javascript_analysis", {})
     if javascript_analysis and isinstance(javascript_analysis, dict):
         sast_findings = javascript_analysis.get("sast_findings", {})
@@ -332,31 +303,30 @@ def calculate_security_score(state: WorkflowState) -> int:
             for finding in findings_list:
                 severity = finding.get("extra", {}).get("severity", "INFO").upper()
                 if severity in ("CRITICAL", "ERROR", "HIGH"):
-                    sast_score += 10  # INCREASED from 8 - each critical finding is serious
+                    sast_score += 10
                     high_count += 1
                 elif severity in ("MEDIUM", "WARNING"):
-                    sast_score += 3  # INCREASED from 4/1
+                    sast_score += 3
                     medium_count += 1
                 elif severity == "LOW":
                     sast_score += 1
 
         # Bonus penalty for multiple critical findings (indicates systematic issues)
         if high_count >= 10:
-            sast_score += 20  # Many critical issues = very dangerous
+            sast_score += 20
         elif high_count >= 5:
             sast_score += 10
 
-    sast_score = min(50, sast_score)  # Cap at 50 (increased from 40)
+    sast_score = min(50, sast_score)
 
     # Component 2: Permissions Analysis (35 points max risk) - INCREASED from 30
-    permissions_score = 0  # Start at 0 risk
+    permissions_score = 0
     permissions_analysis = analysis_results.get("permissions_analysis", {}) or {}
     permissions_details = (
         permissions_analysis.get("permissions_details")
         if isinstance(permissions_analysis, dict)
         else None
     )
-    # Ensure permissions_details is a dict, not None
     if not isinstance(permissions_details, dict):
         permissions_details = {}
 
@@ -372,78 +342,72 @@ def calculate_security_score(state: WorkflowState) -> int:
             unreasonable_count += 1
             if risk == "high":
                 high_risk_perms += 1
-                permissions_score += 8  # INCREASED from 5 - high risk permissions are serious
+                permissions_score += 8
             elif risk == "medium":
-                permissions_score += 4  # INCREASED from 2
+                permissions_score += 4
             else:
-                permissions_score += 2  # INCREASED from 1
+                permissions_score += 2
 
-    # Bonus penalty for many unreasonable permissions
     if unreasonable_count >= 10:
-        permissions_score += 15  # Many unreasonable permissions = very suspicious
+        permissions_score += 15
     elif unreasonable_count >= 5:
         permissions_score += 8
 
-    permissions_score = min(35, permissions_score)  # Cap at 35 (increased from 30)
+    permissions_score = min(35, permissions_score)
 
     # Component 3: Webstore Trust Score (10 points max risk) - REDUCED from 20
-    webstore_score = 0  # Start at 0 risk
+    webstore_score = 0
     _ = analysis_results.get("webstore_analysis", {})  # webstore_analysis - for future use
     metadata = state.get("extension_metadata", {}) or {}
 
-    # Check user ratings (low rating = higher risk)
     rating = metadata.get("rating")
     if rating:
         try:
             rating_val = float(rating)
             if rating_val >= 4.5:
-                webstore_score += 0  # Excellent - no risk
+                webstore_score += 0
             elif rating_val >= 4.0:
-                webstore_score += 1  # Good - slight risk
+                webstore_score += 1
             elif rating_val >= 3.0:
-                webstore_score += 3  # Average - moderate risk
+                webstore_score += 3
             else:
-                webstore_score += 5  # Poor - high risk
+                webstore_score += 5
         except (ValueError, TypeError):
-            webstore_score += 2  # No valid rating - some risk
+            webstore_score += 2
     else:
-        webstore_score += 2  # No rating data
+        webstore_score += 2
 
-    # Check install count (low adoption = higher risk)
     users = metadata.get("user_count", metadata.get("users", "0"))
     try:
         user_count = int(str(users).replace(",", "").replace("+", ""))
         if user_count >= 1000000:
-            webstore_score += 0  # Very popular - trusted
+            webstore_score += 0
         elif user_count >= 100000:
-            webstore_score += 1  # Popular - low risk
+            webstore_score += 1
         elif user_count >= 10000:
-            webstore_score += 2  # Moderate - some risk
+            webstore_score += 2
         else:
-            webstore_score += 4  # Low adoption - higher risk
+            webstore_score += 4
     except (ValueError, TypeError):
-        webstore_score += 2  # Unknown user count
+        webstore_score += 2
 
-    webstore_score = min(10, webstore_score)  # Cap at 10 (reduced from 20)
+    webstore_score = min(10, webstore_score)
 
     # Component 4: Manifest Quality (5 points max risk) - REDUCED from 10
-    manifest_score = 0  # Start at 0 risk
+    manifest_score = 0
 
-    # Check for proper metadata (missing = risk)
     if not manifest.get("name") or manifest.get("name", "").startswith("__MSG_"):
-        manifest_score += 2  # Missing/placeholder name = risk
+        manifest_score += 2
     if not manifest.get("description") or manifest.get("description", "").startswith("__MSG_"):
-        manifest_score += 1  # Missing/placeholder description = risk
+        manifest_score += 1
 
-    # Check for Content Security Policy (missing = risk)
     if not manifest.get("content_security_policy"):
         manifest_score += 1
 
-    # Check for update URL (missing = risk)
     if not manifest.get("update_url"):
         manifest_score += 1
 
-    manifest_score = min(5, manifest_score)  # Cap at 5 (reduced from 10)
+    manifest_score = min(5, manifest_score)
 
     # Component 5: VirusTotal Threat Intelligence (40 points max risk)
     virustotal_score = 0
@@ -452,27 +416,24 @@ def calculate_security_score(state: WorkflowState) -> int:
         summary = vt_analysis.get("summary", {})
         threat_level = summary.get("threat_level", "").lower()
 
-        # Malicious detection = instant high risk
         if threat_level == "malicious":
-            virustotal_score += 40  # Maximum penalty
+            virustotal_score += 40
         elif threat_level == "suspicious":
-            virustotal_score += 25  # High penalty
+            virustotal_score += 25
 
-        # Check for detected malware families
         detected_families = summary.get("detected_families", [])
         if detected_families:
-            virustotal_score += min(20, len(detected_families) * 5)  # +5 per family, max 20
+            virustotal_score += min(20, len(detected_families) * 5)
 
-        # Check detection stats
         total_malicious = vt_analysis.get("total_malicious", 0)
         total_suspicious = vt_analysis.get("total_suspicious", 0)
 
         if total_malicious > 0:
-            virustotal_score += min(30, total_malicious * 3)  # +3 per malicious detection
+            virustotal_score += min(30, total_malicious * 3)
         elif total_suspicious > 0:
-            virustotal_score += min(15, total_suspicious * 2)  # +2 per suspicious detection
+            virustotal_score += min(15, total_suspicious * 2)
 
-    virustotal_score = min(40, virustotal_score)  # Cap at 40
+    virustotal_score = min(40, virustotal_score)
 
     # Component 6: Entropy/Obfuscation Analysis (30 points max risk)
     entropy_score = 0
@@ -481,23 +442,20 @@ def calculate_security_score(state: WorkflowState) -> int:
         summary = entropy_analysis.get("summary", {})
         overall_risk = summary.get("overall_risk", "").lower()
 
-        # High obfuscation risk
         if overall_risk == "high":
             entropy_score += 25
         elif overall_risk == "medium":
             entropy_score += 15
 
-        # Penalize high entropy files
         high_entropy_files = summary.get("high_entropy_files", [])
         if high_entropy_files:
-            entropy_score += min(20, len(high_entropy_files) * 5)  # +5 per obfuscated file
+            entropy_score += min(20, len(high_entropy_files) * 5)
 
-        # Penalize obfuscation patterns
         obfuscated_files = entropy_analysis.get("obfuscated_files", 0)
         if obfuscated_files > 0:
-            entropy_score += min(15, obfuscated_files * 3)  # +3 per obfuscated file
+            entropy_score += min(15, obfuscated_files * 3)
 
-    entropy_score = min(30, entropy_score)  # Cap at 30
+    entropy_score = min(30, entropy_score)
 
     # Component 7: Chrome Stats behavioral risk (20 points max risk)
     chromestats_score = 0
@@ -526,7 +484,6 @@ def calculate_security_score(state: WorkflowState) -> int:
 
     chromestats_score = min(20, chromestats_score)
 
-    # Calculate final risk score (sum of all risk components)
     # Total possible: 50 + 35 + 10 + 5 + 40 + 30 + 20 = 190 points
     risk_score = (
         sast_score
@@ -557,7 +514,6 @@ def count_total_findings(state: WorkflowState) -> int:
     """Count total security findings including unreasonable permissions."""
     analysis_results = state.get("analysis_results", {}) or {}
 
-    # Count SAST findings
     javascript_analysis = analysis_results.get("javascript_analysis", {})
     total = 0
     if javascript_analysis:
@@ -566,14 +522,12 @@ def count_total_findings(state: WorkflowState) -> int:
             if findings_list is not None:
                 total += len(findings_list)
 
-    # Count unreasonable permissions as findings
     permissions_analysis = analysis_results.get("permissions_analysis", {}) or {}
     permissions_details = (
         permissions_analysis.get("permissions_details")
         if isinstance(permissions_analysis, dict)
         else None
     )
-    # Ensure permissions_details is a dict, not None
     if not isinstance(permissions_details, dict):
         permissions_details = {}
 
@@ -591,7 +545,6 @@ def calculate_risk_distribution(state: WorkflowState) -> Dict[str, int]:
 
     analysis_results = state.get("analysis_results", {}) or {}
 
-    # Count SAST findings
     javascript_analysis = analysis_results.get("javascript_analysis", {})
     js_analysis = []
     if javascript_analysis and isinstance(javascript_analysis, dict):
@@ -611,14 +564,12 @@ def calculate_risk_distribution(state: WorkflowState) -> Dict[str, int]:
         else:
             distribution["low"] += 1
 
-    # Count unreasonable permissions as findings
     permissions_analysis = analysis_results.get("permissions_analysis", {}) or {}
     permissions_details = (
         permissions_analysis.get("permissions_details")
         if isinstance(permissions_analysis, dict)
         else None
     )
-    # Ensure permissions_details is a dict, not None
     if not isinstance(permissions_details, dict):
         permissions_details = {}
 
@@ -627,13 +578,11 @@ def calculate_risk_distribution(state: WorkflowState) -> Dict[str, int]:
         risk = perm_analysis.get("risk_level", "").lower()
 
         if not is_reasonable:
-            # Classify unreasonable permissions by explicit risk_level or default to medium
             if risk == "high":
                 distribution["high"] += 1
             elif risk == "low":
                 distribution["low"] += 1
             else:
-                # Default unreasonable permissions to medium risk
                 distribution["medium"] += 1
 
     return distribution
@@ -675,7 +624,6 @@ def calculate_total_risk_score(state: WorkflowState) -> int:
         js_analysis = javascript_analysis
 
     total_score = 0
-    # map severity to score if risk_score not present
     severity_scores = {"CRITICAL": 10, "HIGH": 8, "ERROR": 5, "MEDIUM": 5, "WARNING": 1, "INFO": 0}
 
     for finding in js_analysis:
@@ -685,17 +633,12 @@ def calculate_total_risk_score(state: WorkflowState) -> int:
     return total_score
 
 
-# API Endpoints
-
-
 @app.get("/")
 async def root():
     """Root endpoint - serves frontend or API info."""
-    # Serve frontend if available
     index_file = STATIC_DIR / "index.html"
     if STATIC_DIR.exists() and index_file.exists():
         return FileResponse(index_file)
-    # Otherwise return API info (development mode)
     return {"name": "ThreatXtension API", "version": "1.0.0", "status": "running"}
 
 
@@ -721,7 +664,6 @@ async def trigger_scan(request: ScanRequest, background_tasks: BackgroundTasks):
             detail="Invalid input. Please provide a Chrome Web Store URL or extension ID (32-character string)",
         )
 
-    # Check if already scanning
     if extension_id in scan_status and scan_status[extension_id] == "running":
         return {
             "message": "Scan already in progress",
@@ -729,7 +671,6 @@ async def trigger_scan(request: ScanRequest, background_tasks: BackgroundTasks):
             "status": "running",
         }
 
-    # Check if already scanned (unless force=True)
     if not force:
         existing_result = db.get_scan_result(extension_id)
         if existing_result:
@@ -740,13 +681,11 @@ async def trigger_scan(request: ScanRequest, background_tasks: BackgroundTasks):
                 "already_scanned": True,
             }
 
-    # If force=True, clear existing cache
     if force and extension_id in scan_status:
         del scan_status[extension_id]
     if force and extension_id in scan_results:
         del scan_results[extension_id]
 
-    # Start background analysis
     background_tasks.add_task(run_analysis_workflow, url, extension_id)
 
     return {
@@ -769,7 +708,6 @@ async def upload_and_scan(background_tasks: BackgroundTasks, file: UploadFile = 
     Returns:
         Scan trigger confirmation with extension ID
     """
-    # Validate file extension
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
 
@@ -779,7 +717,6 @@ async def upload_and_scan(background_tasks: BackgroundTasks, file: UploadFile = 
             status_code=400, detail="Invalid file type. Only .crx and .zip files are supported"
         )
 
-    # Validate file size (max 100MB)
     max_size = 100 * 1024 * 1024  # 100MB
     file_content = await file.read()
     if len(file_content) > max_size:
@@ -788,12 +725,10 @@ async def upload_and_scan(background_tasks: BackgroundTasks, file: UploadFile = 
             detail=f"File too large. Maximum size is {max_size / (1024*1024):.0f}MB",
         )
 
-    # Generate unique ID for uploaded file
     import uuid
 
     extension_id = str(uuid.uuid4())
 
-    # Save uploaded file to extensions_storage
     safe_filename = Path(file.filename).name
     file_path = RESULTS_DIR / f"{extension_id}_{safe_filename}"
 
@@ -803,7 +738,6 @@ async def upload_and_scan(background_tasks: BackgroundTasks, file: UploadFile = 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}") from e
 
-    # Start background analysis with local file path
     background_tasks.add_task(run_analysis_workflow, str(file_path), extension_id)
 
     return {
@@ -851,16 +785,13 @@ async def get_scan_results(extension_id: str):
     Returns:
         Complete scan results
     """
-    # Try memory first
     if extension_id in scan_results:
         return scan_results[extension_id]
 
-    # Try loading from database
     results = db.get_scan_result(extension_id)
     if results:
         metadata = results.get("metadata", {})
 
-        # Ensure consistent field naming for frontend
         formatted_results = {
             "extension_id": results.get("extension_id"),
             "extension_name": results.get("extension_name"),
@@ -896,15 +827,14 @@ async def get_scan_results(extension_id: str):
             "overall_risk": results.get("risk_level", "unknown"),
             "total_risk_score": results.get("total_findings", 0),
         }
-        scan_results[extension_id] = formatted_results  # Cache in memory
+        scan_results[extension_id] = formatted_results
         return formatted_results
 
-    # Try loading from file (fallback)
     result_file = RESULTS_DIR / f"{extension_id}_results.json"
     if result_file.exists():
         with open(result_file, "r", encoding="utf-8") as f:
             results = json.load(f)
-            scan_results[extension_id] = results  # Cache in memory
+            scan_results[extension_id] = results
             return results
 
     raise HTTPException(status_code=404, detail="Scan results not found")
@@ -921,16 +851,13 @@ async def generate_pdf_report(extension_id: str) -> Response:
     Returns:
         PDF file as downloadable response
     """
-    # Get scan results
     results = scan_results.get(extension_id)
 
-    # Try database if not in memory
     if not results:
         results = db.get_scan_result(extension_id)
         if results:
             scan_results[extension_id] = results
 
-    # Try filesystem if not in database
     if not results:
         results_file = RESULTS_DIR / f"{extension_id}_results.json"
         if results_file.exists():
@@ -941,7 +868,6 @@ async def generate_pdf_report(extension_id: str) -> Response:
     if not results:
         raise HTTPException(status_code=404, detail="Scan results not found")
 
-    # Generate PDF report
     try:
         report_generator = ReportGenerator()
         if not report_generator.enabled:
@@ -951,7 +877,6 @@ async def generate_pdf_report(extension_id: str) -> Response:
 
         pdf_bytes = report_generator.generate_pdf(results)
 
-        # Get extension name for filename
         extension_name = results.get(
             "extension_name", results.get("metadata", {}).get("title", extension_id)
         )
@@ -1010,7 +935,6 @@ async def get_file_content(extension_id: str, file_path: str) -> FileContentResp
     if not extracted_path:
         raise HTTPException(status_code=404, detail="Extracted files not found")
 
-    # Construct full file path
     full_path = os.path.join(extracted_path, file_path)
 
     # Security check: ensure path is within extracted directory
@@ -1025,7 +949,6 @@ async def get_file_content(extension_id: str, file_path: str) -> FileContentResp
             content = f.read()
         return FileContentResponse(content=content, file_path=file_path)
     except UnicodeDecodeError as exc:
-        # Binary file
         raise HTTPException(status_code=400, detail="Cannot read binary file") from exc
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}") from e
@@ -1096,7 +1019,6 @@ async def delete_scan(extension_id: str):
     success = db.delete_scan_result(extension_id)
 
     if success:
-        # Remove from memory cache
         scan_results.pop(extension_id, None)
         scan_status.pop(extension_id, None)
 
@@ -1150,14 +1072,11 @@ async def analyze_file_with_ai(
         from langchain_core.prompts import PromptTemplate
         from langchain_core.output_parsers import JsonOutputParser
 
-        # Determine which LLM provider to use
         if provider == "auto":
-            # Use the configured model from environment
             llm_provider = os.getenv("LLM_MODEL", "meta-llama/llama-3-3-70b-instruct")
         else:
             llm_provider = provider
 
-        # Create analysis prompt
         prompt_template = """You are a security expert analyzing a Chrome extension file for potential security vulnerabilities and malicious behavior.
 
 File Name: {file_name}
@@ -1197,7 +1116,6 @@ Focus on actionable security insights. Be specific about any suspicious patterns
             input_variables=["file_name", "file_type", "file_content"], template=prompt_template
         )
 
-        # Get LLM client
         llm = get_chat_llm_client(
             model_name=llm_provider,
             model_parameters={
@@ -1206,21 +1124,17 @@ Focus on actionable security insights. Be specific about any suspicious patterns
             },
         )
 
-        # Truncate file content if too large (keep first 5000 chars)
         truncated_content = file_content[:5000]
         if len(file_content) > 5000:
             truncated_content += "\n\n... (content truncated for analysis)"
 
-        # Run analysis with better error handling
         try:
-            # Create chain with JSON parser
             chain = prompt | llm | JsonOutputParser()
 
             result = chain.invoke(
                 {"file_name": file_name, "file_type": file_type, "file_content": truncated_content}
             )
         except Exception as parse_error:
-            # If JSON parsing fails, try without parser and extract JSON manually
             logger.warning(f"JSON parsing failed, trying raw output: {parse_error}")
             chain_raw = prompt | llm
 
@@ -1228,18 +1142,15 @@ Focus on actionable security insights. Be specific about any suspicious patterns
                 {"file_name": file_name, "file_type": file_type, "file_content": truncated_content}
             )
 
-            # Extract JSON from response
             import re
 
             raw_text = raw_result.content if hasattr(raw_result, "content") else str(raw_result)
 
-            # Try to find JSON in the response
             json_match = re.search(r"\{[\s\S]*\}", raw_text)
             if json_match:
                 try:
                     result = json.loads(json_match.group(0))
                 except json.JSONDecodeError:
-                    # If still fails, return a basic analysis
                     result = {
                         "riskScore": 5,
                         "severity": "Medium",
@@ -1249,7 +1160,6 @@ Focus on actionable security insights. Be specific about any suspicious patterns
                         "recommendations": ["Manual review recommended"],
                     }
             else:
-                # No JSON found, return basic analysis
                 result = {
                     "riskScore": 5,
                     "severity": "Medium",
@@ -1259,7 +1169,6 @@ Focus on actionable security insights. Be specific about any suspicious patterns
                     "recommendations": ["Manual review recommended"],
                 }
 
-        # Add metadata
         result["metadata"] = {
             "model": llm_provider,
             "deployment": "Backend API",
@@ -1289,16 +1198,12 @@ async def generate_sast_signature(
     based on the actual code patterns found in the file.
     """
     try:
-        # Import LLM client
         from threatxtension.llm.clients import get_chat_llm_client
 
-        # Get LLM client
         llm_client = get_chat_llm_client()
 
-        # Limit file content to avoid token limits
         content_preview = file_content[:3000] if len(file_content) > 3000 else file_content
 
-        # Create prompt for SAST signature generation
         prompt = f"""You are a security expert analyzing JavaScript code to create Semgrep SAST rules.
 
 Analyze this {file_name} file and generate 3-5 Semgrep rules based on ACTUAL security patterns found in the code.
@@ -1334,18 +1239,14 @@ Return a JSON array of rules in this format:
 IMPORTANT: Only create rules for patterns that ACTUALLY EXIST in the provided code.
 Return ONLY the JSON array, no additional text."""
 
-        # Generate signature using LLM
         response = llm_client.invoke(prompt)
 
-        # Extract content from response
         if hasattr(response, "content"):
             response_text = response.content
         else:
             response_text = str(response)
 
-        # Parse JSON response
         try:
-            # Try to extract JSON from response
             response_text = response_text.strip()
             if "```json" in response_text:
                 response_text = response_text.split("```json")[1].split("```")[0].strip()
@@ -1354,15 +1255,12 @@ Return ONLY the JSON array, no additional text."""
 
             signatures = json.loads(response_text)
 
-            # Ensure it's a list
             if not isinstance(signatures, list):
                 signatures = [signatures]
 
         except json.JSONDecodeError:
-            # Fallback: analyze file content and create basic signatures
             signatures = _generate_fallback_signatures(file_content, file_name)
 
-        # Add metadata to each signature
         for sig in signatures:
             sig["provider"] = provider
             sig["generated_at"] = datetime.now().isoformat()
@@ -1375,7 +1273,6 @@ Return ONLY the JSON array, no additional text."""
         }
 
     except ImportError as e:
-        # Fallback to pattern-based generation
         logger.warning(f"LLM not available, using fallback: {e}")
         signatures = _generate_fallback_signatures(file_content, file_name)
         return {
@@ -1386,7 +1283,6 @@ Return ONLY the JSON array, no additional text."""
         }
     except Exception as e:
         logger.error(f"SAST signature generation failed: {e}")
-        # Return fallback instead of error
         signatures = _generate_fallback_signatures(file_content, file_name)
         return {
             "success": True,
@@ -1403,7 +1299,6 @@ def _generate_fallback_signatures(file_content: str, file_name: str) -> list:
 
     signatures = []
 
-    # Pattern detection rules with regex for more accurate matching
     patterns_to_check = [
         {
             "regex": r"\beval\s*\(",
@@ -1542,10 +1437,8 @@ def _generate_fallback_signatures(file_content: str, file_name: str) -> list:
         },
     ]
 
-    # Check which patterns exist in the file using regex
     for pattern_def in patterns_to_check:
         if re.search(pattern_def["regex"], file_content, re.IGNORECASE):
-            # Find actual match for better context
             match = re.search(pattern_def["regex"], file_content, re.IGNORECASE)
             matched_text = match.group(0) if match else pattern_def["example"]
 
@@ -1560,15 +1453,13 @@ def _generate_fallback_signatures(file_content: str, file_name: str) -> list:
                         "category": "security",
                         "cwe": pattern_def["cwe"],
                         "confidence": "HIGH",
-                        "matched_example": matched_text[:100],  # First 100 chars of match
+                        "matched_example": matched_text[:100],
                     },
                 }
             )
 
-    # If no patterns found, return empty list (don't create generic signature)
     if not signatures:
         logger.info(f"No security patterns found in {file_name}")
-        # Return a message signature
         signatures.append(
             {
                 "rule_id": f"custom-no-patterns-{file_name.replace('.', '-')}",
@@ -1583,14 +1474,13 @@ def _generate_fallback_signatures(file_content: str, file_name: str) -> list:
     return signatures
 
 
-# In-memory registry of batch jobs (batch_id -> status/results)
 batch_jobs: Dict[str, Dict[str, Any]] = {}
 
 
 class BatchAnalyzeRequest(BaseModel):
     """Request model for batch analysis."""
 
-    extensions: list[str]  # List of URLs, IDs, or file paths
+    extensions: list[str]
     parallel: bool = True
     max_workers: int = 4
 
@@ -1627,15 +1517,12 @@ async def batch_analyze(request: BatchAnalyzeRequest, background_tasks: Backgrou
     if len(request.extensions) > 100:
         raise HTTPException(status_code=400, detail="Maximum 100 extensions allowed per batch")
 
-    # Initialize batch processor
     processor = BatchProcessor(output_dir="./batch_results")
 
-    # Generate batch ID
     import uuid
 
     batch_id = f"batch_{uuid.uuid4().hex[:8]}"
 
-    # Initialize batch job status
     batch_jobs[batch_id] = {
         "batch_id": batch_id,
         "status": "pending",
@@ -1646,7 +1533,6 @@ async def batch_analyze(request: BatchAnalyzeRequest, background_tasks: Backgrou
         "end_time": None,
     }
 
-    # Run batch processing in background
     async def run_batch():
         try:
             batch_jobs[batch_id]["status"] = "running"
@@ -1656,7 +1542,6 @@ async def batch_analyze(request: BatchAnalyzeRequest, background_tasks: Backgrou
                 parallel=request.parallel,
                 max_workers=request.max_workers,
             )
-            # Update batch job with results
             batch_jobs[batch_id].update(
                 {
                     "status": result.get("status", "completed"),
@@ -1735,7 +1620,6 @@ async def get_batch_results(batch_id: str):
             detail=f"Batch is still {job['status']}. Results not yet available.",
         )
 
-    # Try to load results from file if available
     from threatxtension.core.batch_processor import BatchProcessor
 
     processor = BatchProcessor(output_dir="./batch_results")
@@ -1744,7 +1628,6 @@ async def get_batch_results(batch_id: str):
     if file_results:
         return file_results
 
-    # Return in-memory results if file not available
     return {
         "batch_id": job["batch_id"],
         "status": job["status"],
@@ -1788,7 +1671,6 @@ async def health_check():
     return {"status": "healthy", "service": "threatxtension", "version": "1.0.0"}
 
 
-# Mount static files for React frontend assets (if static directory exists)
 if STATIC_DIR.exists() and (STATIC_DIR / "assets").exists():
     app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
 
@@ -1800,16 +1682,13 @@ async def serve_spa(full_path: str):
     Serve React SPA for all non-API routes.
     This enables client-side routing in the React app.
     """
-    # Don't intercept API routes
     if full_path.startswith("api/"):
         raise HTTPException(status_code=404, detail="API endpoint not found")
 
-    # Serve index.html for all other routes (SPA routing)
     index_file = STATIC_DIR / "index.html"
     if STATIC_DIR.exists() and index_file.exists():
         return FileResponse(index_file)
 
-    # If no static files, return API info (development mode)
     return {
         "name": "ThreatXtension API",
         "version": "1.0.0",

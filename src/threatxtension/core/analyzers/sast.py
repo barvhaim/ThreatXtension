@@ -74,32 +74,26 @@ class JavaScriptAnalyzer(BaseAnalyzer):
         if not self.sast_config.get("enabled", True):
             return False, None
 
-        # Extract filename and path components
         file_name = file_path.split("/")[-1]
         file_path_lower = file_path.lower()
 
         exclusion_patterns = self.sast_config.get("exclusion_patterns", {})
 
-        # Check path segments (e.g., lib/, vendor/, node_modules/)
         path_segments = exclusion_patterns.get("path_segments", [])
         for segment in path_segments:
             if f"/{segment}" in file_path_lower or file_path_lower.startswith(segment):
                 return True, f"path contains '{segment}'"
 
-        # Check file patterns (e.g., *.min.js, *.bundle.js, chunk-*.js)
         file_patterns = exclusion_patterns.get("file_patterns", [])
         for pattern in file_patterns:
-            # Use fnmatch for full glob pattern support
             if fnmatch.fnmatch(file_name.lower(), pattern.lower()):
                 return True, f"matches pattern '{pattern}'"
 
-        # Check library names (e.g., jquery, bootstrap)
         library_names = exclusion_patterns.get("library_names", [])
         for lib_name in library_names:
             if lib_name.lower() in file_name.lower():
                 return True, f"matches library name '{lib_name}'"
 
-        # Check file size if file exists
         max_size_kb = self.sast_config.get("max_file_size_kb", 500)
         if os.path.exists(file_path):
             file_size_kb = os.path.getsize(file_path) / 1024
@@ -111,12 +105,10 @@ class JavaScriptAnalyzer(BaseAnalyzer):
     @staticmethod
     def _extract_javascript_files(extension_dir: str, manifest: Dict) -> List:
         """Extract JavaScript file paths from the extension manifest."""
-        js_files = set()  # Use set for automatic deduplication
+        js_files = set()
 
-        # Background scripts
         if "background" in manifest:
             bg = manifest["background"]
-            # Check if bg is not None and is a dict
             if bg and isinstance(bg, dict):
                 # Manifest V3 uses service_worker
                 if "service_worker" in bg:
@@ -126,7 +118,6 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                     js_files.update(bg["scripts"])
             # TODO: Handle scripts embedded in HTML if needed
 
-        # Content scripts
         if "content_scripts" in manifest:
             for content_script in manifest["content_scripts"]:
                 if "js" in content_script:
@@ -134,7 +125,6 @@ class JavaScriptAnalyzer(BaseAnalyzer):
 
         # TODO: Handle other script locations like popup, options, etc.
 
-        # Convert to absolute paths and sort for consistent ordering
         js_file_paths = sorted([f"{extension_dir}/{file_path}" for file_path in js_files])
         logger.info("Extracted %d unique JavaScript files from manifest", len(js_file_paths))
         return js_file_paths
@@ -142,7 +132,6 @@ class JavaScriptAnalyzer(BaseAnalyzer):
     @staticmethod
     def _is_semgrep_installed() -> bool:
         """Check if Semgrep is installed."""
-        # Try direct semgrep command first
         try:
             subprocess.run(["semgrep", "--version"], capture_output=True, text=True, check=True)
             return True
@@ -165,21 +154,20 @@ class JavaScriptAnalyzer(BaseAnalyzer):
     @staticmethod
     def _get_semgrep_command() -> List[str]:
         """Get the appropriate semgrep command based on environment."""
-        # Check if semgrep is directly available
         try:
             subprocess.run(["semgrep", "--version"], capture_output=True, text=True, check=True)
             return ["semgrep"]
         except FileNotFoundError:
             pass
 
-        # Fall back to uv run semgrep
+        # Fall back to uv run semgrep (for Docker/uv environments)
         try:
             subprocess.run(
                 ["uv", "run", "semgrep", "--version"], capture_output=True, text=True, check=True
             )
             return ["uv", "run", "semgrep"]
         except FileNotFoundError:
-            return ["semgrep"]  # Fallback to direct command
+            return ["semgrep"]
 
     @staticmethod
     def _run_semgrep_scan(file_path: str, config: str = "auto") -> Optional[Dict]:
@@ -221,10 +209,8 @@ class JavaScriptAnalyzer(BaseAnalyzer):
     def _get_relative_path(file_path: str, base_dir: str) -> str:
         """Get relative path from base directory."""
         if file_path.startswith(base_dir):
-            # Remove base_dir and leading slash
             rel_path = file_path[len(base_dir) :].lstrip("/")
             return rel_path
-        # Fallback to just filename if path doesn't start with base_dir
         return file_path.split("/")[-1]
 
     @staticmethod
@@ -247,7 +233,7 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                 config,
                 "--json",
                 "--no-git-ignore",
-                *file_paths,  # Pass all files to Semgrep
+                *file_paths,
             ]
             logger.info("Running batch SAST scan on %d files with rule %s", len(file_paths), config)
 
@@ -272,7 +258,6 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                             logger.warning("Semgrep parse error detected - code may be obfuscated")
                             break
 
-                # Map findings back to individual files using relative paths
                 findings_by_file = {}
                 for file_path in file_paths:
                     rel_path = JavaScriptAnalyzer._get_relative_path(file_path, extension_dir)
@@ -293,7 +278,6 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                     len(file_paths),
                 )
 
-                # Return findings with parse error flag
                 return findings_by_file, has_parse_errors
 
             logger.info("No findings from batch Semgrep scan")
@@ -323,11 +307,9 @@ class JavaScriptAnalyzer(BaseAnalyzer):
         if not file_paths:
             return {}, False
 
-        # Calculate timeout per batch based on files per batch
         scanning_config = self.sast_config.get("scanning", {})
         timeout_per_file = scanning_config.get("batch_timeout_per_file_seconds", 10)
 
-        # Split files into batches for parallel processing
         batch_size = max(1, len(file_paths) // max_workers)
         batches = [file_paths[i : i + batch_size] for i in range(0, len(file_paths), batch_size)]
 
@@ -340,9 +322,7 @@ class JavaScriptAnalyzer(BaseAnalyzer):
         all_findings = {}
         has_parse_errors = False
 
-        # Run batches in parallel
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all batches
             future_to_batch = {
                 executor.submit(
                     self._run_semgrep_batch_scan,
@@ -354,7 +334,6 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                 for batch in batches
             }
 
-            # Collect results as they complete
             for future in as_completed(future_to_batch):
                 batch = future_to_batch[future]
                 try:
@@ -434,7 +413,6 @@ class JavaScriptAnalyzer(BaseAnalyzer):
             findings = []
             rel_path = self._get_relative_path(file_path, extension_dir)
 
-            # Define suspicious patterns with their security implications
             suspicious_patterns = {
                 "XMLHttpRequest": {
                     "regex": r"new\s+XMLHttpRequest\s*\(",
@@ -543,25 +521,20 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                 },
             }
 
-            # Scan for each pattern
             for pattern_name, pattern_info in suspicious_patterns.items():
                 matches = list(re.finditer(pattern_info["regex"], content))
                 if matches:
-                    # Get line numbers for matches
                     for match in matches[:5]:  # Limit to first 5 occurrences per pattern
                         line_num = content[: match.start()].count("\n") + 1
 
-                        # Extract the matched text and surrounding context
                         matched_text = match.group(0)
 
-                        # Get the full line containing the match
                         line_start = content.rfind("\n", 0, match.start()) + 1
                         line_end = content.find("\n", match.end())
                         if line_end == -1:
                             line_end = len(content)
                         full_line = content[line_start:line_end]
 
-                        # Calculate column position within the line
                         col_start = match.start() - line_start
                         col_end = match.end() - line_start
 
@@ -575,32 +548,30 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                             {
                                 "check_id": pattern_info["rule_id"],
                                 "path": rel_path,
-                                "file": rel_path,  # Add file field for frontend
-                                "line_number": line_num,  # Add line_number for frontend
+                                "file": rel_path,
+                                "line_number": line_num,
                                 "line": line_num,  # Also add line for compatibility
-                                "pattern_name": pattern_name,  # Add pattern_name for frontend title
-                                "title": pattern_info["message"],  # Add title for frontend
-                                "description": f"{pattern_info['message']} (Found {len(matches)} occurrence{'s' if len(matches) != 1 else ''} in this file)",  # Add description
-                                "severity": pattern_info["severity"],  # Add severity at top level
-                                "risk_level": pattern_info[
-                                    "severity"
-                                ],  # Add risk_level for frontend
+                                "pattern_name": pattern_name,
+                                "title": pattern_info["message"],
+                                "description": f"{pattern_info['message']} (Found {len(matches)} occurrence{'s' if len(matches) != 1 else ''} in this file)",
+                                "severity": pattern_info["severity"],
+                                "risk_level": pattern_info["severity"],
                                 "start": {"line": line_num, "col": col_start},
                                 "end": {"line": line_num, "col": col_end},
-                                "matched_text": matched_text,  # Store the actual matched text for highlighting
-                                "code_snippet": code_snippet,  # Store focused snippet around the match
-                                "full_line": full_line.strip(),  # Store the full line for additional context
+                                "matched_text": matched_text,
+                                "code_snippet": code_snippet,
+                                "full_line": full_line.strip(),
                                 "extra": {
                                     "message": pattern_info["message"],
                                     "severity": pattern_info["severity"],
-                                    "lines": full_line.strip(),  # Add the code line to extra
+                                    "lines": full_line.strip(),
                                     "metadata": {
                                         "category": pattern_info["category"],
                                         "detection_method": "pattern-based (obfuscated code fallback)",
                                         "pattern": pattern_name,
                                         "matched_text": matched_text,  # Also in metadata for frontend fallback
                                         "total_occurrences": len(matches),
-                                        "col_start": col_start,  # Add column info for precise highlighting
+                                        "col_start": col_start,
                                         "col_end": col_end,
                                     },
                                 },
@@ -625,13 +596,10 @@ class JavaScriptAnalyzer(BaseAnalyzer):
         for file_path in file_paths:
             rel_path = self._get_relative_path(file_path, extension_dir)
 
-            # Check for obfuscation
             obfuscation_info = self._detect_obfuscation_patterns(file_path)
 
-            # Run pattern-based scan
             findings = self._run_pattern_based_scan(file_path, extension_dir)
 
-            # Add obfuscation warning if detected
             if obfuscation_info["is_obfuscated"]:
                 obf_message = f"Heavy code obfuscation detected (score: {obfuscation_info['obfuscation_score']})"
                 obf_description = f"{obf_message}. Indicators: {', '.join(obfuscation_info['indicators'])}. This may indicate attempts to hide malicious code."
@@ -640,14 +608,14 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                     {
                         "check_id": "pattern.obfuscation.detected",
                         "path": rel_path,
-                        "file": rel_path,  # Add file field for frontend
-                        "line_number": 1,  # Add line_number for frontend
+                        "file": rel_path,
+                        "line_number": 1,
                         "line": 1,  # Also add line for compatibility
-                        "pattern_name": "Code Obfuscation",  # Add pattern_name for frontend title
-                        "title": obf_message,  # Add title for frontend
-                        "description": obf_description,  # Add description
-                        "severity": "CRITICAL",  # Add severity at top level
-                        "risk_level": "CRITICAL",  # Add risk_level for frontend
+                        "pattern_name": "Code Obfuscation",
+                        "title": obf_message,
+                        "description": obf_description,
+                        "severity": "CRITICAL",
+                        "risk_level": "CRITICAL",
                         "start": {"line": 1, "col": 0},
                         "end": {"line": 1, "col": 0},
                         "extra": {
@@ -696,7 +664,6 @@ class JavaScriptAnalyzer(BaseAnalyzer):
     @staticmethod
     def _format_findings_for_llm(all_findings: Dict[str, List], top_n: int = 10) -> str:
         """Format top N findings for LLM prompt."""
-        # Flatten all findings with file context
         formatted_findings = []
 
         for file_path, findings in all_findings.items():
@@ -716,11 +683,9 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                     }
                 )
 
-        # Sort by severity priority (CRITICAL > ERROR > WARNING > INFO)
         severity_order = {"CRITICAL": 0, "ERROR": 1, "WARNING": 2, "INFO": 3}
         formatted_findings.sort(key=lambda x: severity_order.get(x["severity"], 4))
 
-        # Take top N and format as text
         top_findings = formatted_findings[:top_n]
         if not top_findings:
             return "No findings detected."
@@ -746,34 +711,26 @@ class JavaScriptAnalyzer(BaseAnalyzer):
         from langchain_core.prompts import PromptTemplate
 
         try:
-            # Aggregate findings
             stats = self._aggregate_findings(all_findings)
 
-            # If no findings, return simple message
             if stats["total_findings"] == 0:
                 return "[RISK: LOW] No security findings detected in SAST analysis."
 
-            # Format findings for LLM
             findings_details = self._format_findings_for_llm(all_findings, top_n=10)
 
-            # Get extension name from metadata
             extension_name = "Unknown Extension"
             if metadata:
                 extension_name = metadata.get("name", "Unknown Extension")
 
-            # Load prompt
             prompts = get_prompts("sast_analysis.yaml")
             template = PromptTemplate.from_template(prompts["sast_analysis_prompt"])
 
-            # Get LLM client
             model_name = os.getenv("LLM_MODEL", "meta-llama/llama-3-3-70b-instruct")
             model_parameters = {"max_tokens": 500, "temperature": 0.1, "timeout": 60}
             llm = get_chat_llm_client(model_name=model_name, model_parameters=model_parameters)
 
-            # Create chain
             chain = template | llm | StrOutputParser()
 
-            # Invoke LLM with timeout (60 seconds)
             def _invoke_llm():
                 return chain.invoke(
                     {
@@ -791,7 +748,7 @@ class JavaScriptAnalyzer(BaseAnalyzer):
             with ThreadPoolExecutor(max_workers=1) as executor:
                 future = executor.submit(_invoke_llm)
                 try:
-                    summary = future.result(timeout=60)  # 60 second timeout
+                    summary = future.result(timeout=60)
                     logger.info("Generated SAST summary with LLM")
                     return summary.strip()
                 except FuturesTimeoutError:
@@ -817,12 +774,10 @@ class JavaScriptAnalyzer(BaseAnalyzer):
         js_files = self._extract_javascript_files(extension_dir, manifest)
         files_to_scan, skipped_files = self._filter_files(js_files, extension_dir)
 
-        # If all files were filtered out, run pattern-based scan on ALL JS files in directory as fallback
         if not files_to_scan:
             logger.warning(
                 "All manifest files filtered out - scanning ALL JavaScript files in extension directory as fallback"
             )
-            # Find ALL .js files in the extension directory recursively
             all_js_files = []
             for root, _, files in os.walk(extension_dir):
                 for file in files:
@@ -845,7 +800,6 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                 filtered_fallback_files, extension_dir
             )
 
-            # Aggregate and return findings
             stats = self._aggregate_findings(pattern_findings)
             summary = self._summarize_sast_findings(pattern_findings, len(all_js_files), metadata)
 
@@ -861,16 +815,13 @@ class JavaScriptAnalyzer(BaseAnalyzer):
         all_findings = {}
         has_parse_errors = False
 
-        # Get scanning configuration
         scanning_config = self.sast_config.get("scanning", {})
         batch_enabled = scanning_config.get("batch_enabled", True)
         parallel_enabled = scanning_config.get("parallel_enabled", True)
         max_workers = scanning_config.get("max_parallel_workers", 4)
         timeout_per_file = scanning_config.get("batch_timeout_per_file_seconds", 10)
 
-        # Choose scanning strategy based on configuration
         if parallel_enabled and len(files_to_scan) > max_workers:
-            # Use parallel batch scanning for better performance
             logger.info("Using parallel batch scanning with %d workers", max_workers)
             all_findings, has_parse_errors = self._run_parallel_batch_scans(
                 file_paths=files_to_scan,
@@ -879,7 +830,6 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                 max_workers=max_workers,
             )
         elif batch_enabled:
-            # Use single batch scan
             logger.info("Using batch scanning for %d files", len(files_to_scan))
             timeout = len(files_to_scan) * timeout_per_file + 60
             all_findings, has_parse_errors = self._run_semgrep_batch_scan(
@@ -889,7 +839,6 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                 timeout=timeout,
             )
         else:
-            # Fall back to sequential scanning
             logger.info("Using sequential scanning (batch/parallel disabled)")
             for file_path in files_to_scan:
                 security_findings = self._run_semgrep_scan(
@@ -901,19 +850,16 @@ class JavaScriptAnalyzer(BaseAnalyzer):
                 else:
                     all_findings[rel_path] = []
 
-        # If Semgrep had parse errors or returned no findings, use pattern-based fallback
         total_findings = sum(len(findings) for findings in all_findings.values())
         if has_parse_errors or total_findings == 0:
             logger.info("Running pattern-based fallback scan due to parse errors or no findings")
             pattern_findings = self._run_fallback_pattern_scans(files_to_scan, extension_dir)
-            # Merge pattern findings with Semgrep findings
             for file_path, findings in pattern_findings.items():
                 if file_path in all_findings:
                     all_findings[file_path].extend(findings)
                 else:
                     all_findings[file_path] = findings
 
-        # Generate LLM summary of findings
         sast_analysis = self._summarize_sast_findings(
             all_findings=all_findings, files_scanned=len(files_to_scan), metadata=metadata
         )
