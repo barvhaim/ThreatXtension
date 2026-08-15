@@ -40,3 +40,13 @@ repos:
       - id: check-toml
       - id: check-merge-conflict
       - id: debug-statements
+
+  # Local hook - forbid new print() usage under src/
+  - repo: local
+    hooks:
+      - id: no-print-in-src
+        name: no-print-in-src
+        entry: "! grep -HFn -- 'print(' {}"
+        language: system
+        files: '^src/'
+        types: [python]
